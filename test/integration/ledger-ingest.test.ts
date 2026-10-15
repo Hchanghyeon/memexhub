@@ -7,7 +7,7 @@ import { Hub } from "../../src/hub.js";
 import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
-import { FsStorage } from "../../src/storage/fs.js";
+import { testFs } from "../helpers.js";
 import { ingestApp } from "../../src/http/ingest.js";
 
 let hub: Hub, app: Hono, token = "", healthToken = "";
@@ -16,7 +16,7 @@ const post = (path: string, body: unknown, tok = token) =>
 
 beforeAll(async () => {
   const env = loadEnv({ MEMEXHUB_SECRET: "k".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-li-")) });
-  hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, { fs: () => new FsStorage(mkdtempSync(join(tmpdir(), "mx-lv-"))) });
+  hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-lv-")))]);
   const log = console.log;
   console.log = () => {};
   await hub.init();

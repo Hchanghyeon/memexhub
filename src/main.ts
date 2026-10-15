@@ -1,16 +1,14 @@
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono, type MiddlewareHandler } from "hono";
-import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadEnv } from "./core/config.js";
 import { clientIp } from "./core/ip.js";
 import { nodePlatform } from "./platform/node.js";
 import { Hub } from "./hub.js";
 import { MODULES } from "./modules/index.js";
-import { FsStorage } from "./storage/fs.js";
-import { portableBuilders } from "./storage/factory.js";
-import { StorageError } from "./storage/types.js";
+import { fsProvider } from "./storage/fs-provider.js";
+import { PORTABLE_PROVIDERS } from "./providers/registry.js";
 import { mcpApp } from "./http/mcp.js";
 import { ingestApp } from "./http/ingest.js";
 import { adminApp } from "./admin/app.js";
@@ -21,18 +19,10 @@ const builtinVault = resolve(join(env.DATA_DIR, "vault"));
 const vaultRoots = env.VAULT_ROOTS.split(",").map((r) => resolve(r.trim())).filter(Boolean);
 const trusted = env.TRUSTED_PROXIES.split(",").map((s) => s.trim());
 
-const hub = new Hub(platform, env, MODULES, {
-  ...portableBuilders,
-  // A server-local folder may only be the built-in vault or a folder under VAULT_ROOTS.
-  fs: (c) => {
-    const p = resolve(String(c.config.path ?? ""));
-    const ok = p === builtinVault || vaultRoots.some((r) => p === r || p.startsWith(r + "/"));
-    if (!ok) throw new StorageError("forbidden", `vault folder must be ${builtinVault} or under ${vaultRoots.join(", ")}`);
-    if (p === builtinVault) mkdirSync(p, { recursive: true });
-    return new FsStorage(p);
-  },
-});
+const hub = new Hub(platform, env, MODULES, [...PORTABLE_PROVIDERS, fsProvider({ builtinVault, vaultRoots })]);
 await hub.init();
+// Module jobs (receipt mails, …): check every minute what is due.
+setInterval(() => void hub.runDueJobs(), 60_000).unref();
 
 /** Resolve the real client IP once per request (proxy headers trusted only from trusted proxies). */
 const withIp: MiddlewareHandler = async (c, next) => {

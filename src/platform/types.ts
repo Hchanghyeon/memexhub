@@ -24,6 +24,8 @@ export interface Platform {
   /** Outbound HTTP. Providers must use this so the SSRF guard applies. */
   fetch: typeof fetch;
   log: Logger;
+  /** Does this host name resolve to a private / loopback / link-local address? (SSRF guard). Optional on runtimes that can't reach private networks. */
+  isPrivateHost?(host: string): Promise<boolean>;
 }
 
 export interface Logger {

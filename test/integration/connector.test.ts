@@ -7,7 +7,7 @@ import { Hub } from "../../src/hub.js";
 import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
-import { FsStorage } from "../../src/storage/fs.js";
+import { testFs } from "../helpers.js";
 import { mcpApp } from "../../src/http/mcp.js";
 import { ingestApp } from "../../src/http/ingest.js";
 import { b64url, randomBytes, pkceS256 } from "../../src/core/crypto.js";
@@ -30,7 +30,7 @@ beforeAll(async () => {
     { name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } },
     env,
     MODULES,
-    { fs: () => new FsStorage(vaultRoot) },
+    [testFs(vaultRoot)],
   );
   const log = console.log;
   console.log = () => {};

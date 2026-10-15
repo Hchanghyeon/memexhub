@@ -33,11 +33,23 @@ export interface ModuleContext {
   settings: Settings;
   vault?: SafeVault;
   bus: EventBus;
+  /** Instance of a connected provider of `kind` (named connection, or the first enabled one). */
+  provider<T = unknown>(kind: string, name?: string): Promise<T | undefined>;
+  /** Names of enabled connections of `kind` (several mail accounts …). */
+  connections(kind: string): Promise<string[]>;
+}
+
+/** Periodic work, e.g. checking receipt mails. Runs in-process on Node, via cron on Workers. */
+export interface JobDef {
+  id: string;
+  everyMinutes: number;
+  run(): Promise<void>;
 }
 
 export interface ModuleInstance {
   tools?: ToolDef<any>[];
   ingest?: IngestRoute[];
+  jobs?: JobDef[];
   status?(): Promise<{ ok: boolean; detail?: string }>;
 }
 

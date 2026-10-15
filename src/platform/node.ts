@@ -1,7 +1,9 @@
 import Database from "better-sqlite3";
 import { mkdirSync, chmodSync } from "node:fs";
 import { join } from "node:path";
+import { lookup } from "node:dns/promises";
 import type { Db, Logger, Platform } from "./types.js";
+import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 
 export function sqliteDb(file: string): Db {
   const db = new Database(file);
@@ -58,5 +60,13 @@ export function nodePlatform(opts: { dataDir: string; secret: string; dbFile?: s
     now: () => new Date(),
     fetch: globalThis.fetch.bind(globalThis),
     log: opts.log ?? jsonLogger,
+    async isPrivateHost(host) {
+      try {
+        const addrs = await lookup(host, { all: true });
+        return addrs.some((a) => inAny(a.address, [...PRIVATE_CIDRS, "0.0.0.0/8", "169.254.0.0/16", "100.64.0.0/10"]));
+      } catch {
+        return true; // fail closed
+      }
+    },
   };
 }

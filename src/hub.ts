@@ -7,11 +7,12 @@ import { SettingsStore, type Settings } from "./core/settings.js";
 import { Connections } from "./core/connections.js";
 import { EventBus } from "./core/events.js";
 import { pick } from "./core/i18n.js";
-import type { IngestRoute, ModuleDef, ToolDef } from "./core/registry.js";
+import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
+import type { ProviderDef } from "./providers/types.js";
+import { guardedFetch } from "./core/guarded-fetch.js";
 import { SafeVault } from "./storage/safe-vault.js";
 import { Layout } from "./modules/wiki/layout.js";
 import { StorageError } from "./storage/types.js";
-import { buildStorage, type StorageBuilders } from "./storage/factory.js";
 import { AdminAuth } from "./auth/admin.js";
 import { OAuthServer } from "./auth/oauth.js";
 import { IngestTokens } from "./auth/ingest-tokens.js";
@@ -31,8 +32,10 @@ export class Hub {
   tools: ToolDef<any>[] = [];
   ingest: IngestRoute[] = [];
   moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
+  jobs: { module: string; job: JobDef }[] = [];
+  private instances = new Map<string, Promise<unknown>>();
 
-  constructor(public platform: Platform, public env: Env, private modules: ModuleDef[], private storageBuilders: StorageBuilders) {
+  constructor(public platform: Platform, public env: Env, private modules: ModuleDef[], public providers: ProviderDef[]) {
     const db = platform.db;
     this.settings = new SettingsStore(db);
     this.connections = new Connections(db, platform.secret);
@@ -56,8 +59,9 @@ export class Hub {
   async reload() {
     const s = await this.settings.get();
     this.vault = undefined;
+    this.instances.clear();
     try {
-      const store = await buildStorage(this.connections, s.vault.connection, this.storageBuilders);
+      const store = await this.provider<import("./storage/types.js").VaultStorage>("storage", s.vault.connection);
       if (store) {
         const layout = new Layout(s.wiki.roles);
         this.vault = new SafeVault(
@@ -73,6 +77,7 @@ export class Hub {
     this.bus.reset();
     const tools: ToolDef<any>[] = [];
     const ingest: IngestRoute[] = [];
+    const jobs: { module: string; job: JobDef }[] = [];
     this.moduleStatus = [];
     for (const m of this.modules) {
       const enabled = s.modules[m.id]?.enabled ?? ["vault", "wiki", "hub"].includes(m.id);
@@ -85,9 +90,14 @@ export class Hub {
         continue;
       }
       try {
-        const inst = await m.setup({ platform: this.platform, settings: s, vault: this.vault, bus: this.bus });
+        const inst = await m.setup({
+          platform: this.platform, settings: s, vault: this.vault, bus: this.bus,
+          provider: (kind, name) => this.provider(kind, name) as any,
+          connections: async (kind) => (await this.connections.list(kind)).filter((c) => c.enabled).map((c) => c.name),
+        });
         tools.push(...(inst.tools ?? []));
         ingest.push(...(inst.ingest ?? []));
+        jobs.push(...(inst.jobs ?? []).map((job) => ({ module: m.id, job })));
         this.moduleStatus.push({ id: m.id, enabled: true });
       } catch (e) {
         this.moduleStatus.push({ id: m.id, enabled: true, error: (e as Error).message });
@@ -95,6 +105,49 @@ export class Hub {
     }
     this.tools = tools;
     this.ingest = ingest;
+    this.jobs = jobs;
+  }
+
+  /** Factory: connection row → provider instance (guarded fetch, decrypted secrets). Cached until the next reload. */
+  async provider<T = unknown>(kind: string, name?: string): Promise<T | undefined> {
+    const list = (await this.connections.list(kind)).filter((c) => c.enabled);
+    const c = name ? list.find((x) => x.name === name) : list[0];
+    if (!c) return undefined;
+    const key = `${kind}:${c.name}`;
+    if (!this.instances.has(key)) {
+      this.instances.set(key, (async () => {
+        const def = this.providers.find((p) => p.kind === kind && p.id === c.provider);
+        if (!def) throw new Error(`provider "${c.provider}" is not available`);
+        if (!def.runtimes.includes(this.platform.name)) throw new Error(`provider "${c.provider}" does not run on ${this.platform.name}`);
+        const config = def.config.parse(c.config);
+        const secrets = def.secrets ? def.secrets.parse(await this.connections.secretsOf(c.id)) : {};
+        const fetch = guardedFetch(this.platform.fetch, {
+          hosts: def.hosts?.(config) ?? [],
+          allowPrivate: def.allowPrivate?.(config) ?? false,
+          isPrivate: this.platform.isPrivateHost?.bind(this.platform),
+        });
+        return def.create({ config, secrets, fetch, platform: this.platform, connection: { id: c.id, name: c.name } });
+      })());
+    }
+    return (await this.instances.get(key)) as T;
+  }
+
+  /** Run module jobs that are due. Called every minute on Node; by cron on Workers. */
+  async runDueJobs(now = this.platform.now()) {
+    for (const { module, job } of this.jobs) {
+      const key = `job:${module}:${job.id}`;
+      const last = await this.platform.db.get<{ value: string }>(`SELECT value FROM cursors WHERE key = ?`, [key]);
+      if (last && now.getTime() - Date.parse(last.value) < job.everyMinutes * 60_000) continue;
+      await this.platform.db.run(
+        `INSERT INTO cursors (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        [key, now.toISOString(), now.toISOString()],
+      );
+      try {
+        await job.run();
+      } catch (e) {
+        this.platform.log.warn("job failed", { job: key, error: (e as Error).message.slice(0, 120) });
+      }
+    }
   }
 
   /** Tools Claude may see: module on, not disabled, destructive only if explicitly enabled. */

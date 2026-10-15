@@ -9,6 +9,8 @@ import { securityHeaders } from "../http/common.js";
 import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
 import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
 import { effectiveRules } from "../modules/wiki/lint.js";
+import { fieldsOf, Inputs, valuesOf } from "./forms.js";
+import { pick } from "../core/i18n.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
@@ -99,6 +101,10 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   app.get("/", async (c) => {
     const s = await hub.settings.get();
     const storage = await hub.connections.list("storage");
+    const others = (await hub.connections.list()).filter((x) => x.kind !== "storage");
+    const rows = await hub.platform.db.all<any>(`SELECT id, status, last_ok_at, last_error FROM connections`);
+    const statusOf = (id: string) => rows.find((r) => r.id === id);
+    const addable = hub.providers.filter((p) => p.kind !== "storage" && p.runtimes.includes(hub.platform.name));
     const tokens = await hub.ingestTokens.list();
     const clients = await hub.oauth.clients();
     const tools = await hub.visibleTools();
@@ -107,7 +113,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
-        <nav><a href="#vault">Vault</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
+        <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
 
         <div class="card" id="vault">
           <h2>Vault</h2>
@@ -125,8 +131,39 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>WebDAV URL<input name="url" placeholder="https://dav.example.com/vault" /></label>
             <label>WebDAV username<input name="username" autocomplete="off" /></label>
             <label>WebDAV password (stored encrypted, never shown again)<input name="password" type="password" autocomplete="new-password" /></label>
+            <label><input type="checkbox" name="allowPrivateNetwork" style="display:inline;width:auto;margin-right:.4rem" />WebDAV server is on my private network</label>
             <button>Save &amp; test</button>
           </form>
+        </div>
+
+        <div class="card" id="connections">
+          <h2>Connections</h2>
+          {others.length ? (
+            <table>
+              <tr><th>Kind</th><th>Name</th><th>Provider</th><th>Status</th><th></th></tr>
+              {others.map((x) => {
+                const st = statusOf(x.id);
+                return (
+                  <tr>
+                    <td>{x.kind}</td><td>{x.name}</td><td>{x.provider}</td>
+                    <td>{st?.status === "ok" ? <span class="ok">ok</span> : st?.status === "error" ? <span class="err">{st.last_error}</span> : "—"}</td>
+                    <td>
+                      <form method="post" action={`/connections/${x.id}/test`} style="display:inline"><Csrf c={c} /><button class="secondary">Test</button></form>
+                      <form method="post" action={`/connections/${x.id}/disable`} style="display:inline"><Csrf c={c} /><button class="secondary">Disable</button></form>
+                    </td>
+                  </tr>
+                );
+              })}
+            </table>
+          ) : <p class="muted">No connections yet.</p>}
+          {addable.length ? (
+            <form method="get" action="/connections/new">
+              <label>Add a connection
+                <select name="provider">{addable.map((p) => <option value={`${p.kind}:${p.id}`}>{p.kind} — {pick(p.title, s.toolLanguage === "ko" ? "ko" : "en")}</option>)}</select>
+              </label>
+              <button>Next</button>
+            </form>
+          ) : null}
         </div>
 
         <div class="card" id="wiki">
@@ -270,12 +307,12 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const provider = String(f.provider);
     try {
       if (provider === "builtin") {
-        await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: opts.builtinVault } }, actor(c));
+        await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: {} }, actor(c));
       } else if (provider === "folder") {
         await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: String(f.path ?? "") } }, actor(c));
       } else if (provider === "webdav") {
         await hub.connections.upsert(
-          { kind: "storage", provider: "webdav", name: "vault", config: { url: String(f.url), username: String(f.username ?? "") || undefined }, secrets: f.password ? { password: String(f.password) } : undefined },
+          { kind: "storage", provider: "webdav", name: "vault", config: { url: String(f.url), username: String(f.username ?? "") || undefined, allowPrivateNetwork: f.allowPrivateNetwork === "on" }, secrets: f.password ? { password: String(f.password) } : undefined },
           actor(c),
         );
       } else return c.text("unknown provider", 400);
@@ -331,6 +368,74 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.redirect("/#wiki");
   });
 
+  const findDef = (key: string) => {
+    const [kind, id] = key.split(":");
+    return hub.providers.find((p) => p.kind === kind && p.id === id && p.kind !== "storage");
+  };
+  app.get("/connections/new", async (c) => {
+    const def = findDef(String(c.req.query("provider") ?? ""));
+    if (!def) return c.text("unknown provider", 400);
+    return c.html(
+      <Layout title="Add connection · memexhub">
+        <h1>Add {def.kind}: {pick(def.title, "en")}</h1>
+        <form method="post" action="/connections">
+          <Csrf c={c} />
+          <input type="hidden" name="provider" value={`${def.kind}:${def.id}`} />
+          <label>Name (e.g. personal, work) *<input name="name" required pattern="[A-Za-z0-9가-힣_-]{1,32}" /></label>
+          <Inputs fields={fieldsOf(def.config)} prefix="config" />
+          <Inputs fields={fieldsOf(def.secrets, true)} prefix="secret" />
+          <button>Save &amp; test</button> <a href="/#connections">Cancel</a>
+        </form>
+      </Layout>,
+    );
+  });
+  app.post("/connections", async (c) => {
+    const f = await c.req.parseBody();
+    const def = findDef(String(f.provider ?? ""));
+    if (!def) return c.text("unknown provider", 400);
+    const name = String(f.name ?? "");
+    if (!/^[A-Za-z0-9가-힣_-]{1,32}$/.test(name)) return c.text("invalid name", 400);
+    const cfg = def.config.safeParse(valuesOf(fieldsOf(def.config), f as any, "config"));
+    if (!cfg.success) return c.text(`invalid settings: ${cfg.error.issues.map((i) => i.path.join(".")).join(", ")}`, 400);
+    const sec = valuesOf(fieldsOf(def.secrets, true), f as any, "secret") as Record<string, string>;
+    const id = await hub.connections.upsert({ kind: def.kind, provider: def.id, name, config: cfg.data, secrets: Object.keys(sec).length ? sec : undefined }, actor(c));
+    await hub.reload();
+    return c.redirect(`/connections/${id}/test-result`);
+  });
+  const testConnection = async (id: string) => {
+    const con = (await hub.connections.list()).find((x) => x.id === id);
+    if (!con) return "unknown connection";
+    const def = hub.providers.find((p) => p.kind === con.kind && p.id === con.provider);
+    try {
+      const inst = await hub.provider(con.kind, con.name);
+      if (def?.test && inst) await def.test(inst as never);
+      await hub.connections.setStatus(id, true);
+      return "ok";
+    } catch (e) {
+      const msg = (e as Error).message.slice(0, 200);
+      await hub.connections.setStatus(id, false, msg);
+      return msg;
+    }
+  };
+  app.get("/connections/:id/test-result", async (c) => {
+    const r = await testConnection(c.req.param("id"));
+    return c.html(
+      <Layout title="Connection test">
+        <h1>Connection test</h1>
+        {r === "ok" ? <p class="ok">Connected.</p> : <p class="err">Could not connect: {r}</p>}
+        <a href="/#connections">Back</a>
+      </Layout>,
+    );
+  });
+  app.post("/connections/:id/test", async (c) => {
+    await testConnection(c.req.param("id"));
+    return c.redirect("/#connections");
+  });
+  app.post("/connections/:id/disable", async (c) => {
+    await hub.platform.db.run(`UPDATE connections SET enabled = 0 WHERE id = ?`, [c.req.param("id")]);
+    await hub.reload();
+    return c.redirect("/#connections");
+  });
   app.post("/modules", async (c) => {
     const f = await c.req.parseBody({ all: true });
     const on = new Set([f.on].flat().filter(Boolean).map(String));
