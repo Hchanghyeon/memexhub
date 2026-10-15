@@ -55,7 +55,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
 | location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | 전용 앱 |
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | 카카오 로컬, 네이버 |
-| health | 수집 본문 → 표준 기록 | 단축어 📝 | Health Connect, 앱 |
+| health | 수집 본문 → 표준 기록 | 단축어 ✅ · Health Auto Export ✅ | Health Connect, 앱 |
 | tasks | `lists · list · add · update · complete · delete` | google 📝 | todoist, 미리 알림 |
 | calendar | `calendars · events` | 인터페이스만 | google, CalDAV |
 
@@ -69,7 +69,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | ledger | `payments_day` ✅, `payments_from_mail` 📝 | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
 | mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ |
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
-| health | `health_day` | `/ingest/health` | 건강 | 📝 |
+| health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | tasks | `task_*` | — | — | 📝 |
 
 ## 결제 모듈 안의 플러그인 📝

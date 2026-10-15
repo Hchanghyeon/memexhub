@@ -232,6 +232,13 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Keep unreadable messages (days)<input name="inboxDays" type="number" min="1" max="365" value={String(s.ledger.inboxDays)} /></label>
             <button>Save ledger</button>
           </form>
+          <h3>Health</h3>
+          <form method="post" action="/health">
+            <Csrf c={c} />
+            <label>Health note (use {"{year}"})<input name="note" value={s.health.note} /></label>
+            <label>Note language<select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.health.language === l}>{l}</option>)}</select></label>
+            <button>Save health</button>
+          </form>
           <h3>Location</h3>
           <form method="post" action="/location">
             <Csrf c={c} />
@@ -477,6 +484,17 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       language: f.language === "ko" ? "ko" : "en",
       inboxDays: Math.min(365, Math.max(1, Number(f.inboxDays) || s.ledger.inboxDays)),
       mailSources: String(f.mailSources ?? "").split("\n").map((l) => l.match(/^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/)).filter((m): m is RegExpMatchArray => !!m).slice(0, 10).map((m) => ({ connection: m[1]!, folder: m[2]! })),
+    });
+    await hub.reload();
+    return c.redirect("/#features");
+  });
+  app.post("/health", async (c) => {
+    const f = await c.req.parseBody();
+    const s = await hub.settings.get();
+    const x = String(f.note ?? "").trim();
+    await hub.settings.set("health", {
+      note: /^[^.\/][^\0]*\.md$/.test(x) && !x.includes("..") && x.includes("{year}") ? x : s.health.note,
+      language: f.language === "ko" ? "ko" : "en",
     });
     await hub.reload();
     return c.redirect("/#features");

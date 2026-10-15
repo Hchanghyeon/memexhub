@@ -58,7 +58,8 @@ flowchart LR
 | 결제: 카드 문자(현대·삼성), Apple Pay·교통, 결제·돈 노트, 결제 메일, `payments_day`, 메시지 레시피 + 대기함 | ✅ |
 | 메일 (읽기 전용 IMAP: 카카오, 네이버, Gmail, Outlook, 직접 입력) | ✅ |
 | 위치(Dawarich, OwnTracks, OSM 지명), `location_day`, 결제 장소 이름 | ✅ |
-| 건강, 할 일, `day_summary` | 📝 |
+| 건강(iOS 단축어, Health Auto Export), 건강 노트, `health_day` | ✅ |
+| 할 일, `day_summary` | 📝 |
 | Obsidian 동기화용 내장 WebDAV, Notion 출력, Cloudflare 버튼 설치 | 📝 |
 
 ## 빠르게 시작 (개발)
