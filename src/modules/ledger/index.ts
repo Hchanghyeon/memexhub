@@ -5,6 +5,8 @@ import { Ledger, TransactionInput } from "./record.js";
 import { MessageInput } from "./messages/types.js";
 import { MessageReader, loadRecipes } from "./messages/reader.js";
 import { builtinSource } from "./messages/builtin.js";
+import { vaultRecipeSource } from "./messages/notes.js";
+import { Layout } from "../wiki/layout.js";
 import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
 import { nowIn } from "../../core/time.js";
 
@@ -38,8 +40,16 @@ export default defineModule({
         platform.log.warn("ledger redraw failed", { error: (err as Error).message.slice(0, 120) });
       }
     });
-    const recipes = loadRecipes([builtinSource]);
-    const reader = new MessageReader(async () => (await recipes).active, { tz: () => settings.timezone, now: () => platform.now() });
+    // Built-in recipes, overridden by recipe notes in the vault; recompiled only when a note changed.
+    const recipesDir = new Layout(settings.wiki.roles).recipes;
+    const vaultRecipes = vaultRecipeSource(() => vault, () => recipesDir);
+    let loaded: { sig: string; result: ReturnType<typeof loadRecipes> } | undefined;
+    const recipes = async () => {
+      const sig = await vaultRecipes.signature();
+      if (loaded?.sig !== sig) loaded = { sig, result: loadRecipes([builtinSource, vaultRecipes]) };
+      return loaded.result;
+    };
+    const reader = new MessageReader(async () => (await recipes()).active, { tz: () => settings.timezone, now: () => platform.now() });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
     return {
       tools: [

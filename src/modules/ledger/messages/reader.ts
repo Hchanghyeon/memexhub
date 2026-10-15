@@ -41,20 +41,42 @@ export class MessageReader {
   }
 }
 
-/** Merge sources by id (later wins), compile, and keep the reason for every recipe that failed. */
-export async function loadRecipes(sources: RecipeSource[]): Promise<{ active: CompiledRecipe[]; errors: { id: string; source: string; error: string }[] }> {
-  const byId = new Map<string, { source: string; raw: unknown }>();
-  for (const s of sources) for (const raw of await s.list()) byId.set(String((raw as { id?: unknown })?.id ?? `?${byId.size}`), { source: s.id, raw });
+/**
+ * Merge sources by id: later sources override earlier ones (vault over built-in). If an override is broken
+ * (invalid, unsafe or failing its examples) the next one down is used, so a bad edit never stops recording.
+ */
+export async function loadRecipes(
+  sources: RecipeSource[],
+): Promise<{ active: CompiledRecipe[]; errors: { id: string; source: string; path?: string; error: string }[] }> {
+  const byId = new Map<string, { source: string; raw: Record<string, unknown> }[]>();
+  for (const s of sources)
+    for (const raw of await s.list()) {
+      const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+      const id = typeof r.id === "string" ? r.id : `(no id #${byId.size + 1})`;
+      byId.set(id, [{ source: s.id, raw: r }, ...(byId.get(id) ?? [])]);
+    }
   const active: CompiledRecipe[] = [];
-  const errors: { id: string; source: string; error: string }[] = [];
-  for (const [id, { source, raw }] of byId) {
-    try {
-      const c = compileRecipe(raw);
-      const failed = await testRecipe(c);
-      if (failed.length) errors.push({ id, source, error: `example ${failed[0]!.index + 1} failed: ${failed[0]!.diff}` });
-      else if (c.recipe.enabled) active.push(c);
-    } catch (e) {
-      errors.push({ id, source, error: (e as Error).message.slice(0, 300) });
+  const errors: { id: string; source: string; path?: string; error: string }[] = [];
+  for (const [id, candidates] of byId) {
+    for (const { source, raw } of candidates) {
+      const path = typeof raw.__path === "string" ? raw.__path : undefined;
+      const fail = (error: string) => errors.push({ id, source, ...(path ? { path } : {}), error: error.slice(0, 300) });
+      if (typeof raw.__error === "string") {
+        fail(raw.__error);
+        continue;
+      }
+      try {
+        const c = compileRecipe(Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("__"))));
+        const failed = await testRecipe(c);
+        if (failed.length) {
+          fail(`example ${failed[0]!.index + 1} failed: ${failed[0]!.diff}`);
+          continue;
+        }
+        if (c.recipe.enabled) active.push(c);
+        break;
+      } catch (e) {
+        fail((e as Error).message);
+      }
     }
   }
   return { active, errors };

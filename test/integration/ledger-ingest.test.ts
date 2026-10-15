@@ -9,6 +9,10 @@ import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
 import { testFs } from "../helpers.js";
 import { ingestApp } from "../../src/http/ingest.js";
+import { readFileSync } from "node:fs";
+import { parseRecipeNote, recipeNote } from "../../src/modules/ledger/messages/notes.js";
+import { compileRecipe } from "../../src/modules/ledger/messages/recipe.js";
+import { testRecipe } from "../../src/modules/ledger/messages/reader.js";
 
 let hub: Hub, app: Hono, token = "", healthToken = "";
 const post = (path: string, body: unknown, tok = token) =>
@@ -93,5 +97,50 @@ describe("payments_day", () => {
     expect(out.startsWith("### 10-14 (수)")).toBe(true);
     expect(out).toContain("샘플카페");
     expect(await tool.run({ date: "2020-01-01" }, { actor: "t" })).toBe("no ledger records on 2020-01-01");
+  });
+});
+
+describe("recipe notes in the vault", () => {
+  const SHINHAN = "신한카드(1234)승인 홍*동 12,500원(일시불)10/14 12:30 샘플카페 누적345,000원";
+  const note = (card: string, expectCard = `${card} 일시불`) =>
+    recipeNote({ id: "kr.shinhan.sms", name: "신한카드 문자", channels: ["sms"], match: { any: ["신한카드"] }, set: { card }, examples: [{ text: SHINHAN, expect: { merchant: "샘플카페", amount: "₩12,500", card: expectCard } }] });
+
+  it("tools cannot write active recipes, only proposals", async () => {
+    await expect(hub.vault!.withActor("mcp").write("memexhub/recipes/x.md", "x")).rejects.toThrow(/protected/);
+    await hub.vault!.withActor("mcp").write("memexhub/recipes/proposed/x.md", note("신한카드"));
+    expect((await hub.vault!.read("memexhub/recipes/proposed/x.md")).text).toContain("memexhub-recipe");
+  });
+
+  it("uses an approved note, picks up edits, and falls back when a note breaks", async () => {
+    // a proposal alone is not used: the generic parser records it, but with the generic card label
+    const before = await post("/ingest/message", { channel: "sms", text: SHINHAN.replace("12,500", "1,100") });
+    expect(before.status).toBe(200);
+    const admin = hub.vault!.confirmedByAdmin();
+    await admin.write("memexhub/recipes/shinhan.md", note("신한카드 Deep"));
+    await post("/ingest/message", { channel: "sms", text: SHINHAN.replace("12,500", "2,200") });
+    expect((await hub.vault!.read("ledger/payments/2026.md")).text).toContain("| ₩2,200 | 신한카드 Deep 일시불 |");
+    await admin.write("memexhub/recipes/shinhan.md", note("신한카드 Air"));
+    await post("/ingest/message", { channel: "sms", text: SHINHAN.replace("12,500", "3,300") });
+    expect((await hub.vault!.read("ledger/payments/2026.md")).text).toContain("| ₩3,300 | 신한카드 Air 일시불 |");
+    // an edit whose example fails is not used; a broken samsung override falls back to the built-in recipe
+    await admin.write("memexhub/recipes/shinhan.md", note("신한카드 Air", "다른카드"));
+    await admin.write("memexhub/recipes/samsung.md", "# 삼성\n\n```json memexhub-recipe\n{ not json\n```\n");
+    await post("/ingest/message", { channel: "sms", text: "[Web발신]\n삼성1234승인 홍*동\n4,400원 일시불\n10/14 15:00 샘플마트\n누적1원" });
+    const pay = (await hub.vault!.read("ledger/payments/2026.md")).text;
+    expect(pay).toContain("| ₩4,400 | 삼성카드 일시불 |");
+  });
+});
+
+describe("recipe notes (parsing)", () => {
+  it("round-trips a note and the docs example works", async () => {
+    const doc = readFileSync("docs/recipes.md", "utf8");
+    const example = doc.slice(doc.indexOf("````markdown") + 13, doc.indexOf("````", doc.indexOf("````markdown") + 13));
+    const parsed = parseRecipeNote(example);
+    expect(parsed).toMatchObject({ id: "kr.shinhan.sms", name: "Shinhan Card SMS" });
+    expect(await testRecipe(compileRecipe(parsed))).toEqual([]);
+    const again = parseRecipeNote(recipeNote(parsed));
+    expect(again).toEqual(parsed);
+    expect(() => parseRecipeNote("# x\nno block")).toThrow(/no ```json memexhub-recipe/);
+    expect(() => parseRecipeNote("```json memexhub-recipe\n[1]\n```\n")).toThrow(/JSON object/);
   });
 });

@@ -30,6 +30,14 @@ export class SafeVault {
     return new SafeVault(this.store, this.policy, this.db, actor);
   }
 
+  /**
+   * Same vault without protected paths, for actions a human confirmed in the admin UI (e.g. approving a recipe).
+   * Never hand this to MCP tools. Read-only mode, write-once sources and size limits still apply.
+   */
+  confirmedByAdmin(actor = "admin") {
+    return new SafeVault(this.store, { ...this.policy, protectedPaths: [] }, this.db, actor);
+  }
+
   private checkNote(path: string): string {
     const p = normalizeVaultPath(path);
     if (!p.toLowerCase().endsWith(".md")) throw new StorageError("invalid", "only .md notes are accessible");

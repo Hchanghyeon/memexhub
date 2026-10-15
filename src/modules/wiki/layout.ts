@@ -18,6 +18,7 @@ export const RolesSchema = z.object({
   daily: z.string().optional(), // pattern, e.g. "Journal/{YYYY-MM-DD}.md"
   rules: z.array(z.string()).default([]), // globs of rule notes — protected from tools
   archive: z.string().optional(),
+  recipes: z.string().optional(), // message recipe notes (docs/recipes.md); <recipes>/*.md protected, <recipes>/proposed/ writable
 });
 export type Roles = z.infer<typeof RolesSchema>;
 
@@ -28,6 +29,7 @@ export const PRESETS: Record<string, Roles> = {
     index: { style: "index-file", file: "index.md" },
     log: "wiki/log.md",
     rules: ["CLAUDE.md", "AGENTS.md"],
+    recipes: "recipes",
   },
   para: {
     sources: "Resources/Sources",
@@ -37,6 +39,7 @@ export const PRESETS: Record<string, Roles> = {
     daily: "Journal/{YYYY-MM-DD}.md",
     rules: ["CLAUDE.md", "AGENTS.md", "Templates/**"],
     archive: "Archives",
+    recipes: "Resources/Recipes",
   },
   "para-ko": {
     sources: "30-자료/원본",
@@ -46,6 +49,7 @@ export const PRESETS: Record<string, Roles> = {
     daily: "40-일지/{YYYY-MM-DD}.md",
     rules: ["CLAUDE.md", "AGENTS.md", "_템플릿/**"],
     archive: "90-보관",
+    recipes: "30-자료/레시피",
   },
   zettelkasten: {
     sources: "sources",
@@ -56,6 +60,7 @@ export const PRESETS: Record<string, Roles> = {
   flat: { wiki: "", index: { style: "none" }, rules: ["CLAUDE.md", "AGENTS.md"] },
 };
 
+export const DEFAULT_RECIPES = "memexhub/recipes";
 const trimSlashes = (s: string) => s.replace(/^\/+|\/+$/g, "");
 
 export class Layout {
@@ -101,9 +106,14 @@ export class Layout {
     return !!dir && base === `${dir.split("/").pop()}.md`;
   }
 
-  /** Globs for SafeVault. */
+  /** Folder of message recipe notes. Active recipes sit directly in it; proposals in `proposed/`. */
+  get recipes() {
+    return trimSlashes(this.roles.recipes ?? DEFAULT_RECIPES);
+  }
+
+  /** Globs for SafeVault. Active recipes are rules too: tools may only write proposals. */
   protectedGlobs() {
-    return this.roles.rules;
+    return [...this.roles.rules, `${this.recipes}/*.md`];
   }
   writeOnceGlobs() {
     return this.sources ? [`${this.sources}/**`] : [];
@@ -120,6 +130,7 @@ export class Layout {
       `daily: ${r.daily ?? "(off)"}`,
       `rules (protected): ${r.rules.join(", ") || "(none)"}`,
       `archive: ${r.archive ?? "(off)"}`,
+      `recipes: ${this.recipes}/ (protected) — proposals: ${this.recipes}/proposed/`,
     ].join("\n");
   }
 }
