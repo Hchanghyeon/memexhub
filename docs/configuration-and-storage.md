@@ -48,7 +48,7 @@ The setup wizard first asks *how do you sync Obsidian today?* and recommends one
 | **Create on this server** (recommended) | new start / no sync yet | ✅ folder · built-in WebDAV for Obsidian sync 📝 |
 | Existing folder on this server | the vault is already on the server | ✅ (must be under `VAULT_ROOTS`) |
 | WebDAV | Nextcloud, NAS WebDAV, Remotely Save WebDAV | ✅ |
-| S3 / R2 | Remotely Save S3 | 🚧 |
+| S3 / R2 / MinIO | Remotely Save S3 | ✅ |
 | Git | Obsidian Git | 📝 |
 
 Obsidian Sync (official) and iCloud have no server API — use one of the options above in addition.

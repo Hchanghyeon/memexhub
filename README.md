@@ -50,7 +50,7 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Area | Status |
 |---|---|
 | Core (settings, encrypted connections, event log, audit), runtime layer | ✅ |
-| Vault storage: built-in / local folder, WebDAV | ✅ · S3/R2 🚧 · Git 📝 |
+| Vault storage: built-in / local folder, WebDAV, S3 / R2 / MinIO | ✅ · Git 📝 |
 | Vault tools (list/read/search/stats/write/append/trash/move) with protected paths | ✅ |
 | OAuth 2.1 for Claude connectors, device tokens, IP allowlist | ✅ |
 | Admin UI: setup wizard, vault, connectors, device tokens, 2FA | ✅ minimal |

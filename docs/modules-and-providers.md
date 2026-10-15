@@ -51,7 +51,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 
 | Kind | Interface | v1 | Later |
 |---|---|---|---|
-| storage | `read · write(ifMatch/ifNoneMatch) · list · stat · move` (+ capabilities) | fs ✅ · webdav ✅ · s3 🚧 | git · notion · couchdb · cloud drives |
+| storage | `read · write(ifMatch/ifNoneMatch) · list · stat · move` (+ capabilities) | fs ✅ · webdav ✅ · s3 ✅ | git · notion · couchdb · cloud drives |
 | mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
 | location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | own app |
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | Kakao Local, Naver |

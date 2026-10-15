@@ -7,10 +7,13 @@ import { SafeVault } from "../../src/storage/safe-vault.js";
 import { sqliteDb } from "../../src/platform/node.js";
 import { migrate } from "../../src/core/migrations.js";
 import type { VaultStorage } from "../../src/storage/types.js";
+import { S3Storage } from "../../src/storage/s3.js";
+import { fakeS3 } from "../helpers.js";
 
 /** Contract every storage adapter must pass. Add new adapters to `adapters`. */
 const adapters: Record<string, () => VaultStorage> = {
   fs: () => new FsStorage(mkdtempSync(join(tmpdir(), "mx-fs-"))),
+  s3: () => new S3Storage({ endpoint: "https://s3.example.com", region: "auto", bucket: "vault-bucket", prefix: "my vault", accessKeyId: "AKIDEXAMPLE", secretAccessKey: "secret" }, fakeS3().fetch),
 };
 
 for (const [name, make] of Object.entries(adapters)) {
@@ -30,6 +33,11 @@ for (const [name, make] of Object.entries(adapters)) {
       await s.write("n.md", "1");
       await expect(s.write("n.md", "2", { ifNoneMatch: "*" })).rejects.toMatchObject({ code: "exists" });
       await expect(s.write("n.md", "2", { ifMatch: "stale" })).rejects.toMatchObject({ code: "conflict" });
+    });
+    it("lists across pages and inside a folder", async () => {
+      for (const p of ["d/1.md", "d/2.md", "d/sub/3.md", "e/4.md", "a & b.md"]) await s.write(p, p);
+      expect((await s.list()).map((f) => f.path).sort()).toEqual(["a & b.md", "d/1.md", "d/2.md", "d/sub/3.md", "e/4.md"]);
+      expect((await s.list("d")).map((f) => f.path).sort()).toEqual(["d/1.md", "d/2.md", "d/sub/3.md"]);
     });
     it("moves without overwriting", async () => {
       await s.write("x.md", "x");

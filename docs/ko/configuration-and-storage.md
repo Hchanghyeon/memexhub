@@ -48,7 +48,7 @@ DATA_DIR/
 | **이 서버에 새로 만들기** (추천) | 새로 시작, 동기화 안 씀 | ✅ 폴더 · Obsidian 동기화용 내장 WebDAV 📝 |
 | 이 서버의 기존 폴더 | 볼트가 이미 서버에 있음 | ✅ (`VAULT_ROOTS` 아래만) |
 | WebDAV | Nextcloud, NAS WebDAV, Remotely Save WebDAV | ✅ |
-| S3 / R2 | Remotely Save S3 | 🚧 |
+| S3 / R2 / MinIO | Remotely Save S3 | ✅ |
 | Git | Obsidian Git | 📝 |
 
 Obsidian Sync(공식)와 iCloud는 서버에서 읽을 API가 없어요. 위 방법 중 하나를 같이 써야 해요.

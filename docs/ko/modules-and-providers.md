@@ -51,7 +51,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 
 | 종류 | 인터페이스 | v1 | 나중 |
 |---|---|---|---|
-| storage | `read · write · list · stat · move` | fs ✅ · webdav ✅ · s3 🚧 | git · notion · couchdb · 클라우드 드라이브 |
+| storage | `read · write · list · stat · move` | fs ✅ · webdav ✅ · s3 ✅ | git · notion · couchdb · 클라우드 드라이브 |
 | mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
 | location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | 전용 앱 |
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | 카카오 로컬, 네이버 |
