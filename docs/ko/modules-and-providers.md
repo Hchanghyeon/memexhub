@@ -31,7 +31,7 @@ export interface ToolDef {
 
 모듈 추가 = `src/modules/`에 폴더 하나 + `src/modules/index.ts`에 한 줄. 설정이 바뀌면 재시작 없이 다시 불러와요.
 
-## 공급자 약속 📝
+## 공급자 약속 ✅
 
 ```ts
 export interface ProviderDef<K extends Kind, C, S> {
@@ -66,13 +66,13 @@ export interface ProviderDef<K extends Kind, C, S> {
 | vault | `list_notes` `read_note` `search_notes` `vault_stats` `write_note` `append_note` `delete_note` `move_note` | — | — | ✅ |
 | hub | `hub_status`, `day_summary`, `week_summary` | — | — | ✅ |
 | wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` | — | 목차, 로그 | ✅ |
-| ledger | `payments_day` ✅, `payments_from_mail` 📝 | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
+| ledger | `payments_day` ✅, `payments_from_mail` ✅ | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
 | mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ ([메일](mail.md)) |
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |
 
-## 결제 모듈 안의 플러그인 📝
+## 결제: 메시지 레시피 ✅
 
 ```ts
 interface Message   { channel: "sms" | "mail" | "notification" | "text"; from?: string; subject?: string; text: string }

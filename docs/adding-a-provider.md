@@ -11,7 +11,7 @@ Example: a new storage adapter.
    - never log credentials or content
    - least-privilege scopes (e.g. read-only mail, only the needed Notion pages)
 
-## A new card company or shop (ledger) 📝
+## A new card company or shop (ledger) ✅
 
 No code. Add a **recipe** — see [message recipes](recipes.md):
 

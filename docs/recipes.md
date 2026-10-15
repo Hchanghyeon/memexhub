@@ -1,6 +1,6 @@
 # Message recipes
 
-How memexhub turns **messages** — card SMS, receipt mails, app notifications — into ledger records **without code per card company or shop**. 📝 (P4)
+How memexhub turns **messages** — card SMS, receipt mails, app notifications — into ledger records **without code per card company or shop**. ✅
 
 ## Why
 

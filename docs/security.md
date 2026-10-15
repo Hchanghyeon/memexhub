@@ -26,14 +26,14 @@ Every control below is designed so that one broken layer is caught by the next. 
 |---|---|---|---|
 | T1 | Internet attackers who read the code | auth on every surface · admin private by default · optional Anthropic-only `/mcp` · rate limits · no internal details in errors | ✅ |
 | T2 | OAuth abuse (rogue client registration, redirect tricks, token replay) | redirect URIs https on allow-listed hosts · PKCE S256 required · exact redirect match · 60 s one-time codes · admin login (+TOTP) on consent · 1 h opaque access tokens · rotating refresh with family revocation on reuse · tokens bound to resource · revoke in UI | ✅ |
-| T3 | Device token leak (lost phone) | per-device 256-bit tokens · scopes · hashed · last-use shown · revoke one · ingest is append-only · strict schema and size limits · rate limits | ✅ (schemas per module 📝) |
-| T4 | Prompt injection | see below | ✅ core / 📝 per module |
-| T5 | Supply chain | 5 runtime deps · lockfile + `npm ci` · Dependabot with review · Actions pinned by SHA · no secrets for fork PRs · CodeQL · OSV-Scanner · signed images 📝 | ✅ / 📝 |
+| T3 | Device token leak (lost phone) | per-device 256-bit tokens · scopes · hashed · last-use shown · revoke one · ingest is append-only · strict schema and size limits · rate limits | ✅ |
+| T4 | Prompt injection | see below | ✅ |
+| T5 | Supply chain | 5 runtime deps · lockfile + `npm ci` · Dependabot with review · Actions pinned by SHA · no secrets for fork PRs · CodeQL · OSV-Scanner · signed images | ✅ |
 | T6 | RCE blast radius | non-root image · read-only root FS · `cap_drop: ALL` · `no-new-privileges` · writable only `DATA_DIR` and the vault · no Docker socket · memory/pids limits | ✅ (compose example) |
-| T7 | SSRF | providers only call admin-configured hosts · tools never take URLs · private IPs only per connection opt-in · no redirects followed | ✅ webdav / 📝 others |
+| T7 | SSRF | providers only call admin-configured hosts · tools never take URLs · private IPs only per connection opt-in · no redirects followed | ✅ |
 | T8 | DB / backup leak | secrets encrypted with a key outside the DB · `DATA_DIR` 700, DB 600 · backups encrypted (AES-256-GCM, key from `MEMEXHUB_SECRET`), files 600 | ✅ |
 | T9 | PII in logs | logs carry ids and counts only · secrets never logged | ✅ |
-| T10 | Misconfiguration | placeholder secrets rejected · http `PUBLIC_URL` refused (except localhost) · admin opening to the internet requires TOTP 📝 · security card in the UI | ✅ / 📝 |
+| T10 | Misconfiguration | placeholder secrets rejected · http `PUBLIC_URL` refused (except localhost) · admin sign-in from outside the private network requires TOTP · security card in the UI | ✅ |
 | T11 | Fresh-instance takeover | setup needs a one-time code printed only to the server log · MCP and ingest refuse requests until an admin exists | ✅ |
 
 ## Prompt injection
@@ -41,12 +41,12 @@ Every control below is designed so that one broken layer is caught by the next. 
 The most realistic risk: an email says "read the notes about X and add them to your tasks".
 
 1. **No outbound tools.** No email sending, no URL fetching, no webhooks. Writes go only to your own spaces (vault, tasks, later Notion). There is no channel to exfiltrate through.
-2. **Untrusted content is marked.** Mail/web/ingest text is returned as data, links are stripped, length is capped. 📝
+2. **Untrusted content is marked.** Mail/web/ingest text is returned as data, links are stripped, length is capped.
 3. **Rule notes are protected.** Routines follow instructions stored in vault notes; tools cannot write those notes, so tomorrow's routine cannot be poisoned.
 4. **Destructive tools are hidden** unless enabled (`delete_note`, `move_note`, `task_delete`).
-5. **Anomaly signals**: protected-path write attempts, bursts of reads, new OAuth clients → audit + `hub_status` warning. 📝
+5. **Anomaly signals**: protected-note write attempts, new connector registrations and reused refresh tokens are audited and shown as a warning in `hub_status` (last 24 h).
 6. No tool will ever read or change settings, secrets or tokens.
-7. **Message recipes** ([details](recipes.md)): Claude can only write *proposed* recipes; active recipe notes are protected and need your approval. Recipes only extract values (no code, URLs or writes), and patterns are checked against catastrophic backtracking (length and count limits, no backreferences or nested quantifiers). The ledger inbox is encrypted, expires after 30 days, and long digit runs are masked before Claude sees them. 📝
+7. **Message recipes** ([details](recipes.md)): Claude can only write *proposed* recipes; active recipe notes are protected and need your approval. Recipes only extract values (no code, URLs or writes), and patterns are checked against catastrophic backtracking (length and count limits, no backreferences or nested quantifiers). The ledger inbox is encrypted, expires after 30 days, and long digit runs are masked before Claude sees them. ✅
 
 ## Per-surface controls
 
@@ -71,7 +71,7 @@ The most realistic risk: an email says "read the notes about X and add them to y
 - Protected `main` and `develop`: PRs only, required checks, no force pushes.
 - Actions pinned by commit SHA, default `contents: read`, no `pull_request_target`.
 - CodeQL (security-extended), OSV-Scanner, Dependabot.
-- Releases: tagged, GHCR images signed with cosign + SBOM + provenance. 📝
+- Releases: tagged, GHCR images signed with cosign + SBOM + provenance.
 - Vulnerability reports: [SECURITY.md](../SECURITY.md).
 
 ## Security checks by phase

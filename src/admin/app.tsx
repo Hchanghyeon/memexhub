@@ -100,6 +100,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const f = await c.req.parseBody();
     const id = await hub.admin.login(String(f.username ?? ""), String(f.password ?? ""), String(f.totp ?? "") || undefined, `${c.get("ip")}|${f.username}`);
     if (!id) return c.text("login failed", 401);
+    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(id))) return c.text("Two-factor sign-in is required from outside your private network. Sign in from your network and turn it on first.", 403);
     await startSession(c, id);
     return c.redirect(R);
   });
@@ -113,6 +114,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       const f = await c.req.parseBody();
       if (!safeEqual(String(f.csrf ?? ""), sess.csrf)) return c.text("bad csrf token", 403);
     }
+    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(sess.adminId))) return c.text("Two-factor sign-in is required from outside your private network.", 403);
     c.set("adminId", sess.adminId);
     c.set("csrf", sess.csrf);
     await next();

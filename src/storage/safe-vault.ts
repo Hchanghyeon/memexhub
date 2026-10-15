@@ -46,8 +46,11 @@ export class SafeVault {
 
   private checkWritable(p: string, op: "create" | "change" = "change") {
     if (this.policy.readOnly) throw new StorageError("forbidden", "the vault is in read-only mode");
-    if (matchesAny(p, this.policy.protectedPaths))
+    if (matchesAny(p, this.policy.protectedPaths)) {
+      // An anomaly signal: tools trying to change rule notes is what a prompt injection would do. hub_status shows it.
+      void audit(this.db, this.actor, "vault.protected_write_refused", p).catch(() => {});
       throw new StorageError("forbidden", `"${p}" is protected and can only be changed outside of tools`);
+    }
     if (op === "change" && matchesAny(p, this.policy.writeOncePaths ?? []))
       throw new StorageError("forbidden", `"${p}" is a source note — sources are never edited, moved or deleted`);
   }

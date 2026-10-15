@@ -90,7 +90,7 @@ Full threat model: [docs/security.md](docs/security.md). Report vulnerabilities 
 
 ## Docs
 
-[Architecture](docs/architecture.md) · [Wiki engine](docs/wiki-engine.md) · [Modules & providers](docs/modules-and-providers.md) · [Configuration & storage](docs/configuration-and-storage.md) · [Claude integration](docs/claude-integration.md) · [Ledger](docs/ledger.md) · [Message recipes](docs/recipes.md) · [Mail](docs/mail.md) · [Location](docs/location.md) · [Health](docs/health.md) · [Tasks](docs/tasks.md) · [Security](docs/security.md) · [Easy install](docs/easy-install.md) · [Roadmap](docs/roadmap.md) · [Adding a provider](docs/adding-a-provider.md) · [Development](docs/development.md) · [UI design](docs/design.md)
+**[All documentation](docs/README.md)** — install, Claude integration, wiki engine, ledger and recipes, mail, location, health, tasks, storage and backups, security review, architecture, development.
 
 ## License
 

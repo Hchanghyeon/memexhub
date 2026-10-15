@@ -2,7 +2,7 @@
 
 **셀프호스팅 메멕스 — 내 노트와 생활 기록으로 계속 자라는, Claude용 LLM Wiki 엔진.**
 
-[English](README.md) · [문서](docs/ko/) · [보안](SECURITY.md)
+[English](README.md) · [문서](docs/ko/README.md) · [보안](SECURITY.md)
 
 > ⚠️ 초기 개발 단계(v0.1)예요. 인터페이스가 바뀔 수 있어요. Anthropic, Obsidian과 관계없는 개인 프로젝트예요.
 

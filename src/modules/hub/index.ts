@@ -54,7 +54,18 @@ export default defineModule({
           const db = ctx.platform.db;
           const conns = await db.all<any>(`SELECT kind, name, provider, status, last_ok_at FROM connections WHERE enabled = 1`);
           const last = await db.all<any>(`SELECT type, MAX(received_at) at, COUNT(*) n FROM events WHERE skipped IS NULL GROUP BY type`);
+          const since = new Date(+ctx.platform.now() - 86_400_000).toISOString();
+          const signals = await db.all<{ action: string; n: number }>(
+            `SELECT action, COUNT(*) n FROM audit WHERE at >= ? AND action IN ('vault.protected_write_refused', 'oauth.client_registered', 'oauth.refresh_reuse_detected') GROUP BY action`,
+            [since],
+          );
+          const warn: Record<string, string> = {
+            "vault.protected_write_refused": "attempts to change protected notes (rules / active recipes) — check what asked for it",
+            "oauth.client_registered": "new Claude connector registrations — expected only when you add a connector",
+            "oauth.refresh_reuse_detected": "a reused refresh token (possible token theft) — that connector was signed out",
+          };
           return [
+            ...(signals.length ? ["⚠ last 24 h:", ...signals.map((x) => `- ${x.n} ${warn[x.action]}`), ""] : []),
             "connections:",
             ...conns.map((c) => `- ${c.kind}/${c.name} (${c.provider}) ${c.status ?? "unknown"}${c.last_ok_at ? ` · ok ${c.last_ok_at.slice(0, 16)}` : ""}`),
             "records:",
