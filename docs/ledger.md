@@ -9,7 +9,7 @@ Your devices report payments the moment they happen (a phone automation, an app 
 | `POST /ingest/message` | **raw text to read** — card SMS (iOS Shortcuts *Message* automation, Android Tasker / MacroDroid), app notifications, pasted text | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
 | `POST /ingest/transaction` | **already structured** payments — wallet transactions — iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
-Header `X-Ingest-Token: <device token with scope ledger>`. Bodies are limited to 4 KB (`/ingest/message`: 20 KB), unknown fields are rejected, and rejected requests are logged without their values.
+Header `X-Ingest-Token: <device token with scope ledger>`. `POST /ingest/sms` with `{ "text", "lat"?, "lon"? }` is a short form of `/ingest/message` with `"channel": "sms"`. Bodies are limited to 4 KB (`/ingest/message`: 20 KB), unknown fields are rejected, and rejected requests are logged without their values.
 
 Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card SMS; NHN KCP receipt mails). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md).
 

@@ -69,6 +69,7 @@ describe("location_day", () => {
     expect(out).toContain("13:00–13:10 · 샘플동 · ⚠");
     expect(out).not.toMatch(/37\.5|127\.0|77-1|12-3/);
     expect(await tool("location_day").run({ date: "2026-10-01" }, { actor: "t" })).toBe("2026-10-01 위치 기록 없음");
+    expect(await tool("location_day").run({}, { actor: "t" })).toMatch(/^2026-10-15 위치 기록 없음|^# 2026-10-15/); // default: today
   });
   it("hides private areas", async () => {
     const s = await hub.settings.get();

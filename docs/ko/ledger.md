@@ -9,7 +9,7 @@
 | `POST /ingest/message` | **해석할 원문** — 카드 문자(iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid), 앱 알림, 붙여 넣은 글 | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
 | `POST /ingest/transaction` | **이미 정리된** 결제 — 지갑 결제 — iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
-헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. 본문은 4KB까지(`/ingest/message`는 20KB), 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
+헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. `POST /ingest/sms`에 `{ "text", "lat"?, "lon"? }`를 보내면 `"channel": "sms"`인 `/ingest/message`와 같아요. 본문은 4KB까지(`/ingest/message`는 20KB), 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
 
 카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드·삼성카드 문자, NHN KCP 결제 메일). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md).
 

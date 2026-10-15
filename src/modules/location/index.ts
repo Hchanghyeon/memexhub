@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
-import { addDays, dayBounds, nowIn, zonedIso } from "../../core/time.js";
+import { addDays, dayBounds, localDate, nowIn, zonedIso } from "../../core/time.js";
 import type { Geocoder, LocationProvider } from "../../providers/location/types.js";
 import { areaAt, cleanPoints, pathKm, stays, stripLot } from "../../providers/location/stays.js";
 import { placeResolver } from "./places.js";
@@ -84,8 +84,9 @@ export default defineModule({
             "One day of location as stays (where and how long), with named places, nearby places and areas — never coordinates or street numbers.",
             "하루 위치를 '체류'(어디에 얼마나)로 — 등록된 장소, 가까운 장소, 동네 이름. 좌표·번지는 주지 않는다.",
           ),
-          input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD") },
-          async run({ date }) {
+          input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },
+          async run(a) {
+            const date = a.date ?? localDate(tz(), platform.now());
             const t = L[s().language];
             const { loc, geo } = await get();
             if (!loc) return "no location source connected — admin UI → Connections";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineModule, defineTool } from "../../core/registry.js";
+import { defineModule, defineTool, type IngestRoute } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import { Ledger, TransactionInput } from "./record.js";
 import { MessageInput } from "./messages/types.js";
@@ -8,7 +8,7 @@ import { builtinSource } from "./messages/builtin.js";
 import { vaultRecipeSource } from "./messages/notes.js";
 import { Layout } from "../wiki/layout.js";
 import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
-import { nowIn } from "../../core/time.js";
+import { addDays, localDate, nowIn } from "../../core/time.js";
 import { Inbox } from "../../core/inbox.js";
 import { inboxTools, type PendingMessage } from "./inbox-tools.js";
 import { ledgerAdmin } from "./admin-api.js";
@@ -78,6 +78,32 @@ export default defineModule({
         sources: () => settings.ledger.mailSources, provider: (name) => provider<MailProvider>("mail", name),
         reader, ledger, inbox, cursors: new Cursors(platform.db, () => platform.now()), tz: () => settings.timezone, now: () => platform.now(),
       }, o);
+    const messageRoute: IngestRoute = {
+      path: "/ingest/message",
+      scope: "ledger",
+      maxBytes: 20_480,
+      async handle(body) {
+        const p = MessageInput.safeParse(body);
+        if (!p.success) {
+          await ledger.reject("/ingest/message", "invalid payload", keysOf(body));
+          throw new Error("invalid payload");
+        }
+        const m = p.data;
+        const r = await reader.read(m);
+        if (r.kind === "ignore") return { kind: "ignored", recipe: r.recipeId };
+        if (!r.confident || !r.payment) {
+          // Payment-like but unsure → inbox (encrypted) for Claude or the admin. No amount at all → rejected, nothing kept.
+          if (r.payment?.amount) {
+            const data: PendingMessage = { message: { channel: m.channel, from: m.from, subject: m.subject, text: m.text, time: m.time }, guess: r.payment, step: r.step };
+            return { kind: "pending", inbox: await inbox.add("ledger", m.channel ?? "text", r.reason ?? "unreadable", data) };
+          }
+          await ledger.reject("/ingest/message", r.reason ?? "unreadable", keysOf(body));
+          throw new Error(r.reason ?? "unreadable");
+        }
+        const input = { ...r.payment, lat: m.lat, lon: m.lon, source: m.channel };
+        return r.kind === "item" ? ledger.attachOrRecord(input) : ledger.record(input);
+      },
+    };
     return {
       summary: ledgerSummary({ rows, tz: () => settings.timezone, officePlaces: () => settings.ledger.officePlaces, lang: () => settings.ledger.language }),
       admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now() }),
@@ -97,9 +123,13 @@ export default defineModule({
           input: {
             since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
             until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+            date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("last day to read (with days); same as until"),
+            days: z.number().int().min(1).max(400).optional().describe("how many days back from date"),
           },
-          async run({ since, until }) {
+          async run(a) {
             if (!settings.ledger.mailSources.length) return "no receipt-mail folders set — admin UI → Features → Ledger";
+            const until = a.until ?? a.date;
+            const since = a.since ?? (a.days ? addDays(until ?? localDate(tz, platform.now()), -(a.days - 1)) : undefined);
             const r = await mailSync({ since, until });
             return [
               `read ${r.read} new mails: ${r.recorded} recorded · ${r.attached} items attached · ${r.pending} to the inbox · ${r.ignored} ignored · ${r.skipped} not payments`,
@@ -114,8 +144,9 @@ export default defineModule({
             "One day's payments, totals, transit taps and office gate taps — compact. Use instead of opening the yearly payments note.",
             "하루치 결제, 합계, 교통 태그, 회사 출입을 짧게. 연간 결제 노트를 여는 대신 쓴다.",
           ),
-          input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD") },
-          async run({ date }) {
+          input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },
+          async run(a) {
+            const date = a.date ?? localDate(tz, platform.now());
             const [y, m, d] = date.split("-").map(Number) as [number, number, number];
             const all = await rows();
             const merges = all.filter((r) => r.skipped === "merged");
@@ -143,30 +174,20 @@ export default defineModule({
             return ledger.record(p.data);
           },
         },
+        messageRoute,
         {
-          path: "/ingest/message",
+          // Short form for card SMS automations: { text, lat?, lon? } = /ingest/message with channel "sms".
+          path: "/ingest/sms",
           scope: "ledger",
-          maxBytes: 20_480,
-          async handle(body) {
-            const p = MessageInput.safeParse(body);
-            if (!p.success) {
-              await ledger.reject("/ingest/message", "invalid payload", keysOf(body));
+          maxBytes: 4096,
+          async handle(body, ctx) {
+            const b = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
+            const { text, lat, lon } = b;
+            if (Object.keys(b).some((k) => !["text", "lat", "lon"].includes(k))) {
+              await ledger.reject("/ingest/sms", "invalid payload", Object.keys(b));
               throw new Error("invalid payload");
             }
-            const m = p.data;
-            const r = await reader.read(m);
-            if (r.kind === "ignore") return { kind: "ignored", recipe: r.recipeId };
-            if (!r.confident || !r.payment) {
-              // Payment-like but unsure → inbox (encrypted) for Claude or the admin. No amount at all → rejected, nothing kept.
-              if (r.payment?.amount) {
-                const data: PendingMessage = { message: { channel: m.channel, from: m.from, subject: m.subject, text: m.text, time: m.time }, guess: r.payment, step: r.step };
-                return { kind: "pending", inbox: await inbox.add("ledger", m.channel ?? "text", r.reason ?? "unreadable", data) };
-              }
-              await ledger.reject("/ingest/message", r.reason ?? "unreadable", keysOf(body));
-              throw new Error(r.reason ?? "unreadable");
-            }
-            const input = { ...r.payment, lat: m.lat, lon: m.lon, source: m.channel };
-            return r.kind === "item" ? ledger.attachOrRecord(input) : ledger.record(input);
+            return messageRoute.handle({ channel: "sms", text, ...(lat !== undefined && lat !== "" ? { lat } : {}), ...(lon !== undefined && lon !== "" ? { lon } : {}) }, ctx);
           },
         },
       ],

@@ -51,6 +51,10 @@ describe("ledger ingest", () => {
     const far = await l.attachOrRecord({ merchant: "샘플서점", amount: "₩9,900", item: "다른 책", time: "2026-10-15T12:00:00+09:00", source: "mail" });
     expect(far.kind).toBe("payment");
   });
+  it("accepts the /ingest/sms short form (text + optional coordinates)", async () => {
+    const r = await post("/ingest/sms", { text: "[Web발신]\n삼성1234승인 홍*동\n2,100원 일시불\n10/15 10:11 샘플서점\n누적98,765원", lat: "", lon: "" });
+    expect(await r.json()).toMatchObject({ ok: true, kind: "payment" });
+  });
   it("records a wallet transaction and a transit tap", async () => {
     expect(await (await post("/ingest/transaction", { merchant: "Sample Cafe", amount: "₩4,500", card: "Card" })).json()).toMatchObject({ kind: "payment" });
     expect(await (await post("/ingest/transaction", { name: "Tmoney" })).json()).toMatchObject({ kind: "transit" });
@@ -62,7 +66,8 @@ describe("ledger ingest", () => {
     expect((await post("/ingest/transaction", { merchant: "x", password: "hunter2" })).status).toBe(422);
     expect((await post("/ingest/message", "{not json")).status).toBe(400);
     expect((await post("/ingest/message", { channel: "sms", text: "x".repeat(21_000) })).status).toBe(413);
-    expect((await post("/ingest/sms", { text: "x" })).status).toBe(404); // removed: use /ingest/message
+    // /ingest/sms: the short form for SMS automations; anything but text / lat / lon is refused
+    expect((await post("/ingest/sms", { text: "x", extra: 1 })).status).toBe(422)
     const rejects = await hub.bus.query(["ledger.reject"], { includeSkipped: true });
     expect(rejects.length).toBeGreaterThanOrEqual(2);
     expect(JSON.stringify(rejects)).not.toContain("hunter2");

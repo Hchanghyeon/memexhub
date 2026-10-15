@@ -61,6 +61,8 @@ describe("receipt mails", () => {
     expect(await tool("payments_from_mail").run({}, { actor: "t" })).toMatch(/^read 0 new mails/);
     expect(reads).toBe(before);
     expect(await tool("ledger_inbox").run({ limit: 20 }, { actor: "t" })).toContain("no recipe for this mail");
+    // the older argument style (date + days) is accepted too
+    expect(await tool("payments_from_mail").run({ date: "2026-10-14", days: 3 }, { actor: "t" })).toMatch(/^read 0 new mails/);
   });
 
   it("is a job only when folders are set, and reports a missing account", async () => {
