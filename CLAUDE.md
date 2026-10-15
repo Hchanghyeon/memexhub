@@ -53,8 +53,16 @@ npm run build
 - Renderers get golden tests; parsers get fake fixtures (and fuzz cases for odd input).
 - Auth/HTTP changes extend `test/integration/connector.test.ts`.
 
-## Git
+## Workflow (details: docs/development.md)
 
-`main` = releases, `develop` = integration. Branch from `develop` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), open a PR into `develop`, CI must pass. See `docs/development.md`.
+- Branch from `develop` as `<type>/<kebab-description>`; PR into `develop`; `main` is releases only.
+- Conventional Commits: `feat(storage): add s3 adapter`.
+- Commit identity must be the GitHub **noreply** address. **Never use GitHub's merge buttons** (squash, merge commit or rebase all record the merger's profile name and email). Merge by fast-forward: `git push origin <branch>:develop` once CI is green.
+- Split large work into PRs by layer, in dependency order; each PR must build and pass tests alone. Target < 400 changed lines of code.
+- After merging, check `git log --format='%an <%ae> | %cn'` for personal data.
+
+## UI (details: docs/design.md)
+
+Convenience first: one task per screen, recommended option first, plain words, results always confirmed. Clean and quiet: neutral grays, one accent color for the primary action, red only for errors/destructive, green only for ok. Server-rendered, bilingual, accessible.
 
 Before you commit: `npm run typecheck && npm test`, check `git diff` for anything personal or secret, and run `gitleaks protect --staged` if available.
