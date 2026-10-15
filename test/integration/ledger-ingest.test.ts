@@ -73,3 +73,13 @@ describe("ledger notes (observer)", () => {
     expect((await hub.vault!.read("ledger/payments/2026.md")).text).toContain("Sample Bakery");
   });
 });
+
+describe("payments_day", () => {
+  it("returns one day compactly", async () => {
+    const tool = hub.tools.find((t) => t.name === "payments_day")!;
+    const out = await tool.run({ date: "2026-10-14" }, { actor: "t" });
+    expect(out.startsWith("### 10-14 (수)")).toBe(true);
+    expect(out).toContain("샘플카페");
+    expect(await tool.run({ date: "2020-01-01" }, { actor: "t" })).toBe("no ledger records on 2020-01-01");
+  });
+});

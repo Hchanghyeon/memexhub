@@ -107,7 +107,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
-        <nav><a href="#vault">Vault</a><a href="#wiki">Wiki</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
+        <nav><a href="#vault">Vault</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
 
         <div class="card" id="vault">
           <h2>Vault</h2>
@@ -165,6 +165,33 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             ))}
             <button>Save rules</button>
           </form>
+        </div>
+
+        <div class="card" id="features">
+          <h2>Features</h2>
+          <form method="post" action="/modules">
+            <Csrf c={c} />
+            {hub.moduleStatus.map((m) => (
+              <label>
+                <input type="checkbox" name="on" value={m.id} checked={m.enabled} disabled={m.id === "vault" || m.id === "hub"} style="display:inline;width:auto;margin-right:.4rem" />
+                {m.id}
+                {m.error ? <span class="err"> — {m.error}</span> : null}
+              </label>
+            ))}
+            <button>Save features</button>
+          </form>
+          <h3>Ledger</h3>
+          <form method="post" action="/ledger">
+            <Csrf c={c} />
+            <label>Office places (names from your location provider, comma separated)<input name="officePlaces" value={s.ledger.officePlaces.join(", ")} /></label>
+            <label>Payments note (use {"{year}"})<input name="paymentsNote" value={s.ledger.paymentsNote} /></label>
+            <label>Money note<input name="moneyNote" value={s.ledger.moneyNote} /></label>
+            <label>Note language
+              <select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.ledger.language === l}>{l}</option>)}</select>
+            </label>
+            <button>Save ledger</button>
+          </form>
+          <p class="muted">Phone shortcuts post to <code>/ingest/sms</code> (card SMS: <code>{"{\"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
 
         <div class="card" id="claude">
@@ -304,6 +331,30 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.redirect("/#wiki");
   });
 
+  app.post("/modules", async (c) => {
+    const f = await c.req.parseBody({ all: true });
+    const on = new Set([f.on].flat().filter(Boolean).map(String));
+    const modules = Object.fromEntries(hub.moduleStatus.map((m) => [m.id, { enabled: m.id === "vault" || m.id === "hub" || on.has(m.id) }]));
+    await hub.settings.set("modules", modules);
+    await hub.reload();
+    return c.redirect("/#features");
+  });
+  app.post("/ledger", async (c) => {
+    const f = await c.req.parseBody();
+    const s = await hub.settings.get();
+    const note = (v: unknown, d: string) => {
+      const x = String(v ?? "").trim();
+      return /^[^.\/][^\0]*\.md$/.test(x) && !x.includes("..") ? x : d;
+    };
+    await hub.settings.set("ledger", {
+      officePlaces: String(f.officePlaces ?? "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 20),
+      paymentsNote: note(f.paymentsNote, s.ledger.paymentsNote),
+      moneyNote: note(f.moneyNote, s.ledger.moneyNote),
+      language: f.language === "ko" ? "ko" : "en",
+    });
+    await hub.reload();
+    return c.redirect("/#features");
+  });
   app.post("/settings/language", async (c) => {
     const f = await c.req.parseBody();
     const l = String(f.toolLanguage);

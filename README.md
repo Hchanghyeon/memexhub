@@ -40,7 +40,7 @@ In 1945 Vannevar Bush imagined the *Memex*: a personal machine that stores every
 | OAuth 2.1 for Claude connectors, device tokens, IP allowlist | ✅ |
 | Admin UI: setup wizard, vault, connectors, device tokens, 2FA | ✅ minimal |
 | Wiki module (layout, lint, save source, index, log, backlinks), roles & presets, write-once sources | ✅ |
-| Ledger (card SMS, Apple Pay shortcut, receipt mails, payments & money notes) | 📝 |
+| Ledger: card SMS (Hyundai, Samsung), Apple Pay / transit shortcuts, payments & money notes, `payments_day` | ✅ · receipt mails 📝 |
 | Mail (IMAP), location (Dawarich, OwnTracks), health, tasks, `day_summary` | 📝 |
 | Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |
 
@@ -70,7 +70,7 @@ Full threat model: [docs/security.md](docs/security.md). Report vulnerabilities 
 
 ## Docs
 
-[Architecture](docs/architecture.md) · [Wiki engine](docs/wiki-engine.md) · [Modules & providers](docs/modules-and-providers.md) · [Configuration & storage](docs/configuration-and-storage.md) · [Claude integration](docs/claude-integration.md) · [Security](docs/security.md) · [Easy install](docs/easy-install.md) · [Roadmap](docs/roadmap.md) · [Adding a provider](docs/adding-a-provider.md) · [Development](docs/development.md) · [UI design](docs/design.md)
+[Architecture](docs/architecture.md) · [Wiki engine](docs/wiki-engine.md) · [Modules & providers](docs/modules-and-providers.md) · [Configuration & storage](docs/configuration-and-storage.md) · [Claude integration](docs/claude-integration.md) · [Ledger](docs/ledger.md) · [Security](docs/security.md) · [Easy install](docs/easy-install.md) · [Roadmap](docs/roadmap.md) · [Adding a provider](docs/adding-a-provider.md) · [Development](docs/development.md) · [UI design](docs/design.md)
 
 ## License
 

@@ -40,7 +40,7 @@
 | Claude 커넥터용 OAuth 2.1, 기기 토큰, IP 허용 목록 | ✅ |
 | 관리 화면: 설치 마법사, 볼트, 커넥터, 기기 토큰, 2단계 인증 | ✅ 최소 |
 | 위키 모듈 (구조, 점검, 원본 저장, 목차, 로그, 역링크), 역할과 프리셋, 한 번만 쓰는 원본 | ✅ |
-| 결제 (카드 문자, Apple Pay 단축어, 결제 메일, 결제·돈 노트) | 📝 |
+| 결제: 카드 문자(현대·삼성), Apple Pay·교통 단축어, 결제·돈 노트, `payments_day` | ✅ · 결제 메일 📝 |
 | 메일(IMAP), 위치(Dawarich, OwnTracks), 건강, 할 일, `day_summary` | 📝 |
 | Obsidian 동기화용 내장 WebDAV, Notion 출력, Cloudflare 버튼 설치 | 📝 |
 

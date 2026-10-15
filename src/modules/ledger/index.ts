@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { defineModule } from "../../core/registry.js";
+import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import { Ledger, TransactionInput } from "./record.js";
 import { parseCardSms, SmsParseError } from "./sms.js";
-import { moneySkeleton, renderMoney, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
+import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
 import { nowIn } from "../../core/time.js";
 
 const SmsInput = z.object({ text: z.string().min(1).max(2000), lat: z.coerce.number().optional(), lon: z.coerce.number().optional() }).strict();
@@ -40,6 +40,29 @@ export default defineModule({
     });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
     return {
+      tools: [
+        defineTool({
+          name: "payments_day",
+          readOnly: true,
+          description: T(
+            "One day's payments, totals, transit taps and office gate taps — compact. Use instead of opening the yearly payments note.",
+            "하루치 결제, 합계, 교통 태그, 회사 출입을 짧게. 연간 결제 노트를 여는 대신 쓴다.",
+          ),
+          input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD") },
+          async run({ date }) {
+            const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+            const all = await rows();
+            const merges = all.filter((r) => r.skipped === "merged");
+            const day = all.filter((r) => {
+              if (r.skipped) return false;
+              const p = nowIn(tz, new Date(r.time));
+              return p.y === y && p.m === m && p.d === d;
+            });
+            if (!day.length) return `no ledger records on ${date}`;
+            return renderPaymentsBody([...day, ...merges], y, opts()).replace(/^## .*\n\n/, "");
+          },
+        }),
+      ],
       ingest: [
         {
           path: "/ingest/transaction",
