@@ -7,6 +7,7 @@ import mail from "./mail/index.js";
 import location from "./location/index.js";
 import health from "./health/index.js";
 import tasks from "./tasks/index.js";
+import notion from "./notion/index.js";
 
 /** Plugin registry. Adding a module = one line here. */
-export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, hub];
+export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, notion, hub];

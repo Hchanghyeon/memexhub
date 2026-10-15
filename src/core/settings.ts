@@ -67,6 +67,10 @@ export const SettingsSchema = z.object({
   health: z
     .object({ note: z.string().default("health/{year}.md"), language: z.enum(["ko", "en"]).default("en") })
     .default({ note: "health/{year}.md", language: "en" }),
+  /** Mirror records into Notion databases. Off until a kind is switched on. */
+  notion: z
+    .object({ connection: z.string().optional(), ledger: z.boolean().default(false), health: z.boolean().default(false) })
+    .default({ ledger: false, health: false }),
   /** First-run wizard finished (or skipped). */
   onboarded: z.boolean().default(false),
   admin: z

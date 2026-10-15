@@ -92,7 +92,9 @@ Modules turn events into a view model and hand it to an output sink: `obsidian-m
 <!-- /memexhub:auto -->
 ```
 
-## Notion 📝
+## Notion ✅ output · 📝 storage
+
+Output sink: [notion](notion.md).
 
 1. **Output first**: write structured records (payments, health, days) as rows of a Notion database. No conversion loss; Notion's filters and totals just work.
 2. **Storage later**: a `notion` storage adapter (folders → parent pages, notes → pages). Lossy (wikilinks, callouts, frontmatter) and rate-limited.

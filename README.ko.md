@@ -62,7 +62,8 @@ flowchart LR
 | 할 일(Google Tasks, 계정 여러 개, 로그인 버튼) | ✅ |
 | `day_summary`, `week_summary` (루틴용 하루·한 주 한 번에) | ✅ |
 | 서버 볼트를 Obsidian과 동기화하는 내장 WebDAV | ✅ |
-| Notion 출력, Cloudflare 버튼 설치 | 📝 |
+| Notion 내보내기 (결제, 건강) | ✅ |
+| Cloudflare 버튼 설치, Notion을 볼트 저장소로 | 📝 |
 
 ## 빠르게 시작 (개발)
 

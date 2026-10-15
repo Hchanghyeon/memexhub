@@ -59,6 +59,13 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE TABLE geocode_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, at TEXT NOT NULL)`,
     ],
   },
+  {
+    id: 4,
+    sql: [
+      // Which Notion page mirrors which record, and a hash of what was sent — re-syncing never duplicates rows.
+      `CREATE TABLE notion_rows (kind TEXT NOT NULL, key TEXT NOT NULL, page_id TEXT NOT NULL, hash TEXT NOT NULL, PRIMARY KEY (kind, key))`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

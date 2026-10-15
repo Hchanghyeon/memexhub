@@ -62,7 +62,8 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Tasks (Google Tasks, several accounts, sign-in button) | ✅ |
 | `day_summary`, `week_summary` (one call per day / week for routines) | ✅ |
 | Built-in WebDAV to sync the server's vault with Obsidian | ✅ |
-| Notion output, one-click Cloudflare deploy | 📝 |
+| Notion output (payments, health) — [docs](docs/notion.md) | ✅ |
+| One-click Cloudflare deploy, Notion as vault storage | 📝 |
 
 ## Quick start (development)
 

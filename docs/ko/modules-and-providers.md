@@ -92,7 +92,9 @@ interface Extractor { id: string; extract(m: Message): Extraction | null }   // 
 <!-- /memexhub:auto -->
 ```
 
-## Notion 📝
+## Notion ✅ 내보내기 · 📝 저장소
+
+내보내기: [Notion](notion.md).
 
 1. **출력 먼저**: 결제, 건강, 하루 같은 구조화된 기록을 Notion 데이터베이스 행으로. 변환 손실이 없고 Notion의 필터·합계가 그대로 돼요.
 2. **저장소는 나중**: `notion` 저장소 어댑터 (폴더 → 상위 페이지, 노트 → 페이지). 위키링크·콜아웃·프론트매터가 깨지고 요청 제한이 있어요.

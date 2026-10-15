@@ -282,6 +282,19 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Note language<select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.health.language === l}>{l}</option>)}</select></label>
             <button>Save health</button>
           </form>
+          <h3>Notion</h3>
+          <form method="post" action={`${B}/notion`}>
+            <Csrf c={c} />
+            <label>Notion connection
+              <select name="connection"><option value="">First connected</option>{others.filter((x) => x.kind === "notion").map((x) => <option value={x.name} selected={s.notion.connection === x.name}>{x.name}</option>)}</select>
+            </label>
+            <label><input type="checkbox" name="ledger" checked={s.notion.ledger} style="display:inline;width:auto;margin-right:.4rem" />Mirror payments into a Notion database</label>
+            <label><input type="checkbox" name="health" checked={s.notion.health} style="display:inline;width:auto;margin-right:.4rem" />Mirror health days into a Notion database</label>
+            <button>Save Notion</button>
+            {(s.notion.ledger || s.notion.health) && <button class="secondary" formaction={`${B}/notion/sync`}>Sync now</button>}
+            {c.req.query("notion") && <p class="muted">{c.req.query("notion")}</p>}
+            <p class="muted">Notion is an outside service: what you switch on here is copied there every 15 minutes. Records stay in memexhub; re-syncing never duplicates rows.</p>
+          </form>
           <h3>Location</h3>
           <form method="post" action={`${B}/location`}>
             <Csrf c={c} />
@@ -564,6 +577,28 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     await hub.settings.set("dav", { enabled: f.enabled === "on", maxFileMb: Math.min(500, Math.max(1, Number(f.maxFileMb) || 50)) });
     await hub.reload();
     return c.redirect(`${B}/#vault`);
+  });
+  app.post("/notion", async (c) => {
+    const f = await c.req.parseBody();
+    const s0 = await hub.settings.get();
+    const conns = await hub.connections.list("notion");
+    const name = String(f.connection ?? "");
+    await hub.settings.set("notion", { connection: conns.some((x) => x.name === name) ? name : undefined, ledger: f.ledger === "on", health: f.health === "on" });
+    // Switching a kind on also turns the Notion feature on (one step instead of two).
+    if (f.ledger === "on" || f.health === "on") await hub.settings.set("modules", { ...s0.modules, notion: { enabled: true } });
+    await hub.reload();
+    return c.redirect(`${R}#features`);
+  });
+  app.post("/notion/sync", async (c) => {
+    const api = hub.moduleAdmin.get("notion") as { sync(): Promise<{ kind: string; created: number; updated: number; unchanged: number; more: boolean }[]> } | undefined;
+    let msg: string;
+    try {
+      const r = api ? await api.sync() : [];
+      msg = r.length ? r.map((x) => `${x.kind}: ${x.created} new, ${x.updated} updated, ${x.unchanged} unchanged${x.more ? " (more next time)" : ""}`).join(" · ") : "Nothing to sync — switch payments or health on.";
+    } catch (e) {
+      msg = `Sync failed: ${(e as Error).message.slice(0, 160)}`;
+    }
+    return c.redirect(`${B}/?notion=${encodeURIComponent(msg)}#features`);
   });
   app.post("/location", async (c) => {
     const f = await c.req.parseBody();
