@@ -94,7 +94,7 @@ export function ledgerAdmin(d: {
       const firstLine = m.text.replace(/\[Web발신\]/g, "").split("\n").map((l) => l.trim()).find(Boolean) ?? "";
       const key = g.cardWord || firstLine.slice(0, 12);
       const recipe = {
-        id: `custom.${slug(g.cardWord ? g.cardWord.replace(/카드$/, "") : "")}.${m.channel ?? "sms"}`.replace("..", ".sender."),
+        id: `custom.${slug(g.cardWord ? g.cardWord.replace(/카드$/, "") : "")}.${m.channel ?? "sms"}`,
         name: key || "New recipe",
         channels: [m.channel ?? "sms"],
         match: { any: [esc(key || "?")], all: ["승인|취소"] },
