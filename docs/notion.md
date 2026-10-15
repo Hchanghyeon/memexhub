@@ -18,6 +18,11 @@ memexhub creates **"memexhub · Payments"** (merchant, date and time, amount, ca
 - Only `api.notion.com` is contacted; rate limits are respected (≈3 requests/s, waits on 429).
 - Notion is an outside service: **only the kinds you switch on** are copied. Coordinates are never sent; places are names only.
 
-## Later
 
-Keeping the vault itself in Notion (a storage adapter) is planned separately — Markdown ↔ Notion blocks is lossy, so it needs its own design.
+## Notion as the vault (beta)
+
+Admin UI → Vault → **Notion**: the page link (shared with your integration) and the integration secret. memexhub creates a **"memexhub vault"** database there — one page per note, the vault path in **Path**.
+
+- **Lossless:** reading a note gives back exactly what was written. Headings, `- ` bullets, `- [ ]` to-dos, `> ` quotes, `---`, fenced code and the frontmatter become real Notion blocks; anything else (bold, numbered lists, tables, indentation) stays as literal text in a paragraph. Pages you write in Notion are read as text too.
+- **Small vaults:** Notion allows about 3 requests a second, a note is a few requests, and search reads every note. Fine for a few hundred notes; for big vaults use a folder, WebDAV or S3.
+- Obsidian cannot open this vault directly — use it if you live in Notion and talk to it through Claude.

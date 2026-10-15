@@ -118,3 +118,70 @@ export function fakeR2() {
     },
   };
 }
+
+/** An in-memory Notion API for the vault adapter: databases, pages, block children, data-source queries. */
+export function fakeNotionApi() {
+  const pages = new Map<string, { props: any; children: string[]; edited: string; trashed?: boolean }>();
+  const blocks = new Map<string, any>();
+  let n = 0;
+  let clock = Date.parse("2026-10-15T00:00:00Z");
+  const touch = () => new Date((clock += 1000)).toISOString();
+  const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
+  const page = (id: string) => ({ object: "page", id, last_edited_time: pages.get(id)!.edited, properties: pages.get(id)!.props, in_trash: !!pages.get(id)!.trashed });
+  const titleOf = (p: any) => (p.Path?.title ?? []).map((r: any) => r.text?.content ?? "").join("");
+  const f = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const u = new URL(String(input));
+    const m = init?.method ?? "GET";
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    const p = u.pathname.replace(/^\/v1/, "");
+    if (p === "/databases" && m === "POST") return json({ id: `db${++n}`, data_sources: [{ id: `ds${n}` }] });
+    if (p === "/pages" && m === "POST") {
+      const id = `p${++n}`;
+      pages.set(id, { props: body.properties, children: [], edited: touch() });
+      return json(page(id));
+    }
+    let r = p.match(/^\/pages\/([^/]+)$/);
+    if (r) {
+      const pg = pages.get(r[1]!);
+      if (!pg) return json({}, 404);
+      if (m === "PATCH") Object.assign(pg.props, body.properties), (pg.edited = touch());
+      return json(page(r[1]!));
+    }
+    r = p.match(/^\/data_sources\/([^/]+)\/query$/);
+    if (r) {
+      const flt = body.filter?.title;
+      const all = [...pages.keys()].filter((id) => {
+        const t = titleOf(pages.get(id)!.props);
+        return !flt || (flt.equals !== undefined ? t === flt.equals : t.startsWith(flt.starts_with));
+      });
+      const start = Number(body.start_cursor ?? 0);
+      const size = Math.min(body.page_size ?? 100, 2);
+      const slice = all.slice(start, start + size);
+      return json({ results: slice.map(page), has_more: start + size < all.length, next_cursor: start + size < all.length ? String(start + size) : null });
+    }
+    r = p.match(/^\/blocks\/([^/]+)\/children$/);
+    if (r) {
+      const pg = pages.get(r[1]!)!;
+      if (m === "PATCH") {
+        for (const b of body.children) {
+          const id = `b${++n}`;
+          blocks.set(id, { ...b, id });
+          pg.children.push(id);
+        }
+        pg.edited = touch();
+        return json({ results: [] });
+      }
+      const start = Number(u.searchParams.get("start_cursor") ?? 0);
+      const ids = pg.children.slice(start, start + 3);
+      return json({ results: ids.map((id) => blocks.get(id)), has_more: start + 3 < pg.children.length, next_cursor: start + 3 < pg.children.length ? String(start + 3) : null });
+    }
+    r = p.match(/^\/blocks\/([^/]+)$/);
+    if (r && m === "DELETE") {
+      blocks.delete(r[1]!);
+      for (const pg of pages.values()) pg.children = pg.children.filter((x) => x !== r![1]);
+      return json({});
+    }
+    return json({ code: "not_found" }, 404);
+  }) as typeof fetch;
+  return { fetch: f, pages };
+}

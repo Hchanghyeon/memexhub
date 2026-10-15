@@ -31,7 +31,7 @@ export class NotionClient {
     return id;
   }
 
-  private async call(method: string, path: string, body?: unknown): Promise<any> {
+  async call(method: string, path: string, body?: unknown): Promise<any> {
     for (let attempt = 0; attempt < 4; attempt++) {
       const wait = 340 - (this.now() - this.last);
       if (wait > 0) await this.sleep(wait);

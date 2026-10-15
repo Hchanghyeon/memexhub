@@ -65,7 +65,7 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Notion output (payments, health) — [docs](docs/notion.md) | ✅ |
 | One-click Cloudflare deploy (Workers + D1 + R2) — [docs](docs/cloudflare.md) | ✅ |
 | Home Assistant add-on, Synology, Railway — [docs](docs/app-stores.md) | ✅ (after the first release) |
-| Notion as vault storage | 📝 |
+| Notion as vault storage (beta, small vaults) | ✅ |
 
 ## Quick start (development)
 

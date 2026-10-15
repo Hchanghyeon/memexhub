@@ -51,7 +51,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 
 | Kind | Interface | v1 | Later |
 |---|---|---|---|
-| storage | `read · write(ifMatch/ifNoneMatch) · list · stat · move` (+ capabilities) | fs ✅ · webdav ✅ · s3 ✅ | git · notion · couchdb · cloud drives |
+| storage | `read · write(ifMatch/ifNoneMatch) · list · stat · move` (+ capabilities) | fs ✅ · webdav ✅ · s3 ✅ · r2 ✅ · notion ✅ (beta) | git · couchdb · cloud drives |
 | mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
 | location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | own app |
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | Kakao Local, Naver |
@@ -84,7 +84,7 @@ A new card company or shop = **one recipe** (JSON in a vault note, or `recipes/*
 
 ## Rendering: data → output sink
 
-Modules turn events into a view model and hand it to an output sink: `obsidian-markdown` (v1), `notion-database` (later). Notes shared with humans are only changed inside auto sections:
+Modules turn events into a view model and hand it to an output sink: `obsidian-markdown`, `notion-database` ([notion](notion.md)). Notes shared with humans are only changed inside auto sections:
 
 ```
 <!-- memexhub:auto id=money -->
@@ -92,7 +92,7 @@ Modules turn events into a view model and hand it to an output sink: `obsidian-m
 <!-- /memexhub:auto -->
 ```
 
-## Notion ✅ output · 📝 storage
+## Notion ✅ output · ✅ storage (beta)
 
 Output sink: [notion](notion.md).
 

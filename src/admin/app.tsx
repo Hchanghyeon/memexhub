@@ -169,6 +169,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
                   </>
                 )}
                 <option value="webdav">WebDAV</option>
+                <option value="notion">Notion (beta — small vaults)</option>
               </select>
             </label>
             <label>Folder (for "existing folder", under {opts.vaultRoots.join(" or ")})<input name="path" placeholder={`${opts.vaultRoots[0]}/my-vault`} /></label>
@@ -176,6 +177,8 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>WebDAV username<input name="username" autocomplete="off" /></label>
             <label>WebDAV password (stored encrypted, never shown again)<input name="password" type="password" autocomplete="new-password" /></label>
             <label><input type="checkbox" name="allowPrivateNetwork" style="display:inline;width:auto;margin-right:.4rem" />WebDAV server is on my private network</label>
+            <label>Notion page for the vault (link — share it with your integration)<input name="notionPage" placeholder="https://www.notion.so/…" /></label>
+            <label>Notion integration secret (stored encrypted)<input name="notionToken" type="password" autocomplete="new-password" /></label>
             <button>Save &amp; test</button>
           </form>
           <h3>Sync with Obsidian on your devices</h3>
@@ -402,7 +405,12 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const f = await c.req.parseBody();
     const provider = String(f.provider);
     try {
-      if (provider === "r2") {
+      if (provider === "notion") {
+        await hub.connections.upsert(
+          { kind: "storage", provider: "notion", name: "vault", config: { parentPage: String(f.notionPage ?? "").trim(), version: "2025-09-03" }, secrets: f.notionToken ? { token: String(f.notionToken) } : undefined },
+          actor(c),
+        );
+      } else if (provider === "r2") {
         await hub.connections.upsert({ kind: "storage", provider: "r2", name: "vault", config: { binding: "VAULT" } }, actor(c));
       } else if (provider === "builtin") {
         await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: {} }, actor(c));

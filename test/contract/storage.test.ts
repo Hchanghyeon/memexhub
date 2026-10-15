@@ -8,13 +8,21 @@ import { sqliteDb } from "../../src/platform/node.js";
 import { migrate } from "../../src/core/migrations.js";
 import type { VaultStorage } from "../../src/storage/types.js";
 import { S3Storage } from "../../src/storage/s3.js";
-import { fakeR2, fakeS3 } from "../helpers.js";
+import { fakeNotionApi, fakeR2, fakeS3 } from "../helpers.js";
+import { NotionVault } from "../../src/providers/notion/vault.js";
+import { NotionClient } from "../../src/providers/notion/client.js";
 import { R2Storage } from "../../src/storage/r2.js";
 
 /** Contract every storage adapter must pass. Add new adapters to `adapters`. */
 const adapters: Record<string, () => VaultStorage> = {
   fs: () => new FsStorage(mkdtempSync(join(tmpdir(), "mx-fs-"))),
   r2: () => new R2Storage(fakeR2(), "vault"),
+  notion: () => {
+    const mem = new Map<string, unknown>();
+    const cursors = { get: async (k: string) => mem.get(k), set: async (k: string, v: unknown) => void mem.set(k, v) } as any;
+    const client = new NotionClient({ token: "t".repeat(30), version: "2025-09-03", parentPage: "0123456789abcdef0123456789abcdef" }, fakeNotionApi().fetch, async () => {});
+    return new NotionVault(client, cursors, "k");
+  },
   s3: () => new S3Storage({ endpoint: "https://s3.example.com", region: "auto", bucket: "vault-bucket", prefix: "my vault", accessKeyId: "AKIDEXAMPLE", secretAccessKey: "secret" }, fakeS3().fetch),
 };
 
@@ -40,6 +48,13 @@ for (const [name, make] of Object.entries(adapters)) {
       for (const p of ["d/1.md", "d/2.md", "d/sub/3.md", "e/4.md", "a & b.md"]) await s.write(p, p);
       expect((await s.list()).map((f) => f.path).sort()).toEqual(["a & b.md", "d/1.md", "d/2.md", "d/sub/3.md", "e/4.md"]);
       expect((await s.list("d")).map((f) => f.path).sort()).toEqual(["d/1.md", "d/2.md", "d/sub/3.md"]);
+    });
+    it("keeps a whole note exactly", async () => {
+      const note = "---\ntitle: x\n---\n\n# H\n- a\n- [ ] b\n1. c\n```js\nlet a = 1;\n```\n> q\n**bold** text\n";
+      await s.write("n/full.md", note);
+      expect((await s.read("n/full.md")).text).toBe(note);
+      await s.write("n/full.md", note.replace("# H", "# H2"));
+      expect((await s.read("n/full.md")).text).toBe(note.replace("# H", "# H2"));
     });
     it("moves without overwriting", async () => {
       await s.write("x.md", "x");

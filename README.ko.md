@@ -65,7 +65,7 @@ flowchart LR
 | Notion 내보내기 (결제, 건강) | ✅ |
 | Cloudflare 버튼 설치 (Workers + D1 + R2) | ✅ |
 | 홈 어시스턴트 애드온, 시놀로지, Railway | ✅ (첫 릴리스 후) |
-| Notion을 볼트 저장소로 | 📝 |
+| Notion을 볼트 저장소로 (베타, 작은 볼트) | ✅ |
 
 ## 빠르게 시작 (개발)
 
