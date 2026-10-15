@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security problem?** Do not open an issue — use *Security → Report a vulnerability*.
+        **Do not include personal data** — redact names, emails, domains, tokens, transactions, locations and note contents in logs and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. …"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options: [Docker, Node (npm run), Other]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (redacted)
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed personal data and secrets from everything above
+          required: true

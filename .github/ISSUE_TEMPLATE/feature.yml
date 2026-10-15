@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose a capability or improvement
+labels: [feat]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not include personal data** — no real names, emails, domains, tokens, transactions, locations or note contents. Use made-up examples.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should memexhub do? Which module or provider does it touch?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know it is done?
+      placeholder: "- [ ] …"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This issue contains no personal data or secrets
+          required: true
