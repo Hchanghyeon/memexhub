@@ -84,7 +84,9 @@ export async function loadRecipes(
 
 /** Run a recipe's own examples. Times are checked only when the example lists one. */
 export async function testRecipe(c: CompiledRecipe, tz = "Asia/Seoul", now = new Date("2026-10-15T03:00:00Z")) {
-  const reader = new MessageReader(() => [c], { tz: () => tz, now: () => now });
+  // Examples test the recipe itself, so a switched-off recipe is tested as if it were on.
+  const on: CompiledRecipe = { ...c, recipe: { ...c.recipe, enabled: true } };
+  const reader = new MessageReader(() => [on], { tz: () => tz, now: () => now });
   const failed: { index: number; diff: string }[] = [];
   for (const [index, ex] of c.recipe.examples.entries()) {
     const r = await reader.read({ channel: ex.channel ?? c.recipe.channels[0], from: ex.from, subject: ex.subject, text: ex.text });

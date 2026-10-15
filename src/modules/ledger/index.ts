@@ -11,6 +11,7 @@ import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, rep
 import { nowIn } from "../../core/time.js";
 import { Inbox } from "../../core/inbox.js";
 import { inboxTools, type PendingMessage } from "./inbox-tools.js";
+import { ledgerAdmin } from "./admin-api.js";
 
 export default defineModule({
   id: "ledger",
@@ -59,6 +60,7 @@ export default defineModule({
     });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
     return {
+      admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now() }),
       jobs: extra.jobs,
       tools: [
         ...extra.tools,

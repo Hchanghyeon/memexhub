@@ -32,6 +32,8 @@ export class Hub {
   tools: ToolDef<any>[] = [];
   ingest: IngestRoute[] = [];
   moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
+  /** Admin-only module APIs (see ModuleInstance.admin). */
+  moduleAdmin = new Map<string, unknown>();
   jobs: { module: string; job: JobDef }[] = [];
   private instances = new Map<string, Promise<unknown>>();
 
@@ -79,6 +81,7 @@ export class Hub {
     const ingest: IngestRoute[] = [];
     const jobs: { module: string; job: JobDef }[] = [];
     this.moduleStatus = [];
+    this.moduleAdmin.clear();
     for (const m of this.modules) {
       const enabled = s.modules[m.id]?.enabled ?? ["vault", "wiki", "hub"].includes(m.id);
       if (!enabled) {
@@ -98,6 +101,7 @@ export class Hub {
         tools.push(...(inst.tools ?? []));
         ingest.push(...(inst.ingest ?? []));
         jobs.push(...(inst.jobs ?? []).map((job) => ({ module: m.id, job })));
+        if (inst.admin) this.moduleAdmin.set(m.id, inst.admin);
         this.moduleStatus.push({ id: m.id, enabled: true });
       } catch (e) {
         this.moduleStatus.push({ id: m.id, enabled: true, error: (e as Error).message });

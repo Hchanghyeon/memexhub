@@ -51,6 +51,8 @@ export interface ModuleInstance {
   ingest?: IngestRoute[];
   jobs?: JobDef[];
   status?(): Promise<{ ok: boolean; detail?: string }>;
+  /** Actions for the admin UI only (never exposed to MCP). Typed by the module that provides it. */
+  admin?: unknown;
 }
 
 /** Plugin contract. Adding a module = new folder + one line in src/modules/index.ts. */

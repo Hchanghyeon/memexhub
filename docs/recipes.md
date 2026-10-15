@@ -129,7 +129,7 @@ Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active
 
 ## Admin UI
 
-Under **Features → Ledger → Recipes**:
+Under **Features → Ledger → Recipes & inbox** ✅:
 
 - **Try a message.** Paste a text and see which step handled it (recipe, generic parser or inbox) and the fields.
 - **Recipes.** Lists built-in, active and proposed recipes, with test results. **Approve** moves a proposed note into `<recipes>/`, and **Disable** sets `enabled: false`.

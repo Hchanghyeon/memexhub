@@ -11,6 +11,7 @@ import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
 import { effectiveRules } from "../modules/wiki/lint.js";
 import { fieldsOf, Inputs, valuesOf } from "./forms.js";
 import { pick } from "../core/i18n.js";
+import { recipeRoutes } from "./recipes.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
@@ -97,6 +98,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   });
   const actor = (c: Context<Vars>) => `admin:${c.get("adminId")}`;
   const Csrf = (p: { c: Context<Vars> }) => <input type="hidden" name="csrf" value={p.c.get("csrf")} />;
+  recipeRoutes(app, hub, Csrf);
 
   app.get("/", async (c) => {
     const s = await hub.settings.get();
@@ -229,6 +231,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Keep unreadable messages (days)<input name="inboxDays" type="number" min="1" max="365" value={String(s.ledger.inboxDays)} /></label>
             <button>Save ledger</button>
           </form>
+          {hub.moduleAdmin.has("ledger") && <p><a href="/ledger/recipes">Recipes & inbox →</a> <span class="muted">teach the engine new message formats, handle what it could not read</span></p>}
           <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/message</code> (raw text such as a card SMS: <code>{"{\"channel\": \"sms\", \"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
 
