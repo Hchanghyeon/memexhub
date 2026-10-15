@@ -1,11 +1,13 @@
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
+import { summaryTools } from "./summary-tools.js";
 
 export default defineModule({
   id: "hub",
   title: T("Hub status", "허브 상태"),
-  setup: ({ platform }) => ({
+  setup: (ctx) => ({
     tools: [
+      ...summaryTools(ctx),
       defineTool({
         name: "hub_status",
         readOnly: true,
@@ -15,7 +17,7 @@ export default defineModule({
         ),
         input: {},
         async run() {
-          const db = platform.db;
+          const db = ctx.platform.db;
           const conns = await db.all<any>(`SELECT kind, name, provider, status, last_ok_at FROM connections WHERE enabled = 1`);
           const last = await db.all<any>(`SELECT type, MAX(received_at) at, COUNT(*) n FROM events WHERE skipped IS NULL GROUP BY type`);
           return [

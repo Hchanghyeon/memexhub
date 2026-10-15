@@ -98,13 +98,13 @@ export function classify(r: LedgerRow, officePlaces: string[]): Kind {
   return "pay";
 }
 
-interface Ent extends LedgerRow {
+export interface Ent extends LedgerRow {
   w: ReturnType<typeof nowIn>;
   ms: number;
   kind2: Kind;
 }
 
-function entries(rows: LedgerRow[], tz: string, officePlaces: string[]): Ent[] {
+export function entries(rows: LedgerRow[], tz: string, officePlaces: string[]): Ent[] {
   const items = new Map<string, string>();
   for (const r of rows) if (r.skipped === "merged" && r.target) items.set(r.amount ? `${r.target}|${digits(r.amount)}` : r.target, r.item ?? "");
   const out: Ent[] = [];

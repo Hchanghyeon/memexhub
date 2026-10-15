@@ -38,6 +38,8 @@ export class Hub {
   moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
   /** Admin-only module APIs (see ModuleInstance.admin). */
   moduleAdmin = new Map<string, unknown>();
+  /** Summary parts by module, in module order (Composite for day_summary / week_summary). */
+  summaries: { id: string; title: import("./core/i18n.js").Text; summary: import("./core/registry.js").Summary }[] = [];
   jobs: { module: string; job: JobDef }[] = [];
   private instances = new Map<string, Promise<unknown>>();
 
@@ -89,6 +91,7 @@ export class Hub {
     const jobs: { module: string; job: JobDef }[] = [];
     this.moduleStatus = [];
     this.moduleAdmin.clear();
+    const summaries: typeof this.summaries = [];
     for (const m of this.modules) {
       const enabled = s.modules[m.id]?.enabled ?? ["vault", "wiki", "hub"].includes(m.id);
       if (!enabled) {
@@ -104,17 +107,20 @@ export class Hub {
           platform: this.platform, settings: s, vault: this.vault, bus: this.bus,
           provider: (kind, name) => this.provider(kind, name) as any,
           connections: async (kind) => (await this.connections.list(kind)).filter((c) => c.enabled).map((c) => c.name),
+          summaries: () => this.summaries,
         });
         tools.push(...(inst.tools ?? []));
         ingest.push(...(inst.ingest ?? []));
         jobs.push(...(inst.jobs ?? []).map((job) => ({ module: m.id, job })));
         if (inst.admin) this.moduleAdmin.set(m.id, inst.admin);
+        if (inst.summary) summaries.push({ id: m.id, title: m.title, summary: inst.summary });
         this.moduleStatus.push({ id: m.id, enabled: true });
       } catch (e) {
         this.moduleStatus.push({ id: m.id, enabled: true, error: (e as Error).message });
       }
     }
     this.tools = tools;
+    this.summaries = summaries;
     this.ingest = ingest;
     this.jobs = jobs;
   }

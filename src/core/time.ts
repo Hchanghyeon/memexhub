@@ -29,3 +29,25 @@ export function zonedIso(tz: string, y: number, mo: number, d: number, h: number
 export function nowIn(tz: string, d = new Date()) {
   return parts(tz, d);
 }
+
+/** "YYYY-MM-DD" ± n days (calendar arithmetic, no time zone involved). */
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** 0 = Monday … 6 = Sunday. */
+export const weekdayMon0 = (date: string) => (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
+
+/** [start, end) of a local calendar day as instants. */
+export function dayBounds(tz: string, date: string): [Date, Date] {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const [y2, m2, d2] = addDays(date, 1).split("-").map(Number) as [number, number, number];
+  return [new Date(zonedIso(tz, y, m, d, 0, 0)), new Date(zonedIso(tz, y2, m2, d2, 0, 0))];
+}
+
+/** Local date of an instant. */
+export function localDate(tz: string, t: Date): string {
+  const p = nowIn(tz, t);
+  return `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}`;
+}

@@ -64,10 +64,10 @@ export interface ProviderDef<K extends Kind, C, S> {
 | 모듈 | 도구 | 수집 | 노트 | 상태 |
 |---|---|---|---|---|
 | vault | `list_notes` `read_note` `search_notes` `vault_stats` `write_note` `append_note` `delete_note` `move_note` | — | — | ✅ |
-| hub | `hub_status` (다음: `day_summary`, `week_summary`) | — | — | ✅ / 📝 |
+| hub | `hub_status`, `day_summary`, `week_summary` | — | — | ✅ |
 | wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` | — | 목차, 로그 | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` 📝 | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
-| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ |
+| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ ([메일](mail.md)) |
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |

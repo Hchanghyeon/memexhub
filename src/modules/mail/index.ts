@@ -23,7 +23,33 @@ export default defineModule({
       return m;
     };
     const account = z.string().max(32).optional().describe(`Account name / 계정 이름: ${accounts.join(", ") || "-"}`);
+    /** Senders that are machines, not people (counted separately in the day summary). */
+    const AUTOMATED = /no-?reply|do-?not-?reply|notification|newsletter|mailer|alert|news@|info@|support@|service@|marketing|promo|billing/i;
     return {
+      summary: {
+        // Counts only — no subjects or senders — so a routine can decide whether to look closer with mail_day.
+        async day(date) {
+          const out: string[] = [];
+          for (const a of accounts) {
+            try {
+              const m = await get(a);
+              const parts: string[] = [];
+              for (const [folder, label] of m.digestFolders()) {
+                const rows = (await m.search({ folder, since: date, until: date, limit: 200 })).filter((r) => r.date.startsWith(date));
+                if (!rows.length) continue;
+                if (label === "received") {
+                  const auto = rows.filter((r) => AUTOMATED.test(r.from)).length;
+                  parts.push(`${label} ${rows.length} (people ${rows.length - auto} · automated ${auto})`);
+                } else parts.push(`${label} ${rows.length}`);
+              }
+              if (parts.length) out.push(`${a}: ${parts.join(" · ")}`);
+            } catch (e) {
+              out.push(`${a}: unavailable (${(e as Error).message.slice(0, 80)})`);
+            }
+          }
+          return out.length ? out : undefined;
+        },
+      },
       tools: [
         defineTool({
           name: "mail_folders",

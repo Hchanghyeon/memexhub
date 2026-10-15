@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
-import { nowIn, zonedIso } from "../../core/time.js";
+import { addDays, dayBounds, nowIn, zonedIso } from "../../core/time.js";
 import type { Geocoder, LocationProvider } from "../../providers/location/types.js";
 import { areaAt, cleanPoints, pathKm, stays, stripLot } from "../../providers/location/stays.js";
 import { placeResolver } from "./places.js";
@@ -47,6 +47,35 @@ export default defineModule({
     const hhmm = (t: number) => new Intl.DateTimeFormat("en-GB", { timeZone: tz(), hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t * 1000));
 
     return {
+      summary: {
+        async day(date) {
+          const { loc } = await get();
+          if (!loc) return undefined;
+          const [from, to] = dayBounds(tz(), date);
+          const pts = cleanPoints(await loc.points(from, to));
+          if (!pts.length) return undefined;
+          const parts: string[] = [];
+          for (const x of stays(pts, s().stay)) parts.push(`${hhmm(x.start)}–${hhmm(x.end)} ${(await places.nameAt!(x.lat, x.lon)) || (s().language === "ko" ? "(이름 없음)" : "(unnamed)")}`);
+          return [`${parts.join(" → ") || (s().language === "ko" ? "체류 없음" : "no stays")} · ${pathKm(pts).toFixed(1)} km`];
+        },
+        async week(from, to) {
+          const { loc } = await get();
+          if (!loc) return undefined;
+          const [a] = dayBounds(tz(), from);
+          const [, b] = dayBounds(tz(), to);
+          const pts = cleanPoints(await loc.points(a, b));
+          let km = 0;
+          let days = 0;
+          for (let d = from; d <= to; d = addDays(d, 1)) {
+            const [x, y] = dayBounds(tz(), d);
+            const dp = pts.filter((p) => p.t >= +x / 1000 && p.t < +y / 1000);
+            if (dp.length) days++;
+            km += pathKm(dp);
+          }
+          const ko = s().language === "ko";
+          return { lines: [], numbers: [{ label: ko ? "이동" : "travelled", value: km, unit: "km", decimals: 1 }, { label: ko ? "위치 기록 날" : "days with location", value: days }] };
+        },
+      },
       tools: [
         defineTool({
           name: "location_day",

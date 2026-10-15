@@ -12,6 +12,7 @@ import { nowIn } from "../../core/time.js";
 import { Inbox } from "../../core/inbox.js";
 import { inboxTools, type PendingMessage } from "./inbox-tools.js";
 import { ledgerAdmin } from "./admin-api.js";
+import { ledgerSummary } from "./summary.js";
 import { syncReceiptMails } from "./mail-job.js";
 import { Cursors } from "../../core/cursors.js";
 import type { MailProvider } from "../../providers/mail/types.js";
@@ -78,6 +79,7 @@ export default defineModule({
         reader, ledger, inbox, cursors: new Cursors(platform.db, () => platform.now()), tz: () => settings.timezone, now: () => platform.now(),
       }, o);
     return {
+      summary: ledgerSummary({ rows, tz: () => settings.timezone, officePlaces: () => settings.ledger.officePlaces, lang: () => settings.ledger.language }),
       admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now() }),
       jobs: [
         ...extra.jobs,

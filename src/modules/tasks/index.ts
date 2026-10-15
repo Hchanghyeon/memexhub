@@ -27,6 +27,23 @@ export default defineModule({
       }
     };
     return {
+      summary: {
+        async day(date) {
+          const out: string[] = [];
+          for (const a of accounts) {
+            try {
+              const open = await (await get(a)).list("", { showCompleted: false, limit: 100 });
+              const due = open.filter((t) => t.due === date);
+              const overdue = open.filter((t) => t.due && t.due < date);
+              if (due.length || overdue.length)
+                out.push(`${a}: ${[due.length && `due ${due.length} (${due.map((t) => t.title).join(", ").slice(0, 200)})`, overdue.length && `overdue ${overdue.length}`].filter(Boolean).join(" · ")}`);
+            } catch (e) {
+              out.push(`${a}: unavailable (${(e as Error).message.slice(0, 80)})`);
+            }
+          }
+          return out.length ? out : undefined;
+        },
+      },
       tools: [
         defineTool({
           name: "tasks_accounts",

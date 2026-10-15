@@ -39,10 +39,12 @@ sequenceDiagram
 | payment/money notes, totals, tables, link checks, indexes, receipt-mail matching | engine (exact, no tokens) |
 | choosing which stays become calendar events, one-line day summaries, weekly observations, wiki pages | Claude |
 
-New tools that make routines cheap 📝:
+New tools that make routines cheap ✅:
 
 - `day_summary(date)` — stays, payments, transit, health, mail counts in one compact call (no need to open large yearly notes)
-- `week_summary(week)` — weekly numbers with week-over-week comparison
+- `week_summary(week)` — weekly numbers with week-over-week comparison, top merchants, recurring payments
+
+Each module contributes its own part (a module added later shows up in the summaries by itself).
 - `hub_status()` ✅ — connection health and last received records (never settings or secrets)
 
 ## Routines

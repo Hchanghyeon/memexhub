@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
-import { nowIn } from "../../core/time.js";
+import { addDays, nowIn } from "../../core/time.js";
 import { fromHealthAutoExport, fromShortcut, type DayUpdate } from "./parse.js";
 import { dayLine, mergeDays, renderHealthNote } from "./render.js";
 
@@ -34,6 +34,37 @@ export default defineModule({
     });
 
     return {
+      summary: {
+        async day(date) {
+          const r = (await days()).get(date);
+          return r ? [dayLine(date, r, h().language).replace(/^- \S+ \(\S+\) /, "")] : undefined;
+        },
+        async week(from, to) {
+          const all = await days();
+          const sleep: number[] = [];
+          const steps: number[] = [];
+          let workouts = 0;
+          for (let d = from; d <= to; d = addDays(d, 1)) {
+            const r = all.get(d);
+            if (!r) continue;
+            const m = r.sleep?.asleep_min ?? r.sleep?.bed_min;
+            if (m) sleep.push(m);
+            if (r.metrics.steps !== undefined) steps.push(r.metrics.steps);
+            workouts += r.workouts?.length ?? 0;
+          }
+          if (!sleep.length && !steps.length && !workouts) return undefined;
+          const avg = (x: number[]) => (x.length ? x.reduce((a, b) => a + b, 0) / x.length : 0);
+          const ko = h().language === "ko";
+          return {
+            lines: [],
+            numbers: [
+              ...(sleep.length ? [{ label: ko ? "평균 수면" : "avg sleep", value: avg(sleep) / 60, unit: "h", decimals: 1 }] : []),
+              ...(steps.length ? [{ label: ko ? "평균 걸음" : "avg steps", value: avg(steps) }] : []),
+              { label: ko ? "운동" : "workouts", value: workouts },
+            ],
+          };
+        },
+      },
       tools: [
         defineTool({
           name: "health_day",

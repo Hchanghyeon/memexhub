@@ -37,6 +37,25 @@ export interface ModuleContext {
   provider<T = unknown>(kind: string, name?: string): Promise<T | undefined>;
   /** Names of enabled connections of `kind` (several mail accounts …). */
   connections(kind: string): Promise<string[]>;
+  /** Summary parts of all loaded modules (read when a tool runs, after every module is set up). */
+  summaries(): { id: string; title: Text; summary: Summary }[];
+}
+
+/** One number a module reports for a week; the summary compares it with the week before. */
+export interface WeekNumber {
+  label: string;
+  value: number;
+  unit?: string; // "₩", "km", "min" …
+  decimals?: number;
+}
+export interface WeekPart {
+  lines: string[];
+  numbers: WeekNumber[];
+}
+/** Composite: each module contributes its part of day_summary / week_summary. Dates are YYYY-MM-DD in the hub time zone. */
+export interface Summary {
+  day?(date: string): Promise<string[] | undefined>;
+  week?(from: string, to: string): Promise<WeekPart | undefined>;
 }
 
 /** Periodic work, e.g. checking receipt mails. Runs in-process on Node, via cron on Workers. */
@@ -53,6 +72,7 @@ export interface ModuleInstance {
   status?(): Promise<{ ok: boolean; detail?: string }>;
   /** Actions for the admin UI only (never exposed to MCP). Typed by the module that provides it. */
   admin?: unknown;
+  summary?: Summary;
 }
 
 /** Plugin contract. Adding a module = new folder + one line in src/modules/index.ts. */
