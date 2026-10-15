@@ -1,0 +1,20 @@
+# Copy to compose.yml and adjust. Keep your real .env out of git.
+services:
+  memexhub:
+    image: ghcr.io/hchanghyeon/memexhub:latest
+    container_name: memexhub
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8787:8787"            # MCP (Claude) — put behind your HTTPS reverse proxy / tunnel
+      - "8790:8790"            # ingest (phone shortcuts) — HTTPS reverse proxy / tunnel
+      - "127.0.0.1:8791:8791"  # admin UI — keep private
+    volumes:
+      - ./data:/data                 # memexhub.db, built-in vault, cache, backups
+      # - /path/to/your/vault:/vaults/main   # optional: an existing vault folder
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    pids_limit: 200
