@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Hub } from "../hub.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
+import { davRoutes } from "./dav.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -9,6 +10,7 @@ export function ingestApp(hub: Hub) {
   const app = new Hono<Vars>();
   app.use("*", securityHeaders);
   app.get("/healthz", (c) => c.text("ok"));
+  davRoutes(app, hub);
   app.post("/ingest/*", rateLimit(60, (c) => c.req.header("x-ingest-token")?.slice(0, 12) ?? c.get("ip")), async (c) => {
     if (!(await hub.admin.hasAdmin())) return c.json({ error: "setup_required" }, 503);
     const route = hub.ingest.find((r) => r.path === c.req.path);

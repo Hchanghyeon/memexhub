@@ -45,7 +45,7 @@ DATA_DIR/
 
 | 선택 | 언제 | 상태 |
 |---|---|---|
-| **이 서버에 새로 만들기** (추천) | 새로 시작, 동기화 안 씀 | ✅ 폴더 · Obsidian 동기화용 내장 WebDAV 📝 |
+| **이 서버에 새로 만들기** (추천) | 새로 시작, 동기화 안 씀 | ✅ 폴더 · Obsidian 동기화용 내장 WebDAV ✅ |
 | 이 서버의 기존 폴더 | 볼트가 이미 서버에 있음 | ✅ (`VAULT_ROOTS` 아래만) |
 | WebDAV | Nextcloud, NAS WebDAV, Remotely Save WebDAV | ✅ |
 | S3 / R2 / MinIO | Remotely Save S3 | ✅ |
@@ -63,3 +63,13 @@ Obsidian Sync(공식)와 iCloud는 서버에서 읽을 API가 없어요. 위 방
 - 삭제 = `.trash/`로 이동 (목록에서는 숨김)
 - 내용이 같으면 안 써요 (동기화가 쓸데없이 안 돌게)
 - 모든 쓰기를 감사 기록 (경로, 크기, 해시 앞부분 — 내용은 남기지 않음)
+
+## 내장 WebDAV (서버 볼트 동기화) ✅
+
+볼트가 서버에 있으면(서버 내장·서버 폴더) memexhub가 WebDAV로 내보내서, 폰·PC의 Obsidian이 바로 동기화할 수 있어요. 서버를 하나 더 띄울 필요가 없어요.
+
+1. 관리 화면 → Vault → **Sync with Obsidian on your devices** 켜기
+2. Devices → 기기마다 범위 `dav` 토큰 만들기
+3. Obsidian → **Remotely Save** 설치 → WebDAV: 주소 `https://<수집 주소>/dav/`, 아이디는 아무거나, 비밀번호는 기기 토큰
+
+기본은 꺼짐 · 기기별 토큰으로 Basic 인증(기기를 잃어버리면 그 토큰만 끊기) · 속도 제한 · 볼트 밖으로 못 나감(`..`·심볼릭 링크 거부) · 지우면 `.trash`로(WebDAV에선 안 보임) · 파일 크기 제한(기본 50MB) · 응답은 샌드박스(`Content-Security-Policy: sandbox`) · 모든 쓰기를 내용 없이 감사 기록

@@ -33,6 +33,8 @@ export class Hub {
   google: GoogleSignIn;
   ingestTokens: IngestTokens;
   vault?: SafeVault;
+  /** Byte access to the vault for the built-in WebDAV — only when enabled and the vault is held by this server. */
+  davFiles?: import("./storage/files.js").RawFiles;
   tools: ToolDef<any>[] = [];
   ingest: IngestRoute[] = [];
   moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
@@ -70,11 +72,13 @@ export class Hub {
   async reload() {
     const s = await this.settings.get();
     this.vault = undefined;
+    this.davFiles = undefined;
     this.instances.clear();
     try {
       const store = await this.provider<import("./storage/types.js").VaultStorage>("storage", s.vault.connection);
       if (store) {
         const layout = new Layout(s.wiki.roles);
+        if (s.dav.enabled && store.files) this.davFiles = store.files();
         this.vault = new SafeVault(
           store,
           { ...s.vault, protectedPaths: [...s.vault.protectedPaths, ...layout.protectedGlobs()], writeOncePaths: layout.writeOnceGlobs() },

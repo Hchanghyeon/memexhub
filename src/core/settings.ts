@@ -60,6 +60,10 @@ export const SettingsSchema = z.object({
       keepDays: z.number().int().min(1).max(3650).default(400),
     })
     .default({ language: "en", privateAreas: [], stay: { radiusM: 150, minMinutes: 15, mergeM: 200 }, keepDays: 400 }),
+  /** Built-in WebDAV (/dav/) for syncing a vault the server holds itself. Off by default. */
+  dav: z
+    .object({ enabled: z.boolean().default(false), maxFileMb: z.number().int().min(1).max(500).default(50) })
+    .default({ enabled: false, maxFileMb: 50 }),
   health: z
     .object({ note: z.string().default("health/{year}.md"), language: z.enum(["ko", "en"]).default("en") })
     .default({ note: "health/{year}.md", language: "en" }),

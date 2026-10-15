@@ -45,7 +45,7 @@ The setup wizard first asks *how do you sync Obsidian today?* and recommends one
 
 | Option | When | Status |
 |---|---|---|
-| **Create on this server** (recommended) | new start / no sync yet | ✅ folder · built-in WebDAV for Obsidian sync 📝 |
+| **Create on this server** (recommended) | new start / no sync yet | ✅ folder · built-in WebDAV for Obsidian sync ✅ |
 | Existing folder on this server | the vault is already on the server | ✅ (must be under `VAULT_ROOTS`) |
 | WebDAV | Nextcloud, NAS WebDAV, Remotely Save WebDAV | ✅ |
 | S3 / R2 / MinIO | Remotely Save S3 | ✅ |
@@ -63,3 +63,13 @@ Obsidian Sync (official) and iCloud have no server API — use one of the option
 - delete = move to `.trash/` with a timestamp; trash is hidden from listings
 - writes are skipped when content is unchanged (no sync churn)
 - every write is audited (path, size, hash prefix — never content)
+
+## Built-in WebDAV (sync the server's vault) ✅
+
+When the vault lives on the server (built-in or a folder), memexhub can serve it over WebDAV so Obsidian on your phone and PC syncs with it — no second server.
+
+1. Admin UI → Vault → **Sync with Obsidian on your devices** → on.
+2. Devices → create a token with scope `dav` for each device.
+3. Obsidian → install **Remotely Save** → WebDAV: address `https://<ingest address>/dav/`, any username, the device token as password.
+
+Off by default · Basic auth with per-device tokens (revoke one when a device is lost) · rate limited · paths can never leave the vault (traversal and symbolic links refused) · deletes go to `.trash` (invisible over WebDAV) · file size limit (default 50 MB) · responses sandboxed (`Content-Security-Policy: sandbox`) · every write audited without content.

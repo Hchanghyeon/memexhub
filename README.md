@@ -61,7 +61,8 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Health (iOS Shortcuts, Health Auto Export), health note, `health_day` | ✅ |
 | Tasks (Google Tasks, several accounts, sign-in button) | ✅ |
 | `day_summary`, `week_summary` (one call per day / week for routines) | ✅ |
-| Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |
+| Built-in WebDAV to sync the server's vault with Obsidian | ✅ |
+| Notion output, one-click Cloudflare deploy | 📝 |
 
 ## Quick start (development)
 

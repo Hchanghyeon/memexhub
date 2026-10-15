@@ -140,6 +140,16 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label><input type="checkbox" name="allowPrivateNetwork" style="display:inline;width:auto;margin-right:.4rem" />WebDAV server is on my private network</label>
             <button>Save &amp; test</button>
           </form>
+          <h3>Sync with Obsidian on your devices</h3>
+          {storage[0] && ["fs"].includes(storage[0].provider) ? (
+            <form method="post" action={`${B}/dav`}>
+              <Csrf c={c} />
+              <label><input type="checkbox" name="enabled" checked={s.dav.enabled} style="display:inline;width:auto;margin-right:.4rem" />Serve this vault over WebDAV at <code>/dav/</code> on the ingest address</label>
+              <label>Largest file (MB)<input name="maxFileMb" type="number" min="1" max="500" value={String(s.dav.maxFileMb)} /></label>
+              <button>Save</button>
+              <p class="muted">In Obsidian, install <b>Remotely Save</b> → WebDAV: address <code>https://&lt;ingest address&gt;/dav/</code>, any username, and as password a device token with scope <code>dav</code> (create one per device below). Deleted files go to <code>.trash</code>.</p>
+            </form>
+          ) : <p class="muted">Available when the vault lives on this server (built-in or a folder).</p>}
         </div>
 
         <div class="card" id="connections">
@@ -522,6 +532,12 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     });
     await hub.reload();
     return c.redirect(`${R}#features`);
+  });
+  app.post("/dav", async (c) => {
+    const f = await c.req.parseBody();
+    await hub.settings.set("dav", { enabled: f.enabled === "on", maxFileMb: Math.min(500, Math.max(1, Number(f.maxFileMb) || 50)) });
+    await hub.reload();
+    return c.redirect(`${B}/#vault`);
   });
   app.post("/location", async (c) => {
     const f = await c.req.parseBody();

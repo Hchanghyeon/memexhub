@@ -2,12 +2,17 @@ import { mkdir, readFile, readdir, rename, stat, writeFile, open } from "node:fs
 import { dirname, join, relative, sep } from "node:path";
 import { createHash, randomBytes } from "node:crypto";
 import { StorageError, type FileInfo, type VaultStorage } from "./types.js";
+import { FsFiles } from "./fs-files.js";
 
 /** Vault in a local folder (also covers Syncthing, iCloud Drive or Obsidian Sync folders on the server). Node only. */
 export class FsStorage implements VaultStorage {
   readonly id = "fs";
   capabilities = { search: false, etag: true };
   constructor(private root: string) {}
+
+  files() {
+    return new FsFiles(this.root);
+  }
 
   private abs(p: string) {
     const a = join(this.root, p);
