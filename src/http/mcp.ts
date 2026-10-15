@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { LATEST_PROTOCOL_VERSION, SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js";
 import type { Hub } from "../hub.js";
 import { OAuthError } from "../auth/oauth.js";
 import { inAny } from "../core/ip.js";
@@ -7,6 +8,19 @@ import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
 
 type Vars = { Variables: { ip: string } };
+
+/**
+ * Clients move to newer MCP protocol versions before this SDK knows them (Claude sends e.g. 2026-07-28).
+ * The messages we serve (initialize, tools/list, tools/call) are unchanged, so a newer version header is
+ * answered as the newest version we support instead of a 400. Older, unknown versions are still refused.
+ */
+export function withKnownProtocolVersion(req: Request): Request {
+  const v = req.headers.get("mcp-protocol-version");
+  if (!v || SUPPORTED_PROTOCOL_VERSIONS.includes(v) || !/^\d{4}-\d{2}-\d{2}$/.test(v) || v < LATEST_PROTOCOL_VERSION) return req;
+  const headers = new Headers(req.headers);
+  headers.set("mcp-protocol-version", LATEST_PROTOCOL_VERSION);
+  return new Request(req, { headers });
+}
 
 /** MCP surface: /mcp (bearer) + OAuth endpoints. Claude connects here. */
 export function mcpApp(hub: Hub) {
@@ -110,7 +124,7 @@ export function mcpApp(hub: Hub) {
     const server = await hub.buildMcpServer(`mcp:${who.clientId}`);
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
-    return transport.handleRequest(c.req.raw);
+    return transport.handleRequest(withKnownProtocolVersion(c.req.raw));
   });
 
   return app;

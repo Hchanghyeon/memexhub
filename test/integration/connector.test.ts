@@ -144,3 +144,15 @@ describe("ingest surface", () => {
     expect([401, 404]).toContain(r.status);
   });
 });
+
+describe("protocol versions", () => {
+  it("answers a newer MCP protocol version header as the newest supported one", async () => {
+    const { withKnownProtocolVersion } = await import("../../src/http/mcp.js");
+    const mk = (v?: string) => new Request("https://hub.example.com/mcp", { method: "POST", headers: v ? { "mcp-protocol-version": v } : {}, body: "{}" });
+    expect(withKnownProtocolVersion(mk("2026-07-28")).headers.get("mcp-protocol-version")).toBe("2025-11-25");
+    expect(withKnownProtocolVersion(mk("2025-06-18")).headers.get("mcp-protocol-version")).toBe("2025-06-18");
+    expect(withKnownProtocolVersion(mk("2020-01-01")).headers.get("mcp-protocol-version")).toBe("2020-01-01"); // older unknown: still refused by the SDK
+    expect(withKnownProtocolVersion(mk()).headers.get("mcp-protocol-version")).toBeNull();
+    expect(await withKnownProtocolVersion(mk("2026-07-28")).text()).toBe("{}");
+  });
+});
