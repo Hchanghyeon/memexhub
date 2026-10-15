@@ -48,6 +48,18 @@ export const SettingsSchema = z.object({
       mailSources: z.array(z.object({ connection: z.string().min(1).max(32), folder: z.string().min(1).max(200) })).max(10).default([]),
     })
     .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en", inboxDays: 30, mailSources: [] }),
+  location: z
+    .object({
+      connection: z.string().optional(), // connections.name of kind "location" (default: the first one)
+      geocoder: z.string().optional(), // connections.name of kind "geocoder" (default: the first one)
+      language: z.enum(["ko", "en"]).default("en"),
+      /** Area names that are never written anywhere (e.g. "Home" if you don't want it in notes). */
+      privateAreas: z.array(z.string().max(60)).max(20).default([]),
+      stay: z.object({ radiusM: z.number().min(30).max(1000), minMinutes: z.number().min(3).max(240), mergeM: z.number().min(0).max(2000) }).default({ radiusM: 150, minMinutes: 15, mergeM: 200 }),
+      /** Points sent to /ingest/owntracks are deleted after this many days. */
+      keepDays: z.number().int().min(1).max(3650).default(400),
+    })
+    .default({ language: "en", privateAreas: [], stay: { radiusM: 150, minMinutes: 15, mergeM: 200 }, keepDays: 400 }),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),

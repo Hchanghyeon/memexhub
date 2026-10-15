@@ -15,12 +15,22 @@ import { ledgerAdmin } from "./admin-api.js";
 import { syncReceiptMails } from "./mail-job.js";
 import { Cursors } from "../../core/cursors.js";
 import type { MailProvider } from "../../providers/mail/types.js";
+import type { Geocoder, LocationProvider } from "../../providers/location/types.js";
+import { placeResolver } from "../location/places.js";
 
 export default defineModule({
   id: "ledger",
   title: T("Ledger", "결제"),
   setup: ({ settings, bus, vault, platform, provider }) => {
-    const ledger = new Ledger(bus, { officePlaces: settings.ledger.officePlaces });
+    // Payment places come from the location module's sources (if connected): coordinates → a name, or the place at that time.
+    const places = placeResolver(
+      async () => ({
+        loc: await provider<LocationProvider>("location", settings.location.connection).catch(() => undefined),
+        geo: await provider<Geocoder>("geocoder", settings.location.geocoder).catch(() => undefined),
+      }),
+      { privateAreas: () => settings.location.privateAreas, now: () => +platform.now() },
+    );
+    const ledger = new Ledger(bus, { officePlaces: settings.ledger.officePlaces, places, now: () => platform.now() });
     const tz = settings.timezone;
     const opts = () => ({ tz, officePlaces: settings.ledger.officePlaces, lang: settings.ledger.language, now: platform.now() });
     const rows = async (): Promise<LedgerRow[]> =>

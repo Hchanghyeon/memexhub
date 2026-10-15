@@ -52,9 +52,9 @@ export interface ProviderDef<K extends Kind, C, S> {
 | 종류 | 인터페이스 | v1 | 나중 |
 |---|---|---|---|
 | storage | `read · write · list · stat · move` | fs ✅ · webdav ✅ · s3 🚧 | git · notion · couchdb · 클라우드 드라이브 |
-| mail | `folders · search · read · since` | imap 📝 | gmail API |
-| location | `points · stays? · visits?` | dawarich 📝 · owntracks 📝 | 전용 앱 |
-| geocoder | `reverse · search?` | OpenStreetMap 📝 | 카카오 로컬, 네이버 |
+| mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
+| location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | 전용 앱 |
+| geocoder | `reverse` | OpenStreetMap Nominatim ✅ | 카카오 로컬, 네이버 |
 | health | 수집 본문 → 표준 기록 | 단축어 📝 | Health Connect, 앱 |
 | tasks | `lists · list · add · update · complete · delete` | google 📝 | todoist, 미리 알림 |
 | calendar | `calendars · events` | 인터페이스만 | google, CalDAV |
@@ -67,8 +67,8 @@ export interface ProviderDef<K extends Kind, C, S> {
 | hub | `hub_status` (다음: `day_summary`, `week_summary`) | — | — | ✅ / 📝 |
 | wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` | — | 목차, 로그 | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` 📝 | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
-| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | 📝 |
-| location | `location_day` | `/ingest/owntracks` | — | 📝 |
+| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ |
+| location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | 📝 |
 | tasks | `task_*` | — | — | 📝 |
 

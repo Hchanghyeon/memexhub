@@ -52,9 +52,9 @@ export interface ProviderDef<K extends Kind, C, S> {
 | Kind | Interface | v1 | Later |
 |---|---|---|---|
 | storage | `read · write(ifMatch/ifNoneMatch) · list · stat · move` (+ capabilities) | fs ✅ · webdav ✅ · s3 🚧 | git · notion · couchdb · cloud drives |
-| mail | `folders · search · read · since(cursor)` | imap 📝 | gmail API |
-| location | `points · stays? · visits?` | dawarich 📝 · owntracks 📝 | own app |
-| geocoder | `reverse · search?` | OpenStreetMap 📝 | Kakao Local, Naver |
+| mail | `folders · search · read · digestFolders` | imap ✅ | gmail API |
+| location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | own app |
+| geocoder | `reverse` | OpenStreetMap Nominatim ✅ | Kakao Local, Naver |
 | health | ingest payload → standard records | shortcut 📝 | Health Connect, app |
 | tasks | `lists · list · add · update · complete · delete` | google 📝 | todoist, reminders |
 | calendar | `calendars · events(from, to)` | interface only | google, CalDAV |
@@ -67,8 +67,8 @@ export interface ProviderDef<K extends Kind, C, S> {
 | hub | `hub_status` (later `day_summary`, `week_summary`) | — | — | ✅ / 📝 |
 | wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` | — | index, log | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` 📝 | `/ingest/message` `/ingest/transaction` | payments, money | ✅ |
-| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | 📝 |
-| location | `location_day` | `/ingest/owntracks` | — | 📝 |
+| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ |
+| location | `location_day` | `/ingest/owntracks` | — | ✅ ([location](location.md)) |
 | health | `health_day` | `/ingest/health` | health | 📝 |
 | tasks | `task_*` | — | — | 📝 |
 

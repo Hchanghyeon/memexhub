@@ -232,6 +232,19 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Keep unreadable messages (days)<input name="inboxDays" type="number" min="1" max="365" value={String(s.ledger.inboxDays)} /></label>
             <button>Save ledger</button>
           </form>
+          <h3>Location</h3>
+          <form method="post" action="/location">
+            <Csrf c={c} />
+            <label>Location source
+              <select name="connection"><option value="">First connected</option>{others.filter((x) => x.kind === "location").map((x) => <option value={x.name} selected={s.location.connection === x.name}>{x.name} ({x.provider})</option>)}</select>
+            </label>
+            <label>Place names
+              <select name="geocoder"><option value="">First connected</option>{others.filter((x) => x.kind === "geocoder").map((x) => <option value={x.name} selected={s.location.geocoder === x.name}>{x.name} ({x.provider})</option>)}</select>
+            </label>
+            <label>Private places — never written anywhere (comma separated)<input name="privateAreas" value={s.location.privateAreas.join(", ")} /></label>
+            <label>Language<select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.location.language === l}>{l}</option>)}</select></label>
+            <button>Save location</button>
+          </form>
           {hub.moduleAdmin.has("ledger") && <p><a href="/ledger/recipes">Recipes & inbox →</a> <span class="muted">teach the engine new message formats, handle what it could not read</span></p>}
           <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/message</code> (raw text such as a card SMS: <code>{"{\"channel\": \"sms\", \"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
@@ -464,6 +477,24 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       language: f.language === "ko" ? "ko" : "en",
       inboxDays: Math.min(365, Math.max(1, Number(f.inboxDays) || s.ledger.inboxDays)),
       mailSources: String(f.mailSources ?? "").split("\n").map((l) => l.match(/^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/)).filter((m): m is RegExpMatchArray => !!m).slice(0, 10).map((m) => ({ connection: m[1]!, folder: m[2]! })),
+    });
+    await hub.reload();
+    return c.redirect("/#features");
+  });
+  app.post("/location", async (c) => {
+    const f = await c.req.parseBody();
+    const s = await hub.settings.get();
+    const conns = await hub.connections.list();
+    const name = (v: unknown, kind: string) => {
+      const x = String(v ?? "").trim();
+      return x && conns.some((n) => n.kind === kind && n.name === x) ? x : undefined;
+    };
+    await hub.settings.set("location", {
+      ...s.location,
+      connection: name(f.connection, "location"),
+      geocoder: name(f.geocoder, "geocoder"),
+      privateAreas: String(f.privateAreas ?? "").split(",").map((x) => x.trim().slice(0, 60)).filter(Boolean).slice(0, 20),
+      language: f.language === "ko" ? "ko" : "en",
     });
     await hub.reload();
     return c.redirect("/#features");
