@@ -8,12 +8,23 @@
 
 뒤에서 일어나는 일 (OAuth 2.1):
 
-```
-Claude ──▶ /.well-known/…                 인증 방식 확인
-Claude ──▶ POST /register                 redirect는 허용된 호스트(claude.ai, claude.com)의 https만
-브라우저 ─▶ GET/POST /authorize           관리자 로그인 + 승인. PKCE S256 필수, redirect 정확히 일치
-Claude ──▶ POST /token                    60초짜리 일회용 코드 + 검증값 → 액세스(1시간) + 리프레시 토큰
-Claude ──▶ POST /mcp  (Bearer)            도구 호출마다. 리프레시는 조용히 회전
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+sequenceDiagram
+  participant C as Claude
+  participant B as 내 브라우저
+  participant M as memexhub
+  C->>M: GET /.well-known/… 인증 방식 확인
+  C->>M: POST /register (redirect는 허용된 호스트의 https만)
+  C->>B: /authorize 열기
+  B->>M: 관리자 로그인 + 2단계 인증, 허용 (PKCE S256, redirect 정확히 일치)
+  M-->>C: 60초짜리 일회용 코드
+  C->>M: POST /token (코드 + 검증값)
+  M-->>C: 액세스 토큰(1시간) + 리프레시 토큰
+  loop 도구 호출마다
+    C->>M: POST /mcp, Bearer 토큰
+  end
+  Note over C,M: 리프레시 토큰은 조용히 회전
 ```
 
 - 토큰은 **해시로만 저장하는 랜덤 문자열**이라, 관리 화면에서 끊으면 바로 무효가 돼요.

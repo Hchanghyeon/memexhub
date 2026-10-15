@@ -2,21 +2,28 @@
 
 memexhub는 서버 하나에 입구 세 개, 작은 core, 갈아끼울 수 있는 모듈과 공급자로 이뤄져요.
 
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+flowchart LR
+  dev["기기·자동화"] -->|기기 토큰| ingest["수집 :8790<br/>/ingest/*"]
+  claude["Claude 앱·루틴"] -->|OAuth 2.1| mcp["MCP :8787<br/>/mcp · /authorize · /token · /register"]
+  you["나, 내부망"] -->|로그인 + 2FA| admin["관리 :8791<br/>설치 마법사 · 연결 · 토큰"]
 ```
- 기기·자동화 ──(기기 토큰)───▶ 수집 :8790  /ingest/*
- Claude 앱·루틴 ─(OAuth 2.1)─▶ MCP  :8787  /mcp · /authorize · /token · /register
- 나, 내부망 ──(로그인+2FA)───▶ 관리 :8791  설치 마법사 · 연결 · 토큰
 
- ┌───────────────────────────────────────────────────────┐
- │ Hub (조립 지점) — 모듈을 불러오고 MCP 서버를 만듦          │
- ├───────────────────────────────────────────────────────┤
- │ 모듈      vault · hub · wiki · ledger · mail · location … │ 플러그인
- │ core      설정 · 연결 · 기록(events) · 감사 · 등록         │
- │ auth      관리자 · OAuth · 수집 토큰                      │
- │ storage   SafeVault ▶ VaultStorage (fs·webdav·s3·git)    │ 어댑터
- │ platform  DB · 비밀 · 시계 · fetch · 로그                 │ node | workers
- └───────────────────────────────────────────────────────┘
-   DATA_DIR/memexhub.db  설정 · 암호화된 연결 · 토큰 · 기록 · 감사
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+flowchart TB
+  hub["Hub (조립 지점)<br/>모듈을 불러오고 MCP 서버를 만듦"]
+  modules["모듈 — 플러그인<br/>vault · hub · wiki · ledger · mail · location · …"]
+  core["core<br/>설정 · 연결 · 기록(events) · 감사 · 등록"]
+  auth["auth<br/>관리자 · OAuth · 수집 토큰"]
+  storage["storage — 어댑터<br/>SafeVault → VaultStorage: fs · webdav · s3 · git"]
+  platform["platform — node | workers<br/>DB · 비밀 · 시계 · fetch · 로그"]
+  db[("DATA_DIR/memexhub.db<br/>설정 · 암호화된 연결 · 토큰 · 기록 · 감사")]
+  hub --> modules
+  modules --> core & auth & storage
+  core & auth & storage --> platform
+  platform --> db
 ```
 
 ## 원칙

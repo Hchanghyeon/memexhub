@@ -8,12 +8,23 @@
 
 Behind the scenes (OAuth 2.1):
 
-```
-Claude ──▶ /.well-known/oauth-protected-resource, /.well-known/oauth-authorization-server
-Claude ──▶ POST /register                 redirect URI must be https on an allow-listed host (claude.ai, claude.com)
-browser ─▶ GET/POST /authorize            admin login + consent; PKCE S256 required; exact redirect match
-Claude ──▶ POST /token                    one-time 60 s code + code_verifier → access (1 h) + refresh token
-Claude ──▶ POST /mcp  (Bearer)            every tool call; refresh rotates silently
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+sequenceDiagram
+  participant C as Claude
+  participant B as Your browser
+  participant M as memexhub
+  C->>M: GET /.well-known/oauth-protected-resource and oauth-authorization-server
+  C->>M: POST /register (redirect must be https on an allow-listed host)
+  C->>B: open /authorize
+  B->>M: admin login + 2FA, then Allow (PKCE S256, exact redirect match)
+  M-->>C: one-time code, valid 60 s
+  C->>M: POST /token (code + code_verifier)
+  M-->>C: access token (1 h) + refresh token
+  loop every tool call
+    C->>M: POST /mcp with Bearer token
+  end
+  Note over C,M: the refresh token rotates silently
 ```
 
 - Tokens are **opaque random strings** stored as SHA-256 hashes — revoking a client in the admin UI takes effect immediately.

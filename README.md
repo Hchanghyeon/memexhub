@@ -8,20 +8,35 @@
 
 In 1945 Vannevar Bush imagined the *Memex*: a personal machine that stores everything you read and record, and links it together. memexhub is a small server that makes that real with today's tools:
 
-- your **Obsidian vault** is the memory,
+- your **vault** — a folder of Markdown notes — is the memory. It can be an Obsidian vault, a folder on the server, WebDAV, S3/R2 or Git (Notion is planned),
 - **Claude** (app, web, scheduled routines) reads and writes it through **one MCP connector**,
-- the engine keeps the vault healthy as an **LLM Wiki** (sources stay untouched, the LLM maintains wiki pages, indexes and links are kept in order),
+- the engine keeps the vault healthy as an **[LLM Wiki](#what-is-an-llm-wiki)** (sources stay untouched, the LLM maintains wiki pages, indexes and links are kept in order),
 - and new **sources flow in by themselves** — articles you save, and life logs from your devices and services (card payments, transit, health, location, mail).
 
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+flowchart LR
+  dev["Devices & automations<br/>phone · apps · scripts"] -->|device token| ingest["Ingest :8790"]
+  claude["Claude<br/>app · web · routines"] -->|OAuth 2.1| mcp["MCP :8787"]
+  you["You<br/>private network"] -->|login + 2FA| admin["Admin :8791"]
+  subgraph hub [memexhub]
+    ingest --> engine["Engine<br/>modules: vault · wiki · ledger · mail · location …<br/>core: settings · encrypted connections · events · audit"]
+    mcp -->|tools| engine
+    admin -->|settings| engine
+  end
+  engine -->|storage adapter| vault[("Vault = your LLM Wiki<br/>built-in · local folder · WebDAV · S3/R2 · Git")]
+  engine -->|providers| ext["Your services<br/>mail · location · …"]
 ```
- devices & automations ─(token)──▶ [ingest :8790]
- Claude app/routines ─(OAuth)────▶ [MCP    :8787] ─▶ tools: vault · wiki · ledger · mail · location …
- you (private net) ─(login+2FA)──▶ [admin  :8791]
-                                         │
-                       core: settings · encrypted connections · events · audit
-                                         │ storage adapters
-                   vault: built-in · local folder · WebDAV · S3/R2 · Git
-```
+
+## What is an LLM Wiki?
+
+A personal knowledge base that an LLM writes and maintains with you, instead of searching raw documents every time it is asked (the idea Andrej Karpathy described). It has three parts:
+
+- **Sources** — what you collect: articles, notes, logs. Saved once, never edited.
+- **Wiki** — pages the LLM writes from the sources and keeps up to date: topics, people, projects, summaries, linked to each other.
+- **Rules** — one note that tells the LLM how this wiki is organised and how to write.
+
+Knowledge is compiled into the wiki once and refined over time, so answers come from pages that already connect the dots. memexhub is the engine for it: it gives Claude the tools, protects the sources, keeps indexes, logs and links in order, and lints the wiki. The vault is just where the wiki is stored.
 
 ## Why
 
@@ -40,8 +55,9 @@ In 1945 Vannevar Bush imagined the *Memex*: a personal machine that stores every
 | OAuth 2.1 for Claude connectors, device tokens, IP allowlist | ✅ |
 | Admin UI: setup wizard, vault, connectors, device tokens, 2FA | ✅ minimal |
 | Wiki module (layout, lint, save source, index, log, backlinks), roles & presets, write-once sources | ✅ |
-| Ledger: card SMS (Hyundai, Samsung), Apple Pay / transit shortcuts, payments & money notes, `payments_day` | ✅ · receipt mails 📝 |
-| Mail (IMAP), location (Dawarich, OwnTracks), health, tasks, `day_summary` | 📝 |
+| Ledger: card SMS (Hyundai, Samsung), Apple Pay / transit, payments & money notes, `payments_day` | ✅ · receipt mails 🚧 |
+| Mail (read-only IMAP: Kakao, Naver, Gmail, Outlook, custom) | ✅ |
+| Location (Dawarich, OwnTracks), health, tasks, `day_summary` | 📝 |
 | Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |
 
 ## Quick start (development)

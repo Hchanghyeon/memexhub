@@ -2,21 +2,28 @@
 
 memexhub is one server with three entry points, a small core, pluggable modules and pluggable providers.
 
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+flowchart LR
+  dev["Devices & automations"] -->|device token| ingest["Ingest :8790<br/>/ingest/*"]
+  claude["Claude app & routines"] -->|OAuth 2.1| mcp["MCP :8787<br/>/mcp · /authorize · /token · /register"]
+  you["You, private network"] -->|login + 2FA| admin["Admin :8791<br/>setup wizard · connections · tokens"]
 ```
- devices & automations ──(device token)──▶ ingest  :8790  /ingest/*
- Claude app & routines  ──(OAuth 2.1)────▶ MCP     :8787  /mcp · /authorize · /token · /register
- you, private network   ──(login + 2FA)──▶ admin   :8791  setup wizard · connections · tokens
 
- ┌──────────────────────────────────────────────────────────────┐
- │ Hub (composition root) — loads modules, builds MCP server     │
- ├──────────────────────────────────────────────────────────────┤
- │ modules   vault · hub · wiki · ledger · mail · location · …   │  plugins
- │ core      settings · connections · events · audit · registry  │
- │ auth      admin · oauth · ingest tokens                        │
- │ storage   SafeVault ▶ VaultStorage (fs · webdav · s3 · git)    │  adapters
- │ platform  Db · secret · clock · fetch · logger                 │  node | workers
- └──────────────────────────────────────────────────────────────┘
-   DATA_DIR/memexhub.db  settings · encrypted connections · tokens · events · audit
+```mermaid
+%%{init: {'theme':'neutral'}}%%
+flowchart TB
+  hub["Hub (composition root)<br/>loads modules, builds the MCP server"]
+  modules["modules — plugins<br/>vault · hub · wiki · ledger · mail · location · …"]
+  core["core<br/>settings · connections · events · audit · registry"]
+  auth["auth<br/>admin · OAuth · ingest tokens"]
+  storage["storage — adapters<br/>SafeVault → VaultStorage: fs · webdav · s3 · git"]
+  platform["platform — node | workers<br/>Db · secret · clock · fetch · logger"]
+  db[("DATA_DIR/memexhub.db<br/>settings · encrypted connections · tokens · events · audit")]
+  hub --> modules
+  modules --> core & auth & storage
+  core & auth & storage --> platform
+  platform --> db
 ```
 
 ## Principles
