@@ -2,10 +2,13 @@ import type { z } from "zod";
 import type { Text } from "../core/i18n.js";
 import type { Platform } from "../platform/types.js";
 import type { VaultStorage } from "../storage/types.js";
+import type { Geocoder, LocationProvider } from "./location/types.js";
 
 /** What each kind of provider must implement. Extended as kinds are added (mail, location, …). */
 export interface KindMap {
   storage: VaultStorage;
+  location: LocationProvider;
+  geocoder: Geocoder;
   [kind: string]: unknown;
 }
 

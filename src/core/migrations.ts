@@ -50,6 +50,15 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE INDEX inbox_module_status ON inbox(module, status, received_at)`,
     ],
   },
+  {
+    id: 3,
+    sql: [
+      // OwnTracks-style points sent to /ingest/owntracks. Database only — coordinates never go into the vault.
+      `CREATE TABLE location_points (t INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, acc REAL, device TEXT NOT NULL DEFAULT '')`,
+      `CREATE INDEX location_points_t ON location_points(t)`,
+      `CREATE TABLE geocode_cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, at TEXT NOT NULL)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {
