@@ -39,7 +39,7 @@ In 1945 Vannevar Bush imagined the *Memex*: a personal machine that stores every
 | Vault tools (list/read/search/stats/write/append/trash/move) with protected paths | ✅ |
 | OAuth 2.1 for Claude connectors, device tokens, IP allowlist | ✅ |
 | Admin UI: setup wizard, vault, connectors, device tokens, 2FA | ✅ minimal |
-| Wiki module (lint, save source, index, backlinks), roles & presets | 📝 next |
+| Wiki module (layout, lint, save source, index, log, backlinks), roles & presets, write-once sources | ✅ |
 | Ledger (card SMS, Apple Pay shortcut, receipt mails, payments & money notes) | 📝 |
 | Mail (IMAP), location (Dawarich, OwnTracks), health, tasks, `day_summary` | 📝 |
 | Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |
