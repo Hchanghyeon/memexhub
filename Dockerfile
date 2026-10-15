@@ -1,22 +1,29 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine AS build
+# Base image pinned by digest (Dependabot keeps it current). Node 24 LTS on Alpine.
+ARG NODE_IMAGE=node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
+
+FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY recipes ./recipes
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && npm prune --omit=dev && npm cache clean --force
 
-FROM node:24-alpine
-ENV NODE_ENV=production DATA_DIR=/data
+FROM ${NODE_IMAGE}
+LABEL org.opencontainers.image.source="https://github.com/Hchanghyeon/memexhub" \
+      org.opencontainers.image.description="Self-hosted LLM Wiki engine for Claude" \
+      org.opencontainers.image.licenses="MIT"
+ENV NODE_ENV=production DATA_DIR=/data VAULT_ROOTS=/vaults
 WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/recipes ./recipes
-COPY package.json ./
-RUN mkdir -p /data /vaults && chown -R node:node /data
+COPY --from=build --chown=root:root /app/node_modules ./node_modules
+COPY --from=build --chown=root:root /app/dist ./dist
+COPY --from=build --chown=root:root /app/recipes ./recipes
+COPY --chown=root:root package.json ./
+# The app code is owned by root and read-only for the app user; only /data and /vaults are writable.
+RUN mkdir -p /data /vaults && chown node:node /data /vaults && chmod 700 /data
 USER node
 EXPOSE 8787 8790 8791
-HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8787/healthz || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD wget -qO- http://127.0.0.1:8787/healthz || exit 1
 CMD ["node", "dist/main.js"]

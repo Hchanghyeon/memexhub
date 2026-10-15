@@ -1,7 +1,7 @@
 # Copy to compose.yml and adjust. Keep your real .env out of git.
 services:
   memexhub:
-    image: ghcr.io/hchanghyeon/memexhub:latest
+    image: ghcr.io/hchanghyeon/memexhub:latest   # pin a version (e.g. 0.1.0) — see docs/install.md
     container_name: memexhub
     restart: unless-stopped
     env_file: .env

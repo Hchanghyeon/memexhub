@@ -74,6 +74,8 @@ npm run dev
 
 서버가 **일회용 설치 코드**를 출력해요. 관리 화면(`http://localhost:8791`)을 열어 코드를 넣고, 관리자 계정을 만들고, 볼트를 연결한 뒤, Claude에 `PUBLIC_URL/mcp`를 사용자 지정 커넥터로 추가하면 돼요.
 
+**Docker:** [설치 안내](docs/ko/install.md) (서명된 이미지, 보안 설정된 compose 파일). 버튼 한 번 설치는 예정이에요 — [로드맵](docs/ko/roadmap.md).
+
 ## 보안
 
 memexhub는 인터넷에 열려 있고, 코드가 공개돼 있고, LLM이 읽는 내용에 속을 수 있다고 전제해요.

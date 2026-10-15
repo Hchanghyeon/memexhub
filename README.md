@@ -74,7 +74,7 @@ npm run dev
 
 The server prints a **one-time setup code**. Open the admin UI (`http://localhost:8791`), enter the code, create the admin account, connect a vault, then add `PUBLIC_URL/mcp` as a custom connector in Claude.
 
-Docker images and one-click installs are planned — see [roadmap](docs/roadmap.md).
+**Docker:** see [install](docs/install.md) (signed images, hardened compose file). One-click installs are planned — see [roadmap](docs/roadmap.md).
 
 ## Security
 
