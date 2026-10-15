@@ -9,7 +9,7 @@ import { securityHeaders } from "../http/common.js";
 import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
 import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
 import { effectiveRules } from "../modules/wiki/lint.js";
-import { fieldsOf, Inputs, valuesOf } from "./forms.js";
+import { fieldsOf, INTERNAL, Inputs, valuesOf } from "./forms.js";
 import { pick } from "../core/i18n.js";
 import { recipeRoutes } from "./recipes.js";
 
@@ -150,6 +150,10 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
                     <td>{x.kind}</td><td>{x.name}</td><td>{x.provider}</td>
                     <td>{st?.status === "ok" ? <span class="ok">ok</span> : st?.status === "error" ? <span class="err">{st.last_error}</span> : "—"}</td>
                     <td>
+                      {x.provider === "google" && (
+                        <form method="post" action={`/connections/${x.id}/google`} style="display:inline"><Csrf c={c} /><button>{x.config.email ? "Sign in again" : "Sign in with Google"}</button></form>
+                      )}
+                      {x.provider === "google" && x.config.email ? <span class="muted"> {String(x.config.email)} </span> : null}
                       <form method="post" action={`/connections/${x.id}/test`} style="display:inline"><Csrf c={c} /><button class="secondary">Test</button></form>
                       <form method="post" action={`/connections/${x.id}/disable`} style="display:inline"><Csrf c={c} /><button class="secondary">Disable</button></form>
                     </td>
@@ -410,6 +414,9 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           <label>Name (e.g. personal, work) *<input name="name" required pattern="[A-Za-z0-9가-힣_-]{1,32}" /></label>
           <Inputs fields={fieldsOf(def.config)} prefix="config" />
           <Inputs fields={fieldsOf(def.secrets, true)} prefix="secret" />
+          {def.kind === "tasks" && def.id === "google" && (
+            <p class="muted">In Google Cloud, create an OAuth client of type <b>Web application</b>, enable the Google Tasks API, and add this authorized redirect URI: <code>{hub.google.redirectUri}</code>. After saving, press <b>Sign in with Google</b> in the connections list.</p>
+          )}
           <button>Save &amp; test</button> <a href="/#connections">Cancel</a>
         </form>
       </Layout>,
@@ -424,7 +431,13 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const cfg = def.config.safeParse(valuesOf(fieldsOf(def.config), f as any, "config"));
     if (!cfg.success) return c.text(`invalid settings: ${cfg.error.issues.map((i) => i.path.join(".")).join(", ")}`, 400);
     const sec = valuesOf(fieldsOf(def.secrets, true), f as any, "secret") as Record<string, string>;
-    const id = await hub.connections.upsert({ kind: def.kind, provider: def.id, name, config: cfg.data, secrets: Object.keys(sec).length ? sec : undefined }, actor(c));
+    // Editing an existing connection: blank secret fields keep their value; engine-filled (@internal) values are kept.
+    const existing = await hub.connections.get(def.kind, name);
+    const internal = (shape: Record<string, { description?: string }> | undefined, from: Record<string, unknown>) =>
+      Object.fromEntries(Object.keys(shape ?? {}).filter((k) => shape![k]!.description === INTERNAL && from[k] !== undefined).map((k) => [k, from[k]]));
+    const config = existing ? { ...cfg.data, ...internal(def.config.shape, existing.config) } : cfg.data;
+    const secrets = existing && Object.keys(sec).length ? { ...(await hub.connections.secretsOf(existing.id)), ...sec } : sec;
+    const id = await hub.connections.upsert({ kind: def.kind, provider: def.id, name, config, secrets: Object.keys(secrets).length ? secrets : undefined }, actor(c));
     await hub.reload();
     return c.redirect(`/connections/${id}/test-result`);
   });
@@ -456,6 +469,13 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   app.post("/connections/:id/test", async (c) => {
     await testConnection(c.req.param("id"));
     return c.redirect("/#connections");
+  });
+  app.post("/connections/:id/google", async (c) => {
+    try {
+      return c.redirect(await hub.google.start(c.req.param("id")));
+    } catch (e) {
+      return c.text((e as Error).message, 400);
+    }
   });
   app.post("/connections/:id/disable", async (c) => {
     await hub.platform.db.run(`UPDATE connections SET enabled = 0 WHERE id = ?`, [c.req.param("id")]);

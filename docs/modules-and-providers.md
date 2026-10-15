@@ -56,7 +56,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | location | `points · areas · visits?` | dawarich ✅ · owntracks ✅ | own app |
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | Kakao Local, Naver |
 | health | ingest payload → standard records | shortcut ✅ · Health Auto Export ✅ | Health Connect, app |
-| tasks | `lists · list · add · update · complete · delete` | google 📝 | todoist, reminders |
+| tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, reminders |
 | calendar | `calendars · events(from, to)` | interface only | google, CalDAV |
 
 ## Modules
@@ -70,7 +70,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ |
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([location](location.md)) |
 | health | `health_day` | `/ingest/health` | health | ✅ ([health](health.md)) |
-| tasks | `task_*` | — | — | 📝 |
+| tasks | `task_*` | — | — | ✅ ([tasks](tasks.md)) |
 
 ## Ledger: plugins inside the module 📝
 

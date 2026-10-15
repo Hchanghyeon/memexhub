@@ -59,7 +59,8 @@ flowchart LR
 | 메일 (읽기 전용 IMAP: 카카오, 네이버, Gmail, Outlook, 직접 입력) | ✅ |
 | 위치(Dawarich, OwnTracks, OSM 지명), `location_day`, 결제 장소 이름 | ✅ |
 | 건강(iOS 단축어, Health Auto Export), 건강 노트, `health_day` | ✅ |
-| 할 일, `day_summary` | 📝 |
+| 할 일(Google Tasks, 계정 여러 개, 로그인 버튼) | ✅ |
+| `day_summary`, `week_summary` | 📝 |
 | Obsidian 동기화용 내장 WebDAV, Notion 출력, Cloudflare 버튼 설치 | 📝 |
 
 ## 빠르게 시작 (개발)

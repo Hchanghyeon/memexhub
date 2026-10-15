@@ -59,7 +59,8 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Mail (read-only IMAP: Kakao, Naver, Gmail, Outlook, custom) | ✅ |
 | Location (Dawarich, OwnTracks, OSM place names), `location_day`, payment places | ✅ |
 | Health (iOS Shortcuts, Health Auto Export), health note, `health_day` | ✅ |
-| Tasks, `day_summary` | 📝 |
+| Tasks (Google Tasks, several accounts, sign-in button) | ✅ |
+| `day_summary`, `week_summary` | 📝 |
 | Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |
 
 ## Quick start (development)
@@ -88,7 +89,7 @@ Full threat model: [docs/security.md](docs/security.md). Report vulnerabilities 
 
 ## Docs
 
-[Architecture](docs/architecture.md) · [Wiki engine](docs/wiki-engine.md) · [Modules & providers](docs/modules-and-providers.md) · [Configuration & storage](docs/configuration-and-storage.md) · [Claude integration](docs/claude-integration.md) · [Ledger](docs/ledger.md) · [Message recipes](docs/recipes.md) · [Location](docs/location.md) · [Health](docs/health.md) · [Security](docs/security.md) · [Easy install](docs/easy-install.md) · [Roadmap](docs/roadmap.md) · [Adding a provider](docs/adding-a-provider.md) · [Development](docs/development.md) · [UI design](docs/design.md)
+[Architecture](docs/architecture.md) · [Wiki engine](docs/wiki-engine.md) · [Modules & providers](docs/modules-and-providers.md) · [Configuration & storage](docs/configuration-and-storage.md) · [Claude integration](docs/claude-integration.md) · [Ledger](docs/ledger.md) · [Message recipes](docs/recipes.md) · [Location](docs/location.md) · [Health](docs/health.md) · [Tasks](docs/tasks.md) · [Security](docs/security.md) · [Easy install](docs/easy-install.md) · [Roadmap](docs/roadmap.md) · [Adding a provider](docs/adding-a-provider.md) · [Development](docs/development.md) · [UI design](docs/design.md)
 
 ## License
 

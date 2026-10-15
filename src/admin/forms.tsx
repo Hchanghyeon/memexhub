@@ -1,6 +1,8 @@
 /** @jsxImportSource hono/jsx */
 import { z } from "zod";
 
+export const INTERNAL = "@internal";
+
 export interface Field {
   key: string;
   label: string;
@@ -10,10 +12,10 @@ export interface Field {
   defaultValue?: unknown;
 }
 
-/** Read a zod object into form fields (works for optional / default wrappers). */
+/** Read a zod object into form fields (works for optional / default wrappers). Fields described "@internal" are filled by the engine, not the form. */
 export function fieldsOf(schema: z.ZodObject<any> | undefined, secret = false): Field[] {
   if (!schema) return [];
-  return Object.entries(schema.shape as Record<string, z.ZodType>).map(([key, f]) => {
+  return Object.entries(schema.shape as Record<string, z.ZodType>).filter(([, f]) => f.description !== INTERNAL).map(([key, f]) => {
     let s: any = f;
     let optional = false;
     let defaultValue: unknown;

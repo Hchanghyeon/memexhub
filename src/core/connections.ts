@@ -34,6 +34,18 @@ export class Connections {
     return id;
   }
 
+  async byId(id: string): Promise<Connection | undefined> {
+    return (await this.list()).find((c) => c.id === id);
+  }
+
+  /** Merge into an existing connection's config and (encrypted) secrets, e.g. after an OAuth sign-in. */
+  async patch(id: string, p: { config?: Record<string, unknown>; secrets?: Record<string, string> }, actor: string) {
+    const c = await this.byId(id);
+    if (!c) throw new Error("no such connection");
+    const secrets = p.secrets ? { ...(await this.secretsOf(id)), ...p.secrets } : undefined;
+    await this.upsert({ kind: c.kind, provider: c.provider, name: c.name, config: { ...c.config, ...(p.config ?? {}) }, secrets }, actor);
+  }
+
   async list(kind?: string): Promise<Connection[]> {
     const rows = await this.db.all<any>(kind ? `SELECT * FROM connections WHERE kind = ?` : `SELECT * FROM connections`, kind ? [kind] : []);
     return rows.map((r) => ({ id: r.id, kind: r.kind, provider: r.provider, name: r.name, config: JSON.parse(r.config), enabled: !!r.enabled }));

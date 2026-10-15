@@ -10,6 +10,9 @@ import { pick } from "./core/i18n.js";
 import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
+import { GoogleSignIn } from "./auth/google-signin.js";
+import { GOOGLE } from "./providers/tasks/google.js";
+import { Cursors } from "./core/cursors.js";
 import { SafeVault } from "./storage/safe-vault.js";
 import { Layout } from "./modules/wiki/layout.js";
 import { StorageError } from "./storage/types.js";
@@ -27,6 +30,7 @@ export class Hub {
   bus: EventBus;
   admin: AdminAuth;
   oauth: OAuthServer;
+  google: GoogleSignIn;
   ingestTokens: IngestTokens;
   vault?: SafeVault;
   tools: ToolDef<any>[] = [];
@@ -45,6 +49,9 @@ export class Hub {
     this.admin = new AdminAuth(db, platform.secret);
     this.oauth = new OAuthServer(db, env.PUBLIC_URL, async () => (await this.settings.get()).oauth.allowedRedirectHosts);
     this.ingestTokens = new IngestTokens(db);
+    // Only Google's token and userinfo hosts, https, no redirects.
+    const gfetch = guardedFetch(platform.fetch, { hosts: GOOGLE.hosts, allowPrivate: false, isPrivate: platform.isPrivateHost?.bind(platform) });
+    this.google = new GoogleSignIn(this.connections, new Cursors(db, () => platform.now()), env.PUBLIC_URL, gfetch, () => platform.now());
   }
 
   async init() {
