@@ -8,6 +8,7 @@ import { safeEqual } from "../core/crypto.js";
 import { securityHeaders } from "../http/common.js";
 import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
 import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
+import { effectiveRules } from "../modules/wiki/lint.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
@@ -156,6 +157,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Archive folder<input name="archive" value={s.wiki.roles.archive ?? ""} /></label>
             <button>Save layout</button>
           </form>
+          <h3>Lint rules</h3>
+          <form method="post" action="/wiki/lint">
+            <Csrf c={c} />
+            {effectiveRules(s.wiki.lint).map((x) => (
+              <label><input type="checkbox" name="on" value={x.rule.id} checked={x.enabled} style="display:inline;width:auto;margin-right:.4rem" />{x.rule.id}</label>
+            ))}
+            <button>Save rules</button>
+          </form>
         </div>
 
         <div class="card" id="claude">
@@ -263,6 +272,15 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     if (!roles) return c.text("unknown preset", 400);
     const s = await hub.settings.get();
     await hub.settings.set("wiki", { ...s.wiki, preset: name, roles });
+    await hub.reload();
+    return c.redirect("/#wiki");
+  });
+  app.post("/wiki/lint", async (c) => {
+    const f = await c.req.parseBody({ all: true });
+    const on = new Set([f.on].flat().filter(Boolean).map(String));
+    const s = await hub.settings.get();
+    const lint = Object.fromEntries(effectiveRules(s.wiki.lint).map((x) => [x.rule.id, { enabled: on.has(x.rule.id), options: s.wiki.lint[x.rule.id]?.options }]));
+    await hub.settings.set("wiki", { ...s.wiki, lint });
     await hub.reload();
     return c.redirect("/#wiki");
   });
