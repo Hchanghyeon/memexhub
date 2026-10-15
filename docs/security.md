@@ -1,5 +1,7 @@
 # Security
 
+The checklist with proofs is in [security review](security-review.md).
+
 memexhub concentrates sensitive data: location history, payments, health, mail access and write access to your notes. We assume:
 
 1. it is reachable from the internet,
