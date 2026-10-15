@@ -44,7 +44,8 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
 
   app.use("*", async (c, next) => {
     const s = await hub.settings.get();
-    if (!s.admin.allowPublic && !inAny(c.get("ip"), PRIVATE_CIDRS)) return c.text("admin is only available from your private network", 403);
+    // Cloudflare Workers has no private network: there the admin UI is always reached over the internet (two-factor enforced below).
+    if (!s.admin.allowPublic && hub.platform.name !== "workers" && !inAny(c.get("ip"), PRIVATE_CIDRS)) return c.text("admin is only available from your private network", 403);
     await next();
   });
 
@@ -100,7 +101,8 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const f = await c.req.parseBody();
     const id = await hub.admin.login(String(f.username ?? ""), String(f.password ?? ""), String(f.totp ?? "") || undefined, `${c.get("ip")}|${f.username}`);
     if (!id) return c.text("login failed", 401);
-    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(id))) return c.text("Two-factor sign-in is required from outside your private network. Sign in from your network and turn it on first.", 403);
+    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(id)) && !(await hub.admin.enrolWindowOpen(id)))
+      return c.text("Two-factor sign-in is required from outside your private network. Sign in from your network and turn it on first.", 403);
     await startSession(c, id);
     return c.redirect(R);
   });
@@ -114,7 +116,12 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       const f = await c.req.parseBody();
       if (!safeEqual(String(f.csrf ?? ""), sess.csrf)) return c.text("bad csrf token", 403);
     }
-    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(sess.adminId))) return c.text("Two-factor sign-in is required from outside your private network.", 403);
+    if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(sess.adminId))) {
+      // Off-network without two-factor: only enrolment, within 24 h of creating the account.
+      if (!(await hub.admin.enrolWindowOpen(sess.adminId))) return c.text("Two-factor sign-in is required from outside your private network.", 403);
+      const path = new URL(c.req.url).pathname.slice(B.length) || "/";
+      if (!["/two-factor", "/totp", "/totp/confirm", "/logout"].includes(path)) return c.redirect(`${B}/two-factor`);
+    }
     c.set("adminId", sess.adminId);
     c.set("csrf", sess.csrf);
     await next();
@@ -639,18 +646,43 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     await hub.oauth.revokeClient(c.req.param("id"), actor(c));
     return c.redirect(`${R}#claude`);
   });
-  app.post("/totp", async (c) => {
-    const secret = await hub.admin.enableTotp(c.get("adminId"));
-    const uri = `otpauth://totp/memexhub:admin?secret=${secret}&issuer=memexhub`;
-    return c.html(
-      <Layout title="Two-factor">
-        <h1>Two-factor enabled</h1>
-        <p>Add this to your authenticator app (it will not be shown again):</p>
+  app.get("/two-factor", (c) =>
+    c.html(
+      <Layout title="Turn on two-factor · memexhub">
+        <h1>Turn on two-factor first</h1>
+        <p>You are reaching the admin UI over the internet. Before anything else, add memexhub to an authenticator app (1Password, Google Authenticator, Aegis …). It takes a minute.</p>
+        <form method="post" action={`${B}/totp`}><Csrf c={c} /><button>Set up two-factor</button></form>
+      </Layout>,
+    ),
+  );
+  const totpPage = (c: Context<Vars>, secret: string, error?: string) =>
+    c.html(
+      <Layout title="Two-factor · memexhub">
+        <h1>Add memexhub to your authenticator</h1>
+        <p>Enter this key in your authenticator app (or open the link on your phone), then type the 6-digit code it shows.</p>
         <pre>{secret}</pre>
-        <p class="muted">{uri}</p>
-        <a href={R}>Back</a>
+        <p class="muted">{`otpauth://totp/memexhub:admin?secret=${secret}&issuer=memexhub`}</p>
+        {error && <p class="err">{error}</p>}
+        <form method="post" action={`${B}/totp/confirm`}>
+          <Csrf c={c} />
+          <input type="hidden" name="secret_shown" value="1" />
+          <label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required /></label>
+          <button>Turn on two-factor</button>
+        </form>
+        <p class="muted">Nothing changes until the code is right. The key is not shown again after that.</p>
       </Layout>,
     );
+  app.post("/totp", async (c) => {
+    if (await hub.admin.hasTotp(c.get("adminId"))) return c.redirect(`${R}#security`);
+    return totpPage(c, await hub.admin.startTotp(c.get("adminId")));
+  });
+  app.post("/totp/confirm", async (c) => {
+    const f = await c.req.parseBody();
+    const id = c.get("adminId");
+    if (await hub.admin.confirmTotp(id, String(f.code ?? ""))) return c.redirect(`${R}#security`);
+    const secret = await hub.admin.pendingTotp(id);
+    if (!secret) return c.redirect(`${B}/two-factor`);
+    return totpPage(c, secret, "That code did not match. Check the time on your phone and try the newest code.");
   });
   app.post("/mcp-allow", async (c) => {
     const f = await c.req.parseBody();

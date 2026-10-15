@@ -26,6 +26,12 @@ export class AdminAuth {
     return code;
   }
 
+  /** Runtimes without a readable log (Cloudflare Workers) take the setup code from a secret instead. */
+  async useSetupCode(code: string) {
+    if (code.replace(/[-\s]/g, "").length < 12) throw new Error("SETUP_CODE must be at least 12 characters");
+    this.setupCodeHash = await sha256Hex(code.replace(/[-\s]/g, "").toUpperCase());
+  }
+
   async checkSetupCode(code: string) {
     if (!this.setupCodeHash) return false;
     return safeEqual(await sha256Hex(code.replace(/[-\s]/g, "").toUpperCase()), this.setupCodeHash);
@@ -70,11 +76,49 @@ export class AdminAuth {
     return row.id;
   }
 
-  async enableTotp(adminId: string): Promise<string> {
+  /**
+   * Two-step enrolment: a new secret is kept pending (encrypted, 15 minutes) until a code from the
+   * authenticator app proves it was added — a mis-scan can never lock the owner out.
+   */
+  async startTotp(adminId: string): Promise<string> {
     const s = base32Encode(randomBytes(20));
-    await this.db.run(`UPDATE admins SET totp_secret_enc = ? WHERE id = ?`, [await encrypt(this.secret, "totp", s, adminId), adminId]);
-    await audit(this.db, `admin:${adminId}`, "admin.totp_enabled");
+    const blob = await encrypt(this.secret, "totp-pending", JSON.stringify({ s, exp: Date.now() + 15 * 60_000 }), adminId);
+    await this.db.run(
+      `INSERT INTO cursors (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      [`admin.totp_pending:${adminId}`, JSON.stringify(blob), new Date().toISOString()],
+    );
     return s;
+  }
+
+  /** The pending key, to show it again after a mistyped code. */
+  async pendingTotp(adminId: string): Promise<string | undefined> {
+    const row = await this.db.get<{ value: string }>(`SELECT value FROM cursors WHERE key = ?`, [`admin.totp_pending:${adminId}`]);
+    if (!row) return undefined;
+    const p = JSON.parse(await decrypt(this.secret, "totp-pending", JSON.parse(row.value), adminId)) as { s: string; exp: number };
+    return p.exp > Date.now() ? p.s : undefined;
+  }
+
+  async confirmTotp(adminId: string, code: string): Promise<boolean> {
+    const key = `admin.totp_pending:${adminId}`;
+    const row = await this.db.get<{ value: string }>(`SELECT value FROM cursors WHERE key = ?`, [key]);
+    if (!row) return false;
+    const p = JSON.parse(await decrypt(this.secret, "totp-pending", JSON.parse(row.value), adminId)) as { s: string; exp: number };
+    if (p.exp < Date.now() || !(await verifyTotp(p.s, code.replace(/\s/g, ""), Date.now()))) return false;
+    await this.db.batch([
+      { sql: `UPDATE admins SET totp_secret_enc = ? WHERE id = ?`, params: [await encrypt(this.secret, "totp", p.s, adminId), adminId] },
+      { sql: `DELETE FROM cursors WHERE key = ?`, params: [key] },
+    ]);
+    await audit(this.db, `admin:${adminId}`, "admin.totp_enabled");
+    return true;
+  }
+
+  /**
+   * Right after setup, an owner who can only reach the admin UI over the internet (Cloudflare) may sign in
+   * without two-factor for the one purpose of enrolling it — for 24 hours after the account was created.
+   */
+  async enrolWindowOpen(adminId: string): Promise<boolean> {
+    const row = await this.db.get<{ created_at: string; totp_secret_enc: string | null }>(`SELECT created_at, totp_secret_enc FROM admins WHERE id = ?`, [adminId]);
+    return !!row && !row.totp_secret_enc && Date.now() - Date.parse(row.created_at) < 24 * 3600_000;
   }
 
   async hasTotp(adminId: string) {
