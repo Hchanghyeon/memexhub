@@ -3,7 +3,7 @@
 memexhub is one server with three entry points, a small core, pluggable modules and pluggable providers.
 
 ```
- phone shortcuts / apps ──(device token)──▶ ingest  :8790  /ingest/*
+ devices & automations ──(device token)──▶ ingest  :8790  /ingest/*
  Claude app & routines  ──(OAuth 2.1)────▶ MCP     :8787  /mcp · /authorize · /token · /register
  you, private network   ──(login + 2FA)──▶ admin   :8791  setup wizard · connections · tokens
 
@@ -33,7 +33,7 @@ memexhub is one server with three entry points, a small core, pluggable modules 
 | Surface | Default port | Caller | Auth | Expose? |
 |---|---|---|---|---|
 | MCP | 8787 | Claude (Anthropic servers); your browser during connector login | OAuth 2.1 | yes, behind HTTPS; optionally Anthropic IPs only |
-| Ingest | 8790 | phone shortcuts, apps | device token with scopes | yes, behind HTTPS |
+| Ingest | 8790 | any HTTP sender: phone automations (iOS Shortcuts, Android Tasker / MacroDroid), apps, scripts, home automation | device token with scopes | yes, behind HTTPS |
 | Admin | 8791 | you | password + optional TOTP, session cookie, CSRF | private networks only by default |
 
 `LISTEN=single` serves everything on one port with path routing (simple setups, Workers).

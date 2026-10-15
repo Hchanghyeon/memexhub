@@ -1,25 +1,31 @@
 # 결제 (ledger)
 
-폰이 결제 순간 기록을 보내면, 엔진이 연도별 **결제 노트**와 **돈 노트**를 최신으로 유지해요. ✅
+기기가 결제 순간 기록을 보내면(폰 자동화, 앱, HTTP를 보낼 수 있는 스크립트 무엇이든), 엔진이 연도별 **결제 노트**와 **돈 노트**를 최신으로 유지해요. ✅
 
 ## 기록이 들어오는 길
 
-| 주소 | 보내는 쪽 | 본문 |
+| 주소 | 보통 보내는 쪽 | 본문 |
 |---|---|---|
-| `POST /ingest/sms` | 아이폰 단축어 *메시지* 자동화 (카드 승인·취소 문자) | `{ "text": "<문자 전체>", "lat"?: n, "lon"?: n }` |
-| `POST /ingest/transaction` | 아이폰 단축어 *거래* 자동화 (Apple Pay, 지갑 교통카드) | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/sms` | 카드 승인·취소 문자 — iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid 문자 트리거 | `{ "text": "<문자 전체>", "lat"?: n, "lon"?: n }` |
+| `POST /ingest/transaction` | 지갑 결제 — iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
 헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. 본문은 4KB까지, 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
 
 지원 카드 문자: 현대카드, 삼성카드 (카드사 플러그인 — [추가하는 법](adding-a-provider.md#카드사-추가-결제-)).
 
-## 아이폰 설정
+## 아이폰 설정 (iOS 단축어)
 
 1. 관리 화면 → *Device tokens* → 범위 `ledger`로 토큰 만들기. 한 번만 보이니 복사해 두세요.
 2. **카드 문자** — 단축어 → 자동화 → *메시지* → *보낸 사람*: 카드사 → *즉시 실행* → *URL 콘텐츠 가져오기*:
    URL `https://<수집 주소>/ingest/sms`, 방법 `POST`, 헤더 `X-Ingest-Token`, 본문 *JSON*에 `text` = *단축어 입력 → 내용*.
    선택: *현재 위치 가져오기*로 `lat`/`lon`을 같이 보내면 장소 이름에만 쓰고 저장하지 않아요.
 3. **Apple Pay·교통** — 자동화 → *거래* → 카드 선택 → *즉시 실행* → `/ingest/transaction`으로 *URL 콘텐츠 가져오기*, *거래* 변수에서 `merchant`, `amount`, `card`, `name`.
+
+## Android 설정
+
+문자를 받으면 HTTP 요청을 보낼 수 있는 자동화 앱이면 돼요 (예: Tasker, MacroDroid).
+트리거 *문자 수신*(보낸 사람: 카드사) → *HTTP 요청* `POST https://<수집 주소>/ingest/sms`,
+헤더 `X-Ingest-Token`, JSON 본문 `{"text": "<문자 내용>"}`. 엔진은 어느 기기가 보냈는지 따지지 않아요.
 
 ## 엔진이 하는 일
 

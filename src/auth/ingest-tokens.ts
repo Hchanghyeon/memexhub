@@ -2,7 +2,7 @@ import type { Db } from "../platform/types.js";
 import { randomToken, sha256Hex } from "../core/crypto.js";
 import { audit } from "../core/audit.js";
 
-/** Repository for device tokens used by phone shortcuts / apps. Only hashes are stored. */
+/** Repository for device tokens used by ingest senders (phone automations, apps, scripts). Only hashes are stored. */
 export class IngestTokens {
   constructor(private db: Db) {}
 

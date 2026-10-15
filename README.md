@@ -11,10 +11,10 @@ In 1945 Vannevar Bush imagined the *Memex*: a personal machine that stores every
 - your **Obsidian vault** is the memory,
 - **Claude** (app, web, scheduled routines) reads and writes it through **one MCP connector**,
 - the engine keeps the vault healthy as an **LLM Wiki** (sources stay untouched, the LLM maintains wiki pages, indexes and links are kept in order),
-- and new **sources flow in by themselves** — articles you save, and life logs from your phone (card payments, transit, health, location, mail).
+- and new **sources flow in by themselves** — articles you save, and life logs from your devices and services (card payments, transit, health, location, mail).
 
 ```
- phone shortcuts ─(device token)─▶ [ingest :8790]
+ devices & automations ─(token)──▶ [ingest :8790]
  Claude app/routines ─(OAuth)────▶ [MCP    :8787] ─▶ tools: vault · wiki · ledger · mail · location …
  you (private net) ─(login+2FA)──▶ [admin  :8791]
                                          │

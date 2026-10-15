@@ -228,7 +228,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             </label>
             <button>Save ledger</button>
           </form>
-          <p class="muted">Phone shortcuts post to <code>/ingest/sms</code> (card SMS: <code>{"{\"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
+          <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/sms</code> (card SMS: <code>{"{\"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
 
         <div class="card" id="claude">
@@ -260,7 +260,8 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         </div>
 
         <div class="card" id="devices">
-          <h2>Device tokens (phone shortcuts)</h2>
+          <h2>Device tokens</h2>
+          <p class="muted">One token per sender — a phone automation, an app, a script or a home-automation hub. Scopes limit what it may send.</p>
           {newToken && <p class="ok">New token — copy it now, it will not be shown again:<br /><code>{newToken}</code></p>}
           <form method="post" action="/tokens">
             <Csrf c={c} />

@@ -77,7 +77,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 ```ts
 interface SmsIssuer  { id: string; detect(text: string): boolean; parse(text: string): Payment | null }  // chain of responsibility
 interface MailSource { id: string; match(mail): boolean; parse(mail): Payment | null }                  // any mail provider
-interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // phone shortcut payloads
+interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // ingest payloads (automations, apps)
 ```
 
 A new card issuer = one file in `issuers/` plus fake SMS fixtures with expected output. Shared logic (dedupe, cancellations, transit vs. office tags, online merchants, late messages) lives once in the module. Personal places (home, office) are settings, never code.

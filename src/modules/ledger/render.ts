@@ -26,7 +26,7 @@ const S = {
     office1: (t: string) => `🏢 ${t} 출입`, officeN: (a: string, b: string, n: number) => `🏢 ${a} – ${b} · 출입 ${n}회`,
     title: (y: number) => `${y} 결제 기록`,
     intro: [
-      "폰 단축어가 결제 순간 보낸 기록을 엔진이 날짜별로 정리한다 (카드 문자 · Apple Pay · 교통카드 · 결제 메일).",
+      "기기·자동화가 결제 순간 보낸 기록을 엔진이 날짜별로 정리한다 (카드 문자 · Apple Pay · 교통카드 · 결제 메일).",
       "합계는 원화 승인 − 취소. 빠짐없는 기준은 카드사 명세서. 🌐 온라인·정기 결제 · 🚕 택시 · 🚇 교통 태그 · 🏢 회사 출입.",
       "**이 노트는 엔진이 매번 다시 그린다 — 손으로 고치면 다음 기록 때 사라진다.**",
     ],
@@ -52,7 +52,7 @@ const S = {
     office1: (t: string) => `🏢 ${t} gate`, officeN: (a: string, b: string, n: number) => `🏢 ${a} – ${b} · ${n} gate taps`,
     title: (y: number) => `${y} payments`,
     intro: [
-      "Records sent by your phone at payment time, grouped by day by the engine (card SMS · Apple Pay · transit card · receipt mails).",
+      "Records sent by your devices and automations at payment time, grouped by day by the engine (card SMS · Apple Pay · transit card · receipt mails).",
       "Totals are KRW approvals minus cancellations; your card statement is the complete source. 🌐 online/recurring · 🚕 taxi · 🚇 transit tap · 🏢 office gate.",
       "**The engine redraws this note on every record — manual edits will be lost.**",
     ],

@@ -3,7 +3,7 @@
 memexhub는 서버 하나에 입구 세 개, 작은 core, 갈아끼울 수 있는 모듈과 공급자로 이뤄져요.
 
 ```
- 폰 단축어·앱 ──(기기 토큰)──▶ 수집 :8790  /ingest/*
+ 기기·자동화 ──(기기 토큰)───▶ 수집 :8790  /ingest/*
  Claude 앱·루틴 ─(OAuth 2.1)─▶ MCP  :8787  /mcp · /authorize · /token · /register
  나, 내부망 ──(로그인+2FA)───▶ 관리 :8791  설치 마법사 · 연결 · 토큰
 
@@ -33,14 +33,14 @@ memexhub는 서버 하나에 입구 세 개, 작은 core, 갈아끼울 수 있�
 | 입구 | 기본 포트 | 누가 | 인증 | 밖에 여나 |
 |---|---|---|---|---|
 | MCP | 8787 | Claude(Anthropic 서버), 커넥터 로그인 때 내 브라우저 | OAuth 2.1 | HTTPS 뒤로 열어요. Anthropic IP만 받게 할 수 있어요 |
-| 수집 | 8790 | 폰 단축어, 앱 | 범위(scope)가 있는 기기 토큰 | HTTPS 뒤로 열어요 |
+| 수집 | 8790 | HTTP로 보낼 수 있는 모든 것: 폰 자동화(iOS 단축어, Android Tasker·MacroDroid), 앱, 스크립트, 홈 자동화 | 범위(scope)가 있는 기기 토큰 | HTTPS 뒤로 열어요 |
 | 관리 | 8791 | 나 | 비밀번호 + TOTP 선택, 세션 쿠키, CSRF | 기본은 내부망만 |
 
 `LISTEN=single`이면 한 포트에서 경로로 나눠요 (간단한 설치, Workers).
 
 ## 흐름
 
-**카드 문자가 오면** — 단축어 → `POST /ingest/sms`(기기 토큰, 범위 `ledger`) → 카드사 해석기 → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
+**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/sms`(기기 토큰, 범위 `ledger`) → 카드사 해석기 → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
 
 **Claude가 하루를 정리하면** — 밤 루틴 → `day_summary(date)` 한 번 (체류, 결제, 교통, 건강, 메일 수) → Claude가 판단하고 `write_note`로 일지 칸을 씀
 

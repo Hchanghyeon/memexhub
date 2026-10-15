@@ -77,7 +77,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 ```ts
 interface SmsIssuer  { id: string; detect(text: string): boolean; parse(text: string): Payment | null }  // 차례로 시도
 interface MailSource { id: string; match(mail): boolean; parse(mail): Payment | null }                  // 아무 메일 공급자
-interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // 단축어 본문
+interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // 수집 본문 (자동화·앱)
 ```
 
 카드사 추가 = `issuers/`에 파일 하나 + 가짜 문자 예시와 기대 결과. 공통 처리(중복, 취소, 교통·출입 구분, 온라인 판별, 늦게 온 문자)는 모듈에서 한 번만 해요. 집·회사 같은 내 장소는 코드가 아니라 설정이에요.

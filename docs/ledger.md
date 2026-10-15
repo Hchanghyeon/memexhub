@@ -1,25 +1,31 @@
 # Ledger (payments)
 
-Your phone reports payments the moment they happen; the engine keeps a yearly **payments note** and a **money note** up to date. ✅
+Your devices report payments the moment they happen (a phone automation, an app or any script that can send HTTP); the engine keeps a yearly **payments note** and a **money note** up to date. ✅
 
 ## How records arrive
 
-| Endpoint | Sent by | Body |
+| Endpoint | Typical sender | Body |
 |---|---|---|
-| `POST /ingest/sms` | iPhone Shortcuts *Message* automation (card approval / cancellation SMS) | `{ "text": "<whole SMS>", "lat"?: n, "lon"?: n }` |
-| `POST /ingest/transaction` | iPhone Shortcuts *Transaction* automation (Apple Pay, Wallet transit cards) | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/sms` | card approval / cancellation SMS — iOS Shortcuts *Message* automation, Android Tasker / MacroDroid SMS trigger | `{ "text": "<whole SMS>", "lat"?: n, "lon"?: n }` |
+| `POST /ingest/transaction` | wallet transactions — iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
 Header `X-Ingest-Token: <device token with scope ledger>`. Bodies are limited to 4 KB, unknown fields are rejected, and rejected requests are logged without their values.
 
 Supported card SMS: Hyundai Card, Samsung Card (issuer plugins — [adding one](adding-a-provider.md#a-new-card-issuer-ledger)).
 
-## iPhone setup
+## iPhone setup (iOS Shortcuts)
 
 1. Admin UI → *Device tokens* → create a token with scope `ledger`. Copy it (shown once).
 2. **Card SMS** — Shortcuts → Automation → *Message* → *Sender* is your card company → *Run immediately* → add *Get Contents of URL*:
    URL `https://<your ingest host>/ingest/sms`, Method `POST`, Header `X-Ingest-Token`, Request body *JSON* with `text` = *Shortcut Input → Content*.
    Optional: add *Get Current Location* and send `lat` / `lon` — used only to name the place, never stored.
 3. **Apple Pay / transit** — Automation → *Transaction* → choose cards → *Run immediately* → *Get Contents of URL* to `/ingest/transaction` with `merchant`, `amount`, `card`, `name` from the *Transaction* variables.
+
+## Android setup
+
+Any automation app that can react to an SMS and send an HTTP request works (e.g. Tasker, MacroDroid):
+trigger *SMS received* from your card company → *HTTP request* `POST https://<your ingest host>/ingest/sms`,
+header `X-Ingest-Token`, JSON body `{"text": "<SMS body>"}`. The engine does not care which device sent it.
 
 ## What the engine does
 
