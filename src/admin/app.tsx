@@ -228,7 +228,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             </label>
             <button>Save ledger</button>
           </form>
-          <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/sms</code> (card SMS: <code>{"{\"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
+          <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/message</code> (raw text such as a card SMS: <code>{"{\"channel\": \"sms\", \"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
 
         <div class="card" id="claude">

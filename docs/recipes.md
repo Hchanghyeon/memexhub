@@ -17,7 +17,7 @@ This follows the rule "the engine computes, Claude judges".
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 flowchart LR
-  sms["/ingest/sms<br/>/ingest/message"] --> msg["Message<br/>channel · from · subject · text"]
+  sms["/ingest/message"] --> msg["Message<br/>channel · from · subject · text"]
   mail["Mail job<br/>(IMAP folders you choose)"] --> msg
   msg --> recipe{"Active recipe<br/>matches?"}
   recipe -->|yes| rec["Record<br/>dedupe · tags · notes"]
@@ -30,7 +30,7 @@ flowchart LR
   active --> recipe
 ```
 
-1. **Message.** Every input becomes `{ channel, from?, subject?, text, time?, lat?, lon? }`. The channel is one of `sms`, `mail`, `notification` or `text`. `/ingest/sms` is a short form of `/ingest/message` with `channel: "sms"`.
+1. **Message.** Every input becomes `{ channel, from?, subject?, text, time?, lat?, lon? }`. The channel is one of `sms`, `mail`, `notification` or `text`. Raw text arrives at `POST /ingest/message`. Already structured payments (Apple Pay) use `/ingest/transaction` and skip this step.
 2. **Recipes.** Active recipes are tried in order. The first one whose `match` fits extracts the fields. Missing fields are filled by the generic parser unless `generic: false`.
 3. **Generic parser.** This is the Korean card-SMS parser shipped with P3: amount `12,500원`, foreign amounts `USD 1.00`, `MM/DD HH:mm`, approval / cancellation, instalments, and the merchant line. Its result is recorded directly only when it is **confident**: an amount, a time, an approval or cancellation word, and a card name (`…카드`) were all found. Otherwise the result is kept as a *guess*.
 4. **Inbox.** Messages that no recipe matched and the generic parser was not sure about wait here, together with the guess. Claude resolves them, or you do in the admin UI.

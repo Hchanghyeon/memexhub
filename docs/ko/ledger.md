@@ -6,26 +6,26 @@
 
 | 주소 | 보통 보내는 쪽 | 본문 |
 |---|---|---|
-| `POST /ingest/sms` | 카드 승인·취소 문자 — iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid 문자 트리거 | `{ "text": "<문자 전체>", "lat"?: n, "lon"?: n }` |
-| `POST /ingest/transaction` | 지갑 결제 — iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/message` | **해석할 원문** — 카드 문자(iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid), 앱 알림, 붙여 넣은 글 | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
+| `POST /ingest/transaction` | **이미 정리된** 결제 — 지갑 결제 — iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
-헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. 본문은 4KB까지, 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
+헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. 본문은 4KB까지(`/ingest/message`는 20KB), 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
 
-카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드, 삼성카드). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md). `POST /ingest/message` 📝는 어떤 채널이든(`sms`, `mail`, `notification`, `text`) 받아요.
+카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드, 삼성카드). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md).
 
 ## 아이폰 설정 (iOS 단축어)
 
 1. 관리 화면 → *Device tokens* → 범위 `ledger`로 토큰 만들기. 한 번만 보이니 복사해 두세요.
 2. **카드 문자** — 단축어 → 자동화 → *메시지* → *보낸 사람*: 카드사 → *즉시 실행* → *URL 콘텐츠 가져오기*:
-   URL `https://<수집 주소>/ingest/sms`, 방법 `POST`, 헤더 `X-Ingest-Token`, 본문 *JSON*에 `text` = *단축어 입력 → 내용*.
+   URL `https://<수집 주소>/ingest/message`, 방법 `POST`, 헤더 `X-Ingest-Token`, 본문 *JSON*에 `channel` = `sms`, `text` = *단축어 입력 → 내용*.
    선택: *현재 위치 가져오기*로 `lat`/`lon`을 같이 보내면 장소 이름에만 쓰고 저장하지 않아요.
 3. **Apple Pay·교통** — 자동화 → *거래* → 카드 선택 → *즉시 실행* → `/ingest/transaction`으로 *URL 콘텐츠 가져오기*, *거래* 변수에서 `merchant`, `amount`, `card`, `name`.
 
 ## Android 설정
 
 문자를 받으면 HTTP 요청을 보낼 수 있는 자동화 앱이면 돼요 (예: Tasker, MacroDroid).
-트리거 *문자 수신*(보낸 사람: 카드사) → *HTTP 요청* `POST https://<수집 주소>/ingest/sms`,
-헤더 `X-Ingest-Token`, JSON 본문 `{"text": "<문자 내용>"}`. 엔진은 어느 기기가 보냈는지 따지지 않아요.
+트리거 *문자 수신*(보낸 사람: 카드사) → *HTTP 요청* `POST https://<수집 주소>/ingest/message`,
+헤더 `X-Ingest-Token`, JSON 본문 `{"channel": "sms", "text": "<문자 내용>"}`. 앱 알림도 `"channel": "notification"`으로 똑같이 보내면 돼요. 엔진은 어느 기기가 보냈는지 따지지 않아요.
 
 ## 엔진이 하는 일
 

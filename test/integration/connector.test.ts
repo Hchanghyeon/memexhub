@@ -140,7 +140,7 @@ describe("connector flow", () => {
 
 describe("ingest surface", () => {
   it("requires a device token with the right scope", async () => {
-    const r = await call("/ingest/sms", { method: "POST", body: "{}" });
+    const r = await call("/ingest/message", { method: "POST", body: "{}" });
     expect([401, 404]).toContain(r.status);
   });
 });

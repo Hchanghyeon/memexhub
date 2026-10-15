@@ -17,6 +17,7 @@ const ONLINE_WORDS = [
 ];
 const LATE_S = 600;
 const DEDUPE_MS = 5 * 60 * 1000;
+const ATTACH_MS = 10 * 60 * 1000;
 
 const field = z.string().max(200).optional().default("");
 export const TransactionInput = z
@@ -110,6 +111,26 @@ export class Ledger {
       to: new Date(when.getTime() + DEDUPE_MS + 1).toISOString(),
     });
     return near.some((e) => digits(String((e.payload as any).amount ?? "")) === d);
+  }
+
+  /**
+   * A receipt (recipe kind "item"): add its item name to the payment with the same amount within 10 minutes,
+   * or record it as an online payment when the card message never arrived.
+   */
+  async attachOrRecord(input: TransactionInput): Promise<{ kind: "item" | "payment" | "transit" | "office"; duplicate: boolean; id: string }> {
+    const raw = TransactionInput.parse(input);
+    const when = parseWhen(raw.time, this.now());
+    const d = digits(clean(raw.amount));
+    const near = d
+      ? (await this.bus.query(["ledger"], { from: new Date(when.getTime() - ATTACH_MS).toISOString(), to: new Date(when.getTime() + ATTACH_MS + 1).toISOString() })).filter(
+          (e) => digits(String((e.payload as any).amount ?? "")) === d,
+        )
+      : [];
+    if (near.length && raw.item) {
+      await this.mergeItem(near[0]!.id, raw.item, raw.source ?? "mail");
+      return { kind: "item", duplicate: false, id: near[0]!.id };
+    }
+    return this.record({ ...raw, kind: raw.kind ?? "online" });
   }
 
   /** Attach an item name (e.g. from a receipt mail) to an already-recorded payment. */

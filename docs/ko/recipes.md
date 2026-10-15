@@ -17,7 +17,7 @@
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 flowchart LR
-  sms["/ingest/sms<br/>/ingest/message"] --> msg["메시지<br/>채널 · 보낸 곳 · 제목 · 본문"]
+  sms["/ingest/message"] --> msg["메시지<br/>채널 · 보낸 곳 · 제목 · 본문"]
   mail["메일 작업<br/>(고른 IMAP 폴더만)"] --> msg
   msg --> recipe{"켜진 레시피가<br/>맞나?"}
   recipe -->|예| rec["기록<br/>중복 · 태그 · 노트"]
@@ -30,7 +30,7 @@ flowchart LR
   active --> recipe
 ```
 
-1. **메시지.** 들어오는 건 모두 `{ channel, from?, subject?, text, time?, lat?, lon? }` 모양이 돼요. 채널은 `sms`, `mail`, `notification`, `text` 중 하나예요. `/ingest/sms`는 `channel: "sms"`인 `/ingest/message`의 줄임이에요.
+1. **메시지.** 들어오는 건 모두 `{ channel, from?, subject?, text, time?, lat?, lon? }` 모양이 돼요. 채널은 `sms`, `mail`, `notification`, `text` 중 하나예요. 원문은 `POST /ingest/message`로 들어와요. 이미 정리된 결제(Apple Pay)는 `/ingest/transaction`으로 와서 이 단계를 건너뛰어요.
 2. **레시피.** 켜진 레시피를 차례로 시도해요. `match`가 맞는 첫 레시피가 값을 뽑아요. 빠진 값은 공통 해석기가 채워요(`generic: false`면 안 채움).
 3. **공통 해석기.** P3에서 만든 한국 카드 문자 해석기예요. 금액 `12,500원`, 해외 금액 `USD 1.00`, `MM/DD HH:mm`, 승인·취소, 할부, 가맹점 줄을 찾아요. 결과는 **확실할 때만** 바로 기록해요. 금액, 시각, 승인·취소 단어, 카드 이름(`…카드`)을 모두 찾았을 때가 확실한 경우예요. 아니면 *추측*으로 남겨요.
 4. **대기함.** 맞는 레시피가 없고 공통 해석기도 확실하지 않은 메시지가 추측과 함께 여기서 기다려요. Claude가 처리하거나, 관리 화면에서 내가 처리해요.

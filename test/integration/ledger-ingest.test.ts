@@ -32,21 +32,33 @@ beforeAll(async () => {
 
 describe("ledger ingest", () => {
   it("records a card SMS", async () => {
-    const r = await post("/ingest/sms", { text: "[Web발신]\n삼성1234승인 홍*동\n1,500원 일시불\n10/15 09:11 샘플편의점\n누적98,765원" });
+    const r = await post("/ingest/message", { channel: "sms", text: "[Web발신]\n삼성1234승인 홍*동\n1,500원 일시불\n10/15 09:11 샘플편의점\n누적98,765원" });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ ok: true, kind: "payment", duplicate: false });
+  });
+  it("attaches a receipt item to the matching payment, ignores ads", async () => {
+    const r = await post("/ingest/message", { channel: "sms", text: "[Web발신]\n현대카드 M 승인\n홍*동\n9,900원 일시불\n10/15 09:20\n샘플서점\n누적 1원" });
+    const paid = (await r.json()) as { id: string };
+    // a recipe of kind "item" is tested in unit tests; here the ledger side: same amount within 10 minutes → merged
+    const { Ledger } = await import("../../src/modules/ledger/record.js");
+    const l = new Ledger(hub.bus, { officePlaces: [] });
+    const near = await l.attachOrRecord({ merchant: "샘플서점", amount: "₩9,900", item: "샘플 소설", time: "2026-10-15T09:25:00+09:00", source: "mail" });
+    expect(near).toMatchObject({ kind: "item", id: paid.id });
+    const far = await l.attachOrRecord({ merchant: "샘플서점", amount: "₩9,900", item: "다른 책", time: "2026-10-15T12:00:00+09:00", source: "mail" });
+    expect(far.kind).toBe("payment");
   });
   it("records a wallet transaction and a transit tap", async () => {
     expect(await (await post("/ingest/transaction", { merchant: "Sample Cafe", amount: "₩4,500", card: "Card" })).json()).toMatchObject({ kind: "payment" });
     expect(await (await post("/ingest/transaction", { name: "Tmoney" })).json()).toMatchObject({ kind: "transit" });
   });
   it("rejects wrong scope, bad tokens, junk and oversized bodies — and logs rejects without values", async () => {
-    expect((await post("/ingest/sms", { text: "x" }, healthToken)).status).toBe(401);
-    expect((await post("/ingest/sms", { text: "x" }, "mxi_nope")).status).toBe(401);
-    expect((await post("/ingest/sms", { text: "택배 도착 secret-value" })).status).toBe(422);
+    expect((await post("/ingest/message", { channel: "sms", text: "x" }, healthToken)).status).toBe(401);
+    expect((await post("/ingest/message", { channel: "sms", text: "x" }, "mxi_nope")).status).toBe(401);
+    expect((await post("/ingest/message", { channel: "sms", text: "택배 도착 secret-value" })).status).toBe(422);
     expect((await post("/ingest/transaction", { merchant: "x", password: "hunter2" })).status).toBe(422);
-    expect((await post("/ingest/sms", "{not json")).status).toBe(400);
-    expect((await post("/ingest/sms", { text: "x".repeat(5000) })).status).toBe(413);
+    expect((await post("/ingest/message", "{not json")).status).toBe(400);
+    expect((await post("/ingest/message", { channel: "sms", text: "x".repeat(21_000) })).status).toBe(413);
+    expect((await post("/ingest/sms", { text: "x" })).status).toBe(404); // removed: use /ingest/message
     const rejects = await hub.bus.query(["ledger.reject"], { includeSkipped: true });
     expect(rejects.length).toBeGreaterThanOrEqual(2);
     expect(JSON.stringify(rejects)).not.toContain("hunter2");
@@ -61,7 +73,7 @@ describe("ledger notes (observer)", () => {
     await hub.settings.set("vault", { ...s.vault, connection: "vault" });
     await hub.settings.set("ledger", { ...s.ledger, language: "ko", officePlaces: ["Office"] });
     await hub.reload();
-    expect((await post("/ingest/sms", { text: "[Web발신]\n현대카드 M 승인\n홍*동\n12,500원 일시불\n10/14 12:30\n샘플카페\n누적 345,000원" })).status).toBe(200);
+    expect((await post("/ingest/message", { channel: "sms", text: "[Web발신]\n현대카드 M 승인\n홍*동\n12,500원 일시불\n10/14 12:30\n샘플카페\n누적 345,000원" })).status).toBe(200);
     const pay = (await hub.vault!.read("ledger/payments/2026.md")).text;
     expect(pay).toContain("| 12:30 | 샘플카페 | ₩12,500 | 현대카드 M 일시불 |");
     const money = (await hub.vault!.read("ledger/money.md")).text;

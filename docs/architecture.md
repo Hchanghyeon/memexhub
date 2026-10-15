@@ -47,7 +47,7 @@ flowchart TB
 
 ## Request flows
 
-**A card SMS arrives** — shortcut → `POST /ingest/sms` (device token, scope `ledger`) → recipes / generic parser (unreadable → inbox for Claude) → dedupe → `EventBus.append` → renderer redraws the payments and money notes → `SafeVault.write` (skipped when unchanged).
+**A card SMS arrives** — shortcut → `POST /ingest/message` (device token, scope `ledger`) → recipes / generic parser (unreadable → inbox for Claude) → dedupe → `EventBus.append` → renderer redraws the payments and money notes → `SafeVault.write` (skipped when unchanged).
 
 **Claude summarizes a day** — nightly routine → `day_summary(date)` (one call returns stays, payments, transit, health, mail counts) → Claude decides and writes the daily note section with `write_note`.
 

@@ -6,26 +6,26 @@ Your devices report payments the moment they happen (a phone automation, an app 
 
 | Endpoint | Typical sender | Body |
 |---|---|---|
-| `POST /ingest/sms` | card approval / cancellation SMS — iOS Shortcuts *Message* automation, Android Tasker / MacroDroid SMS trigger | `{ "text": "<whole SMS>", "lat"?: n, "lon"?: n }` |
-| `POST /ingest/transaction` | wallet transactions — iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/message` | **raw text to read** — card SMS (iOS Shortcuts *Message* automation, Android Tasker / MacroDroid), app notifications, pasted text | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
+| `POST /ingest/transaction` | **already structured** payments — wallet transactions — iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
-Header `X-Ingest-Token: <device token with scope ledger>`. Bodies are limited to 4 KB, unknown fields are rejected, and rejected requests are logged without their values.
+Header `X-Ingest-Token: <device token with scope ledger>`. Bodies are limited to 4 KB (`/ingest/message`: 20 KB), unknown fields are rejected, and rejected requests are logged without their values.
 
-Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md). `POST /ingest/message` 📝 accepts any channel (`sms`, `mail`, `notification`, `text`).
+Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md).
 
 ## iPhone setup (iOS Shortcuts)
 
 1. Admin UI → *Device tokens* → create a token with scope `ledger`. Copy it (shown once).
 2. **Card SMS** — Shortcuts → Automation → *Message* → *Sender* is your card company → *Run immediately* → add *Get Contents of URL*:
-   URL `https://<your ingest host>/ingest/sms`, Method `POST`, Header `X-Ingest-Token`, Request body *JSON* with `text` = *Shortcut Input → Content*.
+   URL `https://<your ingest host>/ingest/message`, Method `POST`, Header `X-Ingest-Token`, Request body *JSON* with `channel` = `sms` and `text` = *Shortcut Input → Content*.
    Optional: add *Get Current Location* and send `lat` / `lon` — used only to name the place, never stored.
 3. **Apple Pay / transit** — Automation → *Transaction* → choose cards → *Run immediately* → *Get Contents of URL* to `/ingest/transaction` with `merchant`, `amount`, `card`, `name` from the *Transaction* variables.
 
 ## Android setup
 
 Any automation app that can react to an SMS and send an HTTP request works (e.g. Tasker, MacroDroid):
-trigger *SMS received* from your card company → *HTTP request* `POST https://<your ingest host>/ingest/sms`,
-header `X-Ingest-Token`, JSON body `{"text": "<SMS body>"}`. The engine does not care which device sent it.
+trigger *SMS received* from your card company → *HTTP request* `POST https://<your ingest host>/ingest/message`,
+header `X-Ingest-Token`, JSON body `{"channel": "sms", "text": "<SMS body>"}`. App notifications work the same way with `"channel": "notification"`. The engine does not care which device sent it.
 
 ## What the engine does
 

@@ -2,11 +2,11 @@ import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import { Ledger, TransactionInput } from "./record.js";
-import { parseCardSms, SmsParseError } from "./sms.js";
+import { MessageInput } from "./messages/types.js";
+import { MessageReader, loadRecipes } from "./messages/reader.js";
+import { builtinSource } from "./messages/builtin.js";
 import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
 import { nowIn } from "../../core/time.js";
-
-const SmsInput = z.object({ text: z.string().min(1).max(2000), lat: z.coerce.number().optional(), lon: z.coerce.number().optional() }).strict();
 
 export default defineModule({
   id: "ledger",
@@ -38,6 +38,8 @@ export default defineModule({
         platform.log.warn("ledger redraw failed", { error: (err as Error).message.slice(0, 120) });
       }
     });
+    const recipes = loadRecipes([builtinSource]);
+    const reader = new MessageReader(async () => (await recipes).active, { tz: () => settings.timezone, now: () => platform.now() });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
     return {
       tools: [
@@ -78,25 +80,25 @@ export default defineModule({
           },
         },
         {
-          path: "/ingest/sms",
+          path: "/ingest/message",
           scope: "ledger",
-          maxBytes: 4096,
+          maxBytes: 20_480,
           async handle(body) {
-            const p = SmsInput.safeParse(body);
+            const p = MessageInput.safeParse(body);
             if (!p.success) {
-              await ledger.reject("/ingest/sms", "invalid payload", keysOf(body));
+              await ledger.reject("/ingest/message", "invalid payload", keysOf(body));
               throw new Error("invalid payload");
             }
-            try {
-              const parsed = parseCardSms(p.data.text, { tz: settings.timezone });
-              return await ledger.record({ ...parsed, lat: p.data.lat, lon: p.data.lon });
-            } catch (e) {
-              if (e instanceof SmsParseError) {
-                await ledger.reject("/ingest/sms", e.message, keysOf(body));
-                throw new Error(e.message);
-              }
-              throw e;
+            const m = p.data;
+            const r = await reader.read(m);
+            if (r.kind === "ignore") return { kind: "ignored", recipe: r.recipeId };
+            if (!r.confident || !r.payment) {
+              // The inbox (#38) will keep these for Claude; until then they are rejected without storing the text.
+              await ledger.reject("/ingest/message", r.reason ?? "unreadable", keysOf(body));
+              throw new Error(r.reason ?? "unreadable");
             }
+            const input = { ...r.payment, lat: m.lat, lon: m.lon, source: m.channel };
+            return r.kind === "item" ? ledger.attachOrRecord(input) : ledger.record(input);
           },
         },
       ],

@@ -47,7 +47,7 @@ flowchart TB
 
 ## 흐름
 
-**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/sms`(기기 토큰, 범위 `ledger`) → 레시피·공통 해석기 (못 읽으면 Claude용 대기함) → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
+**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/message`(기기 토큰, 범위 `ledger`) → 레시피·공통 해석기 (못 읽으면 Claude용 대기함) → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
 
 **Claude가 하루를 정리하면** — 밤 루틴 → `day_summary(date)` 한 번 (체류, 결제, 교통, 건강, 메일 수) → Claude가 판단하고 `write_note`로 일지 칸을 씀
 

@@ -22,7 +22,7 @@ export interface CallContext {
 
 /** A POST endpoint on the ingest surface. The token must carry `scope`. */
 export interface IngestRoute {
-  path: string; // "/ingest/sms"
+  path: string; // "/ingest/message"
   scope: string; // "ledger"
   maxBytes: number;
   handle(body: unknown, ctx: { tokenId: string }): Promise<Record<string, unknown>>;
