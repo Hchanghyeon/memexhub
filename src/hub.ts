@@ -70,6 +70,7 @@ export class Hub {
     } catch (e) {
       this.platform.log.warn("vault storage unavailable", { error: (e as Error).message });
     }
+    this.bus.reset();
     const tools: ToolDef<any>[] = [];
     const ingest: IngestRoute[] = [];
     this.moduleStatus = [];

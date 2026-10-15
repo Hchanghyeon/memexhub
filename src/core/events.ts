@@ -21,6 +21,11 @@ export class EventBus {
   private listeners = new Map<string, Listener[]>();
   constructor(private db: Db) {}
 
+  /** Drop all listeners — called before modules are reloaded so listeners never pile up. */
+  reset() {
+    this.listeners.clear();
+  }
+
   on(type: string, fn: Listener) {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), fn]);
   }
@@ -31,7 +36,8 @@ export class EventBus {
       `INSERT INTO events (id, type, occurred_at, received_at, source, payload, skipped) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [full.id, full.type, full.occurredAt, full.receivedAt, full.source, JSON.stringify(full.payload), full.skipped ?? null],
     );
-    if (!full.skipped) for (const fn of this.listeners.get(full.type) ?? []) await fn(full);
+    // Listeners see every event (including skipped ones such as merges) and decide what matters.
+    for (const fn of this.listeners.get(full.type) ?? []) await fn(full);
     return full;
   }
 

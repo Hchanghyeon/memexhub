@@ -53,3 +53,23 @@ describe("ledger ingest", () => {
     expect(JSON.stringify(rejects)).not.toContain("secret-value");
   });
 });
+
+describe("ledger notes (observer)", () => {
+  it("redraws the payments and money notes and keeps human edits", async () => {
+    await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: {} }, "t");
+    const s = await hub.settings.get();
+    await hub.settings.set("vault", { ...s.vault, connection: "vault" });
+    await hub.settings.set("ledger", { ...s.ledger, language: "ko", officePlaces: ["Office"] });
+    await hub.reload();
+    expect((await post("/ingest/sms", { text: "[Web발신]\n현대카드 M 승인\n홍*동\n12,500원 일시불\n10/14 12:30\n샘플카페\n누적 345,000원" })).status).toBe(200);
+    const pay = (await hub.vault!.read("ledger/payments/2026.md")).text;
+    expect(pay).toContain("| 12:30 | 샘플카페 | ₩12,500 | 현대카드 M 일시불 |");
+    const money = (await hub.vault!.read("ledger/money.md")).text;
+    expect(money).toContain("<!-- memexhub:auto id=money -->");
+    await hub.vault!.write("ledger/money.md", money.replace("## 메모\n", "## 메모\n\n사람이 쓴 줄\n"));
+    await post("/ingest/transaction", { merchant: "Sample Bakery", amount: "₩3,000", card: "Card", time: "2026-10-14T13:00:00+09:00" });
+    const money2 = (await hub.vault!.read("ledger/money.md")).text;
+    expect(money2).toContain("사람이 쓴 줄");
+    expect((await hub.vault!.read("ledger/payments/2026.md")).text).toContain("Sample Bakery");
+  });
+});
