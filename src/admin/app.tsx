@@ -17,8 +17,12 @@ type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
 
 /** Admin surface. Private networks only unless explicitly opened (and then TOTP is required). */
-export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string }) {
-  const app = new Hono<Vars>();
+export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string; base?: string }) {
+  /** Mount prefix ("" on its own port, "/admin" in LISTEN=single). Every link, form and redirect uses it. */
+  const B = (opts.base ?? "").replace(/\/+$/, "");
+  const R = B || "/"; // the dashboard
+  // strict: false — "/admin" and "/admin/" are the same page when mounted under a prefix.
+  const app = new Hono<Vars>({ strict: false });
   app.use("*", securityHeaders);
 
   app.use("*", async (c, next) => {
@@ -35,7 +39,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
 
   // ---- first run ----
   app.get("/setup", async (c) => {
-    if (await hub.admin.hasAdmin()) return c.redirect("/login");
+    if (await hub.admin.hasAdmin()) return c.redirect(`${B}/login`);
     return c.html(
       <Layout title="Set up memexhub">
         <h1>Set up memexhub</h1>
@@ -50,13 +54,13 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     );
   });
   app.post("/setup", async (c) => {
-    if (await hub.admin.hasAdmin()) return c.redirect("/login");
+    if (await hub.admin.hasAdmin()) return c.redirect(`${B}/login`);
     const f = await c.req.parseBody();
     if (!(await hub.admin.checkSetupCode(String(f.code ?? "")))) return c.text("wrong setup code", 403);
     try {
       const id = await hub.admin.createAdmin(String(f.username), String(f.password), `setup:${c.get("ip")}`);
       await startSession(c, id);
-      return c.redirect("/");
+      return c.redirect(R);
     } catch (e) {
       return c.text((e as Error).message, 400);
     }
@@ -80,14 +84,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const id = await hub.admin.login(String(f.username ?? ""), String(f.password ?? ""), String(f.totp ?? "") || undefined, `${c.get("ip")}|${f.username}`);
     if (!id) return c.text("login failed", 401);
     await startSession(c, id);
-    return c.redirect("/");
+    return c.redirect(R);
   });
 
   // ---- everything below needs a session ----
   app.use("*", async (c, next) => {
-    if (!(await hub.admin.hasAdmin())) return c.redirect("/setup");
+    if (!(await hub.admin.hasAdmin())) return c.redirect(`${B}/setup`);
     const sess = await hub.admin.session(getCookie(c, COOKIE));
-    if (!sess) return c.redirect("/login");
+    if (!sess) return c.redirect(`${B}/login`);
     if (c.req.method === "POST") {
       const f = await c.req.parseBody();
       if (!safeEqual(String(f.csrf ?? ""), sess.csrf)) return c.text("bad csrf token", 403);
@@ -98,7 +102,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   });
   const actor = (c: Context<Vars>) => `admin:${c.get("adminId")}`;
   const Csrf = (p: { c: Context<Vars> }) => <input type="hidden" name="csrf" value={p.c.get("csrf")} />;
-  recipeRoutes(app, hub, Csrf);
+  recipeRoutes(app, hub, Csrf, B);
 
   app.get("/", async (c) => {
     const s = await hub.settings.get();
@@ -120,7 +124,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="vault">
           <h2>Vault</h2>
           <p>{hub.vault ? <span class="ok">connected ({storage[0]?.provider})</span> : <span class="err">not connected</span>}</p>
-          <form method="post" action="/vault">
+          <form method="post" action={`${B}/vault`}>
             <Csrf c={c} />
             <label>Where should your vault live?
               <select name="provider">
@@ -151,11 +155,11 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
                     <td>{st?.status === "ok" ? <span class="ok">ok</span> : st?.status === "error" ? <span class="err">{st.last_error}</span> : "—"}</td>
                     <td>
                       {x.provider === "google" && (
-                        <form method="post" action={`/connections/${x.id}/google`} style="display:inline"><Csrf c={c} /><button>{x.config.email ? "Sign in again" : "Sign in with Google"}</button></form>
+                        <form method="post" action={`${B}/connections/${x.id}/google`} style="display:inline"><Csrf c={c} /><button>{x.config.email ? "Sign in again" : "Sign in with Google"}</button></form>
                       )}
                       {x.provider === "google" && x.config.email ? <span class="muted"> {String(x.config.email)} </span> : null}
-                      <form method="post" action={`/connections/${x.id}/test`} style="display:inline"><Csrf c={c} /><button class="secondary">Test</button></form>
-                      <form method="post" action={`/connections/${x.id}/disable`} style="display:inline"><Csrf c={c} /><button class="secondary">Disable</button></form>
+                      <form method="post" action={`${B}/connections/${x.id}/test`} style="display:inline"><Csrf c={c} /><button class="secondary">Test</button></form>
+                      <form method="post" action={`${B}/connections/${x.id}/disable`} style="display:inline"><Csrf c={c} /><button class="secondary">Disable</button></form>
                     </td>
                   </tr>
                 );
@@ -163,7 +167,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             </table>
           ) : <p class="muted">No connections yet.</p>}
           {addable.length ? (
-            <form method="get" action="/connections/new">
+            <form method="get" action={`${B}/connections/new`}>
               <label>Add a connection
                 <select name="provider">{addable.map((p) => <option value={`${p.kind}:${p.id}`}>{p.kind} — {pick(p.title, s.toolLanguage === "ko" ? "ko" : "en")}</option>)}</select>
               </label>
@@ -175,7 +179,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="wiki">
           <h2>Wiki layout</h2>
           <p class="muted">memexhub knows roles, not folder names. Pick a preset, then adjust.</p>
-          <form method="post" action="/wiki/preset">
+          <form method="post" action={`${B}/wiki/preset`}>
             <Csrf c={c} />
             <label>Preset
               <select name="preset">
@@ -184,7 +188,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             </label>
             <button>Apply preset</button>
           </form>
-          <form method="post" action="/wiki/roles">
+          <form method="post" action={`${B}/wiki/roles`}>
             <Csrf c={c} />
             <label>Sources folder (write-once)<input name="sources" value={s.wiki.roles.sources ?? ""} placeholder="raw" /></label>
             <label>Wiki folder (empty = off, "/" = whole vault)<input name="wiki" value={s.wiki.roles.wiki === "" ? "/" : s.wiki.roles.wiki ?? ""} /></label>
@@ -201,7 +205,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <button>Save layout</button>
           </form>
           <h3>Lint rules</h3>
-          <form method="post" action="/wiki/lint">
+          <form method="post" action={`${B}/wiki/lint`}>
             <Csrf c={c} />
             {effectiveRules(s.wiki.lint).map((x) => (
               <label><input type="checkbox" name="on" value={x.rule.id} checked={x.enabled} style="display:inline;width:auto;margin-right:.4rem" />{x.rule.id}</label>
@@ -212,7 +216,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
 
         <div class="card" id="features">
           <h2>Features</h2>
-          <form method="post" action="/modules">
+          <form method="post" action={`${B}/modules`}>
             <Csrf c={c} />
             {hub.moduleStatus.map((m) => (
               <label>
@@ -224,7 +228,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <button>Save features</button>
           </form>
           <h3>Ledger</h3>
-          <form method="post" action="/ledger">
+          <form method="post" action={`${B}/ledger`}>
             <Csrf c={c} />
             <label>Office places (names from your location provider, comma separated)<input name="officePlaces" value={s.ledger.officePlaces.join(", ")} /></label>
             <label>Payments note (use {"{year}"})<input name="paymentsNote" value={s.ledger.paymentsNote} /></label>
@@ -237,14 +241,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <button>Save ledger</button>
           </form>
           <h3>Health</h3>
-          <form method="post" action="/health">
+          <form method="post" action={`${B}/health`}>
             <Csrf c={c} />
             <label>Health note (use {"{year}"})<input name="note" value={s.health.note} /></label>
             <label>Note language<select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.health.language === l}>{l}</option>)}</select></label>
             <button>Save health</button>
           </form>
           <h3>Location</h3>
-          <form method="post" action="/location">
+          <form method="post" action={`${B}/location`}>
             <Csrf c={c} />
             <label>Location source
               <select name="connection"><option value="">First connected</option>{others.filter((x) => x.kind === "location").map((x) => <option value={x.name} selected={s.location.connection === x.name}>{x.name} ({x.provider})</option>)}</select>
@@ -256,7 +260,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Language<select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.location.language === l}>{l}</option>)}</select></label>
             <button>Save location</button>
           </form>
-          {hub.moduleAdmin.has("ledger") && <p><a href="/ledger/recipes">Recipes & inbox →</a> <span class="muted">teach the engine new message formats, handle what it could not read</span></p>}
+          {hub.moduleAdmin.has("ledger") && <p><a href={`${B}/ledger/recipes`}>Recipes & inbox →</a> <span class="muted">teach the engine new message formats, handle what it could not read</span></p>}
           <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/message</code> (raw text such as a card SMS: <code>{"{\"channel\": \"sms\", \"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
         </div>
 
@@ -265,7 +269,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           <p>In the Claude app: Settings → Connectors → Add custom connector → paste:</p>
           <pre>{hub.env.PUBLIC_URL}/mcp</pre>
           <p>Tools visible to Claude ({tools.length}): <code>{tools.map((t) => t.name).join(", ")}</code></p>
-          <form method="post" action="/settings/language">
+          <form method="post" action={`${B}/settings/language`}>
             <Csrf c={c} />
             <label>Tool description language
               <select name="toolLanguage">
@@ -281,7 +285,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
               <tr>
                 <td>{cl.client_name ?? cl.client_id}</td><td>{String(cl.created_at).slice(0, 16)}</td><td>{String(cl.last_token_at ?? "—").slice(0, 16)}</td>
                 <td>{cl.revoked_at ? "revoked" : (
-                  <form method="post" action={`/oauth/${cl.client_id}/revoke`}><Csrf c={c} /><button class="secondary">Revoke</button></form>
+                  <form method="post" action={`${B}/oauth/${cl.client_id}/revoke`}><Csrf c={c} /><button class="secondary">Revoke</button></form>
                 )}</td>
               </tr>
             ))}
@@ -292,7 +296,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           <h2>Device tokens</h2>
           <p class="muted">One token per sender — a phone automation, an app, a script or a home-automation hub. Scopes limit what it may send.</p>
           {newToken && <p class="ok">New token — copy it now, it will not be shown again:<br /><code>{newToken}</code></p>}
-          <form method="post" action="/tokens">
+          <form method="post" action={`${B}/tokens`}>
             <Csrf c={c} />
             <label>Name<input name="name" placeholder="my phone" required /></label>
             <label>Scopes (comma separated)<input name="scopes" value="ledger,health" /></label>
@@ -304,7 +308,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
               <tr>
                 <td>{t.name}</td><td>{JSON.parse(t.scopes).join(", ")}</td><td>{String(t.last_used_at ?? "never").slice(0, 16)}</td>
                 <td>{t.revoked_at ? "revoked" : (
-                  <form method="post" action={`/tokens/${t.id}/revoke`}><Csrf c={c} /><button class="secondary">Revoke</button></form>
+                  <form method="post" action={`${B}/tokens/${t.id}/revoke`}><Csrf c={c} /><button class="secondary">Revoke</button></form>
                 )}</td>
               </tr>
             ))}
@@ -319,14 +323,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <li>Vault read-only: {s.vault.readOnly ? "yes" : "no"} · protected paths: <code>{s.vault.protectedPaths.join(", ")}</code></li>
           </ul>
           {!totp && (
-            <form method="post" action="/totp"><Csrf c={c} /><button>Enable two-factor</button></form>
+            <form method="post" action={`${B}/totp`}><Csrf c={c} /><button>Enable two-factor</button></form>
           )}
-          <form method="post" action="/mcp-allow">
+          <form method="post" action={`${B}/mcp-allow`}>
             <Csrf c={c} />
             <input type="hidden" name="enforce" value={s.mcp.enforceAllow ? "0" : "1"} />
             <button>{s.mcp.enforceAllow ? "Turn off IP allowlist" : "Only allow Anthropic servers to call /mcp"}</button>
           </form>
-          <form method="post" action="/logout"><Csrf c={c} /><button class="secondary">Log out</button></form>
+          <form method="post" action={`${B}/logout`}><Csrf c={c} /><button class="secondary">Log out</button></form>
         </div>
       </Layout>,
     );
@@ -353,7 +357,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       await hub.vault.list(); // connection test
       const con = await hub.connections.get("storage", "vault");
       if (con) await hub.connections.setStatus(con.id, true);
-      return c.redirect("/#vault");
+      return c.redirect(`${R}#vault`);
     } catch (e) {
       return c.text(`vault test failed: ${(e as Error).message}`, 400);
     }
@@ -367,7 +371,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const s = await hub.settings.get();
     await hub.settings.set("wiki", { ...s.wiki, preset: name, roles });
     await hub.reload();
-    return c.redirect("/#wiki");
+    return c.redirect(`${R}#wiki`);
   });
   app.post("/wiki/lint", async (c) => {
     const f = await c.req.parseBody({ all: true });
@@ -376,7 +380,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const lint = Object.fromEntries(effectiveRules(s.wiki.lint).map((x) => [x.rule.id, { enabled: on.has(x.rule.id), options: s.wiki.lint[x.rule.id]?.options }]));
     await hub.settings.set("wiki", { ...s.wiki, lint });
     await hub.reload();
-    return c.redirect("/#wiki");
+    return c.redirect(`${R}#wiki`);
   });
   app.post("/wiki/roles", async (c) => {
     const f = await c.req.parseBody();
@@ -395,7 +399,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const s = await hub.settings.get();
     await hub.settings.set("wiki", { ...s.wiki, preset: undefined, roles: parsed.data });
     await hub.reload();
-    return c.redirect("/#wiki");
+    return c.redirect(`${R}#wiki`);
   });
 
   const findDef = (key: string) => {
@@ -408,7 +412,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="Add connection · memexhub">
         <h1>Add {def.kind}: {pick(def.title, "en")}</h1>
-        <form method="post" action="/connections">
+        <form method="post" action={`${B}/connections`}>
           <Csrf c={c} />
           <input type="hidden" name="provider" value={`${def.kind}:${def.id}`} />
           <label>Name (e.g. personal, work) *<input name="name" required pattern="[A-Za-z0-9가-힣_-]{1,32}" /></label>
@@ -417,7 +421,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           {def.kind === "tasks" && def.id === "google" && (
             <p class="muted">In Google Cloud, create an OAuth client of type <b>Web application</b>, enable the Google Tasks API, and add this authorized redirect URI: <code>{hub.google.redirectUri}</code>. After saving, press <b>Sign in with Google</b> in the connections list.</p>
           )}
-          <button>Save &amp; test</button> <a href="/#connections">Cancel</a>
+          <button>Save &amp; test</button> <a href={`${R}#connections`}>Cancel</a>
         </form>
       </Layout>,
     );
@@ -439,7 +443,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const secrets = existing && Object.keys(sec).length ? { ...(await hub.connections.secretsOf(existing.id)), ...sec } : sec;
     const id = await hub.connections.upsert({ kind: def.kind, provider: def.id, name, config, secrets: Object.keys(secrets).length ? secrets : undefined }, actor(c));
     await hub.reload();
-    return c.redirect(`/connections/${id}/test-result`);
+    return c.redirect(`${B}/connections/${id}/test-result`);
   });
   const testConnection = async (id: string) => {
     const con = (await hub.connections.list()).find((x) => x.id === id);
@@ -462,13 +466,13 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       <Layout title="Connection test">
         <h1>Connection test</h1>
         {r === "ok" ? <p class="ok">Connected.</p> : <p class="err">Could not connect: {r}</p>}
-        <a href="/#connections">Back</a>
+        <a href={`${R}#connections`}>Back</a>
       </Layout>,
     );
   });
   app.post("/connections/:id/test", async (c) => {
     await testConnection(c.req.param("id"));
-    return c.redirect("/#connections");
+    return c.redirect(`${R}#connections`);
   });
   app.post("/connections/:id/google", async (c) => {
     try {
@@ -480,7 +484,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   app.post("/connections/:id/disable", async (c) => {
     await hub.platform.db.run(`UPDATE connections SET enabled = 0 WHERE id = ?`, [c.req.param("id")]);
     await hub.reload();
-    return c.redirect("/#connections");
+    return c.redirect(`${R}#connections`);
   });
   app.post("/modules", async (c) => {
     const f = await c.req.parseBody({ all: true });
@@ -488,7 +492,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const modules = Object.fromEntries(hub.moduleStatus.map((m) => [m.id, { enabled: m.id === "vault" || m.id === "hub" || on.has(m.id) }]));
     await hub.settings.set("modules", modules);
     await hub.reload();
-    return c.redirect("/#features");
+    return c.redirect(`${R}#features`);
   });
   app.post("/ledger", async (c) => {
     const f = await c.req.parseBody();
@@ -506,7 +510,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       mailSources: String(f.mailSources ?? "").split("\n").map((l) => l.match(/^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/)).filter((m): m is RegExpMatchArray => !!m).slice(0, 10).map((m) => ({ connection: m[1]!, folder: m[2]! })),
     });
     await hub.reload();
-    return c.redirect("/#features");
+    return c.redirect(`${R}#features`);
   });
   app.post("/health", async (c) => {
     const f = await c.req.parseBody();
@@ -517,7 +521,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       language: f.language === "ko" ? "ko" : "en",
     });
     await hub.reload();
-    return c.redirect("/#features");
+    return c.redirect(`${R}#features`);
   });
   app.post("/location", async (c) => {
     const f = await c.req.parseBody();
@@ -535,28 +539,28 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       language: f.language === "ko" ? "ko" : "en",
     });
     await hub.reload();
-    return c.redirect("/#features");
+    return c.redirect(`${R}#features`);
   });
   app.post("/settings/language", async (c) => {
     const f = await c.req.parseBody();
     const l = String(f.toolLanguage);
     if (l === "en" || l === "ko" || l === "both") await hub.settings.set("toolLanguage", l);
-    return c.redirect("/#claude");
+    return c.redirect(`${R}#claude`);
   });
 
   app.post("/tokens", async (c) => {
     const f = await c.req.parseBody();
     const scopes = String(f.scopes ?? "").split(",").map((s) => s.trim()).filter((s) => /^[a-z*]+$/.test(s));
     const { token } = await hub.ingestTokens.create(String(f.name).slice(0, 60), scopes, actor(c));
-    return c.redirect(`/?new_token=${encodeURIComponent(token)}#devices`);
+    return c.redirect(`${B}/?new_token=${encodeURIComponent(token)}#devices`);
   });
   app.post("/tokens/:id/revoke", async (c) => {
     await hub.ingestTokens.revoke(c.req.param("id"), actor(c));
-    return c.redirect("/#devices");
+    return c.redirect(`${R}#devices`);
   });
   app.post("/oauth/:id/revoke", async (c) => {
     await hub.oauth.revokeClient(c.req.param("id"), actor(c));
-    return c.redirect("/#claude");
+    return c.redirect(`${R}#claude`);
   });
   app.post("/totp", async (c) => {
     const secret = await hub.admin.enableTotp(c.get("adminId"));
@@ -567,20 +571,20 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <p>Add this to your authenticator app (it will not be shown again):</p>
         <pre>{secret}</pre>
         <p class="muted">{uri}</p>
-        <a href="/">Back</a>
+        <a href={R}>Back</a>
       </Layout>,
     );
   });
   app.post("/mcp-allow", async (c) => {
     const f = await c.req.parseBody();
     await hub.settings.set("mcp", { allowCidrs: ANTHROPIC_OUTBOUND_CIDRS, enforceAllow: f.enforce === "1" });
-    return c.redirect("/#security");
+    return c.redirect(`${R}#security`);
   });
   app.post("/logout", async (c) => {
     const sid = getCookie(c, COOKIE);
     if (sid) await hub.admin.logout(sid);
     deleteCookie(c, COOKIE, { path: "/" });
-    return c.redirect("/login");
+    return c.redirect(`${B}/login`);
   });
 
   return app;

@@ -10,9 +10,10 @@ type Csrf = (p: { c: Context<any> }) => any;
 type Flash = { ok?: string; err?: string };
 
 /** Ledger → Recipes & inbox. One screen: try a message, handle the inbox, approve recipes. */
-export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
+export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B = "") {
+  const R = B || "/";
   const api = () => hub.moduleAdmin.get("ledger") as LedgerAdmin | undefined;
-  const back = (c: Context, f: Flash) => c.redirect(`/ledger/recipes?${new URLSearchParams(f as Record<string, string>)}`);
+  const back = (c: Context, f: Flash) => c.redirect(`${B}/ledger/recipes?${new URLSearchParams(f as Record<string, string>)}`);
   const form = async (c: Context) => (await c.req.parseBody()) as Record<string, string>;
   const local = async (iso: string) => {
     const tz = (await hub.settings.get()).timezone;
@@ -22,14 +23,14 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
 
   const page = async (c: Context, extra: { flash?: Flash; tried?: { text: string; channel: string; r: ReadResult }; editor?: string; sample?: string } = {}) => {
     const a = api();
-    if (!a) return c.html(<Layout title="Recipes"><p><a href="/">← Back</a></p><p>Turn on the ledger feature first.</p></Layout>);
+    if (!a) return c.html(<Layout title="Recipes"><p><a href={R}>← Back</a></p><p>Turn on the ledger feature first.</p></Layout>);
     const flash = extra.flash ?? { ok: c.req.query("ok"), err: c.req.query("err") };
     const [rec, rawInbox] = await Promise.all([a.recipes(), a.inbox()]);
     const inbox = await Promise.all(rawInbox.map(async (i) => ({ ...i, when: await local(i.receivedAt) })));
     const t = extra.tried;
     return c.html(
       <Layout title="Recipes & inbox — memexhub">
-        <p><a href="/#features">← Back</a></p>
+        <p><a href={`${R}#features`}>← Back</a></p>
         <h1>Recipes & inbox</h1>
         <p class="muted">Messages are read by recipes first, then by the generic parser. What neither can read waits in the inbox. Recipes are notes in <code>{a.recipesDir}/</code>.</p>
         {flash.ok && <p class="ok">{flash.ok}</p>}
@@ -37,12 +38,12 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
 
         <div class="card" id="try">
           <h2>Try a message</h2>
-          <form method="post" action="/ledger/try">
+          <form method="post" action={`${B}/ledger/try`}>
             <Csrf c={c} />
             <label>Message<textarea name="text" rows={5} required>{t?.text ?? extra.sample ?? ""}</textarea></label>
             <label>Kind<select name="channel">{CHANNELS.map((ch) => <option value={ch} selected={(t?.channel ?? "sms") === ch}>{ch}</option>)}</select></label>
             <button>Try</button>
-            <button class="secondary" formaction="/ledger/draft">Make a recipe from it</button>
+            <button class="secondary" formaction={`${B}/ledger/draft`}>Make a recipe from it</button>
           </form>
           {t && (
             <div>
@@ -62,7 +63,7 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
           <h2>Inbox ({inbox.length})</h2>
           {!inbox.length && <p class="muted">Nothing waiting.</p>}
           {inbox.map((i) => (
-            <form method="post" action={`/ledger/inbox/${i.id}`} style="border-top:1px solid #ddd;padding-top:.6rem">
+            <form method="post" action={`${B}/ledger/inbox/${i.id}`} style="border-top:1px solid #ddd;padding-top:.6rem">
               <Csrf c={c} />
               <p class="muted">{i.when} · {i.channel} · {i.reason}</p>
               <pre style="white-space:pre-wrap">{i.data?.message.text ?? ""}</pre>
@@ -72,7 +73,7 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
               <label>Time<input name="time" value={i.data?.guess?.time ?? ""} placeholder="2026-10-14T12:30:00+09:00" /></label>
               <button name="action" value="record">Record</button>
               <button name="action" value="ignore" class="secondary">Ignore</button>
-              <button class="secondary" formaction="/ledger/draft-from" name="id" value={i.id}>Make a recipe from it</button>
+              <button class="secondary" formaction={`${B}/ledger/draft-from`} name="id" value={i.id}>Make a recipe from it</button>
             </form>
           ))}
         </div>
@@ -89,7 +90,7 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
                 <tr>
                   <td>{id}</td>
                   <td>{err ? <span class="err">✗ {err.error}</span> : <span class="ok">✓ examples pass</span>}</td>
-                  <td>{!err && <form method="post" action="/ledger/recipes/approve"><Csrf c={c} /><button name="file" value={f}>Approve</button></form>}</td>
+                  <td>{!err && <form method="post" action={`${B}/ledger/recipes/approve`}><Csrf c={c} /><button name="file" value={f}>Approve</button></form>}</td>
                 </tr>
               );
             })}
@@ -101,7 +102,7 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
               <tr>
                 <td>{r.recipe.name ?? r.recipe.id}<br /><span class="muted">{r.recipe.id} · {r.recipe.kind} · {r.recipe.channels.join(", ")}</span></td>
                 <td>{r.path ?? "built-in"}</td>
-                <td><form method="post" action="/ledger/recipes/disable"><Csrf c={c} /><button class="secondary" name="id" value={r.recipe.id}>Disable</button></form></td>
+                <td><form method="post" action={`${B}/ledger/recipes/disable`}><Csrf c={c} /><button class="secondary" name="id" value={r.recipe.id}>Disable</button></form></td>
               </tr>
             ))}
           </table>
@@ -116,7 +117,7 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
         <div class="card" id="editor">
           <h2>New recipe</h2>
           <p class="muted">Saved as a proposal; approve it above to use it. Format: docs/recipes.md. If you share it, rewrite the example with fake names and numbers.</p>
-          <form method="post" action="/ledger/recipes/save">
+          <form method="post" action={`${B}/ledger/recipes/save`}>
             <Csrf c={c} />
             <label>Recipe (JSON)<textarea name="json" rows={14} required>{extra.editor ?? ""}</textarea></label>
             <button>Save as proposal</button>
@@ -125,8 +126,8 @@ export function recipeRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf) {
 
         <div class="card" id="share">
           <h2>Import / export</h2>
-          <p><a href="/ledger/recipes/export">Download active recipes (JSON)</a></p>
-          <form method="post" action="/ledger/recipes/import">
+          <p><a href={`${B}/ledger/recipes/export`}>Download active recipes (JSON)</a></p>
+          <form method="post" action={`${B}/ledger/recipes/import`}>
             <Csrf c={c} />
             <label>Paste a recipe pack (JSON array)<textarea name="json" rows={4} required></textarea></label>
             <button class="secondary">Import as proposals</button>

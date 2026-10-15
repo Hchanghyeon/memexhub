@@ -35,8 +35,8 @@ const withIp: MiddlewareHandler = async (c, next) => {
 const mount = (sub: Hono<any>) => new Hono().use("*", withIp).route("/", sub);
 
 if (env.LISTEN === "single") {
-  const all = new Hono().use("*", withIp);
-  all.route("/admin", adminApp(hub, { vaultRoots, builtinVault }));
+  const all = new Hono({ strict: false }).use("*", withIp);
+  all.route("/admin", adminApp(hub, { vaultRoots, builtinVault, base: "/admin" }));
   all.route("/", ingestApp(hub));
   all.route("/", mcpApp(hub));
   serve({ fetch: all.fetch, port: env.SINGLE_PORT });
