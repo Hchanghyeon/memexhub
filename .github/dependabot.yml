@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule: { interval: weekly }
     target-branch: develop
+    ignore:
+      # Types follow the runtime (Node 24 LTS); a newer major would allow APIs Node 24 lacks.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       all: { patterns: ["*"] }
     open-pull-requests-limit: 5

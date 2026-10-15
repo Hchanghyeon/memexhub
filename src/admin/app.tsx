@@ -139,7 +139,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
-        <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a><a href={`${B}/activity`}>Activity</a><a href={`${B}/backups`}>Backups</a></nav>
+        <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a><a href={`${B}/activity`}>Activity</a><a href={`${B}/backups`}>Backups</a><a href={`${B}/import`}>Import</a></nav>
         {!s.onboarded && (
           <div class="card"><p><b>Finish setting up</b> — time zone, vault, wiki layout and the Claude connector, one step at a time.</p><a href={`${B}/start`}><button>Continue setup</button></a></div>
         )}
@@ -351,7 +351,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="security">
           <h2>Security</h2>
           <ul>
-            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t: any) => !t.revoked_at && String(t.scopes).split(",").includes("dav")).length, publicUrl: hub.env.PUBLIC_URL, lastBackup, now: hub.platform.now() }).map((x) => (
+            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t) => !t.revoked_at && (JSON.parse(t.scopes) as string[]).includes("dav")).length, publicUrl: hub.env.PUBLIC_URL, lastBackup, now: hub.platform.now() }).map((x) => (
               <li>{x.ok ? <span class="ok">✓</span> : <span class={x.level === "high" ? "err" : ""}>⚠</span>} {x.text}</li>
             ))}
           </ul>

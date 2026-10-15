@@ -7,8 +7,8 @@
 | P2 | **wiki module** (layout, lint, save source, index, backlinks, log) + roles + presets + lint rule set + write-once sources | fixture-vault tests per rule | ✅ |
 | P3 | ledger: card SMS issuers, Apple Pay shortcut payload, payments & money notes (auto sections), `payments_day` (receipt mails moved to P4) | golden tests vs. reference output · parser fuzzing | ✅ |
 | P4 | mail (IMAP) ✅, **message recipes** (generic parser + vault recipe notes + inbox + Claude proposals, receipt mails through recipes), location (Dawarich, OwnTracks), geocoder (OSM), health, tasks (Google), `day_summary`, `week_summary` | provider contract tests · real-account smoke tests | ✅ |
-| P5 | built-in WebDAV for Obsidian sync, s3 adapter, full admin UI (connections forms from provider schemas, features, access, logs, backups, security card), Docker image, signed releases | fresh install with only the admin UI | 📝 |
-| P6 | legacy import tooling, cutover guide | — | 📝 |
+| P5 | built-in WebDAV for Obsidian sync, s3 adapter, full admin UI (connections forms from provider schemas, features, access, logs, backups, security card), Docker image, signed releases | fresh install with only the admin UI | ✅ |
+| P6 | legacy import tooling, cutover guide | — | ✅ |
 | P7 | docs polish, security review (OWASP ASVS L2 subset, OAuth attack suite) | checklist passes | 📝 |
 | P8 | Notion output sink, then Notion storage adapter | re-rendering creates no duplicate rows | 📝 |
 | P9 | one-click Cloudflare (Workers + D1 + R2 + Cron, OwnTracks ingest) | from a clean Cloudflare account to the first record in 30 min | 📝 |

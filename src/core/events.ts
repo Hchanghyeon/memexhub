@@ -41,6 +41,24 @@ export class EventBus {
     return full;
   }
 
+  /**
+   * Bulk import: one atomic insert, then listeners hear one event per (type, year) instead of every row —
+   * renderers redraw whole years, so a 10,000-row import redraws each note once.
+   */
+  async appendMany(list: (Omit<LifeEvent, "id" | "receivedAt"> & { id?: string })[]): Promise<number> {
+    const now = new Date().toISOString();
+    const full = list.map((e) => ({ ...e, id: e.id ?? randomToken("ev_").slice(0, 27), receivedAt: now }) as LifeEvent);
+    for (let i = 0; i < full.length; i += 500)
+      await this.db.batch(full.slice(i, i + 500).map((f) => ({
+        sql: `INSERT INTO events (id, type, occurred_at, received_at, source, payload, skipped) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        params: [f.id, f.type, f.occurredAt, f.receivedAt, f.source, JSON.stringify(f.payload), f.skipped ?? null],
+      })));
+    const seen = new Map<string, LifeEvent>();
+    for (const f of full) seen.set(`${f.type}|${f.occurredAt.slice(0, 4)}`, f);
+    for (const f of seen.values()) for (const fn of this.listeners.get(f.type) ?? []) await fn(f);
+    return full.length;
+  }
+
   async query(types: string[], opts: { from?: string; to?: string; includeSkipped?: boolean } = {}): Promise<LifeEvent[]> {
     const where = [`type IN (${types.map(() => "?").join(",")})`];
     const params: unknown[] = [...types];
