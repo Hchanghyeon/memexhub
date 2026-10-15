@@ -47,7 +47,7 @@ flowchart TB
 
 ## Request flows
 
-**A card SMS arrives** — shortcut → `POST /ingest/sms` (device token, scope `ledger`) → issuer parser → dedupe → `EventBus.append` → renderer redraws the payments and money notes → `SafeVault.write` (skipped when unchanged).
+**A card SMS arrives** — shortcut → `POST /ingest/sms` (device token, scope `ledger`) → recipes / generic parser (unreadable → inbox for Claude) → dedupe → `EventBus.append` → renderer redraws the payments and money notes → `SafeVault.write` (skipped when unchanged).
 
 **Claude summarizes a day** — nightly routine → `day_summary(date)` (one call returns stays, payments, transit, health, mail counts) → Claude decides and writes the daily note section with `write_note`.
 
@@ -61,7 +61,7 @@ flowchart TB
 | Decorator | `SafeVault` adds path policy, protected paths, size limits, trash, audit on top of any storage |
 | Registry / Plugin | `src/modules/index.ts`, provider registry |
 | Factory | storage/provider construction from connection rows |
-| Chain of Responsibility | card issuers tried in order until one parses the SMS |
+| Chain of Responsibility | message extractors: vault recipes → built-in recipes → generic parser → inbox |
 | Observer | `EventBus` → renderers redraw notes when facts arrive |
 | Repository | settings, connections, tokens, events |
 | Builder | a fresh stateless MCP server per request with only the visible tools |

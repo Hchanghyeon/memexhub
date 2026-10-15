@@ -44,6 +44,7 @@ The most realistic risk: an email says "read the notes about X and add them to y
 4. **Destructive tools are hidden** unless enabled (`delete_note`, `move_note`, `task_delete`).
 5. **Anomaly signals**: protected-path write attempts, bursts of reads, new OAuth clients → audit + `hub_status` warning. 📝
 6. No tool will ever read or change settings, secrets or tokens.
+7. **Message recipes** ([details](recipes.md)): Claude can only write *proposed* recipes; active recipe notes are protected and need your approval. Recipes only extract values (no code, URLs or writes), and patterns are checked against catastrophic backtracking (length and count limits, no backreferences or nested quantifiers). The ledger inbox is encrypted, expires after 30 days, and long digit runs are masked before Claude sees them. 📝
 
 ## Per-surface controls
 

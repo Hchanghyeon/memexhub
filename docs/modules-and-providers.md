@@ -75,12 +75,12 @@ export interface ProviderDef<K extends Kind, C, S> {
 ## Ledger: plugins inside the module 📝
 
 ```ts
-interface SmsIssuer  { id: string; detect(text: string): boolean; parse(text: string): Payment | null }  // chain of responsibility
-interface MailSource { id: string; match(mail): boolean; parse(mail): Payment | null }                  // any mail provider
-interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // ingest payloads (automations, apps)
+interface Message   { channel: "sms" | "mail" | "notification" | "text"; from?: string; subject?: string; text: string }
+interface Extractor { id: string; extract(m: Message): Extraction | null }   // chain: vault recipes → built-in recipes → generic parser
+// unreadable → inbox (encrypted) → Claude resolves or proposes a recipe note
 ```
 
-A new card issuer = one file in `issuers/` plus fake SMS fixtures with expected output. Shared logic (dedupe, cancellations, transit vs. office tags, online merchants, late messages) lives once in the module. Personal places (home, office) are settings, never code.
+A new card company or shop = **one recipe** (JSON in a vault note, or `recipes/*.json` in the repository) with fake examples — no code. See [message recipes](recipes.md). Shared logic (dedupe, cancellations, transit vs. office tags, online merchants, late messages) lives once in the module. Personal places (home, office) are settings, never code.
 
 ## Rendering: data → output sink
 

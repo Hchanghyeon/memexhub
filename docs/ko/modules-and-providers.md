@@ -75,12 +75,12 @@ export interface ProviderDef<K extends Kind, C, S> {
 ## 결제 모듈 안의 플러그인 📝
 
 ```ts
-interface SmsIssuer  { id: string; detect(text: string): boolean; parse(text: string): Payment | null }  // 차례로 시도
-interface MailSource { id: string; match(mail): boolean; parse(mail): Payment | null }                  // 아무 메일 공급자
-interface PayloadMap { id: string; map(body: unknown): Payment | Tag }                                  // 수집 본문 (자동화·앱)
+interface Message   { channel: "sms" | "mail" | "notification" | "text"; from?: string; subject?: string; text: string }
+interface Extractor { id: string; extract(m: Message): Extraction | null }   // 차례로: 볼트 레시피 → 기본 레시피 → 공통 해석기
+// 못 읽음 → 대기함(암호화) → Claude가 처리하거나 레시피 노트를 제안
 ```
 
-카드사 추가 = `issuers/`에 파일 하나 + 가짜 문자 예시와 기대 결과. 공통 처리(중복, 취소, 교통·출입 구분, 온라인 판별, 늦게 온 문자)는 모듈에서 한 번만 해요. 집·회사 같은 내 장소는 코드가 아니라 설정이에요.
+카드사·가게 추가 = 가짜 예시가 들어 있는 **레시피 하나**(볼트 노트의 JSON, 또는 저장소 `recipes/*.json`). 코드는 필요 없어요 — [메시지 레시피](recipes.md). 공통 처리(중복, 취소, 교통·출입 구분, 온라인 판별, 늦게 온 문자)는 모듈에서 한 번만 해요. 집·회사 같은 내 장소는 코드가 아니라 설정이에요.
 
 ## 노트 그리기: 데이터 → 출력
 

@@ -34,6 +34,12 @@ develop   ← 통합. 기본 브랜치이자 모든 PR의 대상
 - **GitHub의 머지 버튼은 누르지 않아요** (squash, 머지 커밋, rebase 모두). 세 방식 다 커밋을 새로 만들면서 머지한 계정의 **프로필 이름과 기본 메일**을 작성자나 커미터로 남겨요.
 - 대신 **fast-forward로 머지**해요: PR이 초록불이면 PR 브랜치를 `develop`에 그대로 푸시해요 (`git push origin <브랜치>:develop`). 커밋을 새로 만들지 않아 noreply 신원이 그대로이고, GitHub이 PR을 자동으로 *Merged* 처리해요. 그래서 머지 전에 PR을 최신 `develop` 위로 rebase해 둬야 해요.
 
+## 의존성
+
+- Node: **현재 LTS** (CI, Dockerfile, `engines`를 맞춰요)
+- 라이브러리: **최신 안정** 버전. Dependabot PR은 바로 검토해서 반영해요. 머지할 때 알려진 취약점이 없어야 해요 (`npm audit --omit=dev`, CI의 OSV-Scanner).
+- 새 패키지보다 웹 표준과 Node 내장 기능을 먼저. 새 런타임 의존성은 PR에 이유를 적어요.
+
 ## PR
 
 - PR 하나 = 일 하나. 크면 층별로 의존 순서대로 나눠요 (예: core → storage → auth → 입구 → 문서). **각 PR이 혼자서 빌드·시험을 통과**해야 해요.

@@ -11,8 +11,11 @@ Example: a new storage adapter.
    - never log credentials or content
    - least-privilege scopes (e.g. read-only mail, only the needed Notion pages)
 
-## A new card issuer (ledger) 📝
+## A new card company or shop (ledger) 📝
 
-1. `src/modules/ledger/issuers/<issuer>.ts` with `detect(text)` and `parse(text)`.
-2. Fake SMS samples in `test/fixtures/sms/<issuer>/*.txt` with expected JSON. Never paste a real message — rewrite names, merchants, amounts and balances.
-3. Add odd inputs to the fuzz cases.
+No code. Add a **recipe** — see [message recipes](recipes.md):
+
+- for yourself: a recipe note in your vault (or let Claude propose one from the ledger inbox and approve it);
+- for everyone: `recipes/<country>.<sender>.<channel>.json` in this repository with fake `examples`. CI tests it.
+
+Never paste a real message — rewrite names, merchants, amounts and balances.

@@ -35,6 +35,12 @@ The repository is public and history is permanent.
 - **Never press a merge button on GitHub** (squash, merge commit *or* rebase). GitHub creates new commits for all three and records the merging account's **profile name and primary email** as author or committer.
 - Instead, merge by **fast-forward**: when the PR is green, push the PR head to `develop` (`git push origin <branch>:develop`). No new commit is created, every commit keeps its noreply identity, and GitHub marks the PR as *Merged* automatically. A PR must therefore be rebased on the latest `develop` before merging.
 
+## Dependencies
+
+- Node: the **current LTS** (CI, Dockerfile and `engines` agree).
+- Libraries: the **latest stable** release; Dependabot PRs are reviewed and merged promptly. No known vulnerabilities at merge time (`npm audit --omit=dev`, OSV-Scanner in CI).
+- Prefer web standards and Node built-ins over a new package. A new runtime dependency needs a reason in the PR.
+
 ## Pull requests
 
 - One PR = one concern. Split by layer when a change is large, in dependency order (e.g. core → storage → auth → surfaces → docs), and make **each PR build and pass tests on its own**.

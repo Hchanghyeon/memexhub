@@ -47,7 +47,7 @@ flowchart TB
 
 ## 흐름
 
-**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/sms`(기기 토큰, 범위 `ledger`) → 카드사 해석기 → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
+**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/sms`(기기 토큰, 범위 `ledger`) → 레시피·공통 해석기 (못 읽으면 Claude용 대기함) → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
 
 **Claude가 하루를 정리하면** — 밤 루틴 → `day_summary(date)` 한 번 (체류, 결제, 교통, 건강, 메일 수) → Claude가 판단하고 `write_note`로 일지 칸을 씀
 
@@ -61,7 +61,7 @@ flowchart TB
 | Decorator | `SafeVault`가 어떤 저장소든 감싸서 경로 정책·보호 경로·크기 제한·휴지통·감사를 덧씌움 |
 | Registry / Plugin | `src/modules/index.ts`, 공급자 등록 |
 | Factory | 연결 정보로 저장소·공급자 만들기 |
-| Chain of Responsibility | 카드사 해석기를 차례로 시도 |
+| Chain of Responsibility | 메시지 해석: 볼트 레시피 → 기본 레시피 → 공통 해석기 → 대기함 |
 | Observer | `EventBus` → 기록이 오면 렌더러가 노트를 다시 그림 |
 | Repository | 설정, 연결, 토큰, 기록 |
 | Builder | 요청마다 보이는 도구만 담은 MCP 서버를 새로 만듦 |

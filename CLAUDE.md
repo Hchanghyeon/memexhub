@@ -1,6 +1,6 @@
 # CLAUDE.md — guide for AI coding agents
 
-memexhub is a self-hosted **LLM Wiki engine**: an Obsidian vault is the memory, Claude reads/writes it through one MCP connector, and the engine keeps the wiki tidy and pulls in new sources (saved articles, life logs from phones). Read `docs/architecture.md` before larger changes.
+memexhub is a self-hosted **LLM Wiki engine**: a vault (a Markdown folder — Obsidian, local, WebDAV, S3, Git; Notion later) stores the wiki, Claude reads/writes it through one MCP connector, and the engine keeps the wiki tidy and pulls in new sources (saved articles, life logs from devices and services). Read `docs/architecture.md` before larger changes.
 
 ## Layout
 
@@ -11,7 +11,9 @@ src/storage/    VaultStorage interface, path policy, SafeVault (decorator), fs /
 src/auth/       admin (setup code, sessions, TOTP), oauth (OAuth 2.1 server), ingest-tokens
 src/http/       Hono surfaces: mcp (8787), ingest (8790); common middleware
 src/admin/      admin UI (Hono JSX, server-rendered) incl. OAuth consent page
-src/modules/    feature plugins: vault, wiki (layout, lint, upkeep), ledger, hub, (mail, location, health, tasks …)
+src/modules/    feature plugins: vault, wiki (layout, lint, upkeep), ledger, mail, hub, (location, health, tasks …)
+src/providers/  external services behind interfaces (webdav, imap …)
+recipes/        built-in message recipes (JSON data, not code) — docs/recipes.md
 src/hub.ts      composition root — loads modules, builds the MCP server per request
 src/main.ts     Node entry point (listeners)
 test/unit · test/contract · test/integration · test/golden · test/fixtures
@@ -35,7 +37,8 @@ npm run build
 4. Modules record facts as events (`EventBus.append`) and render notes from events; they do not hand-edit notes line by line.
 5. The engine knows vault **roles**, not folder names. Never hardcode a folder layout.
 6. Tools: English identifiers, bilingual descriptions `T(en, ko)`, zod input, `readOnly` / `destructive` flags. Destructive tools are hidden unless enabled.
-7. Keep dependencies minimal. Runtime deps today: hono, @modelcontextprotocol/sdk, zod, better-sqlite3, aws4fetch. A new one needs a reason in the PR.
+7. Per-sender differences (card companies, shops, mail senders) are **data** (recipes), never code. See `docs/recipes.md`.
+8. Keep dependencies minimal, on the **current Node LTS** and the **latest stable** versions; no known vulnerabilities (`npm audit`, OSV) at merge time. Runtime deps today: hono, @modelcontextprotocol/sdk, zod, better-sqlite3, aws4fetch. A new one needs a reason in the PR.
 
 ## Security rules (non-negotiable)
 
