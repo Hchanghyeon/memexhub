@@ -1,0 +1,65 @@
+# 설정과 저장
+
+## 환경 변수 (이것만)
+
+| 변수 | 필수 | 뜻 |
+|---|---|---|
+| `MEMEXHUB_SECRET` | ✅ | 32자 이상. 저장하는 비밀값을 암호화하는 열쇠. `openssl rand -base64 48`로 만들고 비밀번호 관리자에 보관. 예시 같은 값은 거부해요 |
+| `PUBLIC_URL` | ✅ | MCP 입구의 바깥 주소 (OAuth 발급자). `https://`만 (localhost만 http 허용) |
+| `DATA_DIR` | ✅ | `memexhub.db`, 내장 볼트, 캐시, 백업 위치. 권한 700으로 만들어요 |
+| `LISTEN` | | `split`(기본) 또는 `single` |
+| `MCP_PORT` / `INGEST_PORT` / `ADMIN_PORT` / `SINGLE_PORT` | | 8787 / 8790 / 8791 / 8787 |
+| `TZ` | | 시간대 |
+| `VAULT_ROOTS` | | 관리 화면에서 "서버의 기존 폴더"로 고를 수 있는 기준 폴더 (기본 `/vaults`). 보안 경계예요 — 화면에서 아무 경로나 못 골라요 |
+| `TRUSTED_PROXIES` | | 역방향 프록시의 IP 대역. 여기서 온 요청만 `X-Real-IP`를 믿어요 |
+
+나머지(관리자 계정, 볼트 위치, 모듈, 연결, 토큰, 허용 목록, 도구 언어)는 전부 관리 화면에서 설정하고 DB에 저장해요.
+
+## `DATA_DIR`
+
+```
+DATA_DIR/
+├─ memexhub.db   SQLite (WAL), 권한 600
+├─ vault/        내장 볼트 (골랐을 때)
+├─ cache/        원격 볼트 캐시·검색 색인 (지워도 됨) 📝
+└─ backups/      매일 DB 백업 📝
+```
+
+| 표 | 내용 | 비밀 처리 |
+|---|---|---|
+| `admins` | 관리자 | PBKDF2-SHA256(60만 회) 해시, TOTP 비밀은 암호화 |
+| `admin_sessions` | 세션 | 세션 id는 해시, CSRF 토큰, 30분 무활동 만료 |
+| `settings` | 비밀이 아닌 설정 | — |
+| `connections` | 공급자 연결 | `secrets_enc`: AES-256-GCM, 용도별 HKDF 키, AAD = 연결 id. 어떤 API로도 돌려주지 않음 |
+| `ingest_tokens` | 기기 토큰, 범위, 마지막 사용 | 해시만. 만들 때 한 번만 보여 줌 |
+| `oauth_*` | 커넥터 등록, 일회용 코드, 토큰 | 해시만 |
+| `events` | 추가만 하는 기록 | — |
+| `cursors` | 어디까지 읽었나 | — |
+| `audit` | 누가 무엇을 바꿨나 | 내용·비밀 없음 |
+
+`MEMEXHUB_SECRET`을 잃어버리면 연결 비밀값만 못 읽어요. 그 계정들만 다시 연결하면 되고, 설정과 기록은 그대로예요.
+
+## 볼트를 어디에
+
+설치 마법사가 먼저 "지금 Obsidian을 어떻게 동기화하세요?"를 묻고 추천해요.
+
+| 선택 | 언제 | 상태 |
+|---|---|---|
+| **이 서버에 새로 만들기** (추천) | 새로 시작, 동기화 안 씀 | ✅ 폴더 · Obsidian 동기화용 내장 WebDAV 📝 |
+| 이 서버의 기존 폴더 | 볼트가 이미 서버에 있음 | ✅ (`VAULT_ROOTS` 아래만) |
+| WebDAV | Nextcloud, NAS WebDAV, Remotely Save WebDAV | ✅ |
+| S3 / R2 | Remotely Save S3 | 🚧 |
+| Git | Obsidian Git | 📝 |
+
+Obsidian Sync(공식)와 iCloud는 서버에서 읽을 API가 없어요. 위 방법 중 하나를 같이 써야 해요.
+
+## 볼트 안전 규칙 (모든 저장소에 적용)
+
+모듈은 `SafeVault`로만 볼트를 만져요.
+
+- 경로 정규화. `..`, 절대 경로, NUL, 숨김 파일·폴더 거부. `.md` 노트만
+- **보호 경로**(기본 `CLAUDE.md`, `AGENTS.md`, `_templates/**`, `.obsidian/**`, 여기에 루틴 규칙 노트를 더하세요)는 도구로 못 써요
+- 읽기 전용 모드, 쓰기 크기 제한 (기본 512KB)
+- 삭제 = `.trash/`로 이동 (목록에서는 숨김)
+- 내용이 같으면 안 써요 (동기화가 쓸데없이 안 돌게)
+- 모든 쓰기를 감사 기록 (경로, 크기, 해시 앞부분 — 내용은 남기지 않음)

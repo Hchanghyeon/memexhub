@@ -1,0 +1,18 @@
+# 공급자 추가하기
+
+예: 새 저장소 어댑터
+
+1. `src/storage/<id>.ts`(다른 종류는 `src/providers/<kind>/<id>.ts`)에 인터페이스를 구현해요. Workers에서도 돌게 하려면 `fetch`와 웹 표준만 써요.
+2. 저장소 factory(`src/storage/factory.ts`, `node:*`가 필요하면 실행 진입점)에 등록해요.
+3. `test/contract/storage.test.ts`의 목록에 넣고 통과시켜요.
+4. 설정과 비밀을 zod로 선언해서 관리 화면 폼이 자동으로 생기게 해요. 비밀은 암호화되고 다시 안 보여요.
+5. 보안 체크:
+   - 관리자가 등록한 주소만 요청, 리다이렉트 안 따라감, 타임아웃
+   - 인증 정보나 내용을 로그에 안 남김
+   - 최소 권한 (메일은 읽기 전용, Notion은 필요한 페이지만)
+
+## 카드사 추가 (결제) 📝
+
+1. `src/modules/ledger/issuers/<카드사>.ts`에 `detect(text)`, `parse(text)`
+2. `test/fixtures/sms/<카드사>/*.txt`에 **가짜** 문자와 기대 결과. 실제 문자를 붙이지 말고 이름·가맹점·금액·누적액을 바꿔 쓰세요.
+3. 이상한 입력을 퍼징 목록에 추가
