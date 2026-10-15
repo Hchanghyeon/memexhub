@@ -26,6 +26,8 @@ export interface Platform {
   log: Logger;
   /** Does this host name resolve to a private / loopback / link-local address? (SSRF guard). Optional on runtimes that can't reach private networks. */
   isPrivateHost?(host: string): Promise<boolean>;
+  /** Runtime resources by name (Workers bindings such as an R2 bucket). */
+  bindings?: Record<string, unknown>;
   /** Where automatic backups are kept (Node: DATA_DIR/backups). Optional on runtimes without a disk. */
   backups?: BackupStore;
 }

@@ -2,6 +2,9 @@ import { z } from "zod";
 import { defineProvider } from "../src/providers/types.js";
 import { T } from "../src/core/i18n.js";
 import { FsStorage } from "../src/storage/fs.js";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 /** A storage provider pinned to a temp folder, for tests. */
 export const testFs = (root: string) =>
@@ -59,4 +62,59 @@ export function fakeS3(bucket = "vault-bucket", pageSize = 2) {
     return new Response(null, { status: 405 });
   }) as typeof fetch;
   return { fetch: f, objects };
+}
+
+/** Cloudflare D1 on top of better-sqlite3, for running the Workers entry in tests. */
+export function fakeD1() {
+  const Database = require("better-sqlite3");
+  const db = new Database(":memory:");
+  const stmt = (sql: string, params: unknown[] = []): any => ({
+    sql,
+    params,
+    bind: (...v: unknown[]) => stmt(sql, v),
+    run: async () => ({ meta: { changes: db.prepare(sql).run(...params).changes } }),
+    first: async () => db.prepare(sql).get(...params) ?? null,
+    all: async () => ({ results: db.prepare(sql).all(...params) }),
+  });
+  return {
+    prepare: (sql: string) => stmt(sql),
+    batch: async (list: any[]) => db.transaction(() => list.map((s) => db.prepare(s.sql).run(...s.params)))(),
+  };
+}
+
+/** An in-memory R2 bucket honouring If-Match / If-None-Match on put. */
+export function fakeR2() {
+  const m = new Map<string, { body: string; etag: string; uploaded: Date }>();
+  let n = 0;
+  const obj = (key: string, o: { body: string; etag: string; uploaded: Date }) => ({ key, size: o.body.length, uploaded: o.uploaded, httpEtag: o.etag, text: async () => o.body });
+  return {
+    objects: m,
+    async get(key: string) {
+      const o = m.get(key);
+      return o ? obj(key, o) : null;
+    },
+    async head(key: string) {
+      const o = m.get(key);
+      return o ? obj(key, o) : null;
+    },
+    async put(key: string, value: string, opts: { onlyIf?: Headers } = {}) {
+      const cur = m.get(key);
+      if (opts.onlyIf?.get("if-none-match") === "*" && cur) return null;
+      const im = opts.onlyIf?.get("if-match");
+      if (im && im !== cur?.etag) return null;
+      const o = { body: value, etag: `"r${++n}"`, uploaded: new Date() };
+      m.set(key, o);
+      return obj(key, o);
+    },
+    async delete(key: string) {
+      m.delete(key);
+    },
+    async list(o: { prefix?: string; cursor?: string; limit?: number }) {
+      const keys = [...m.keys()].filter((k) => k.startsWith(o.prefix ?? "")).sort();
+      const start = Number(o.cursor ?? 0);
+      const page = keys.slice(start, start + 2);
+      const more = start + 2 < keys.length;
+      return { objects: page.map((k) => obj(k, m.get(k)!)), truncated: more, cursor: more ? String(start + 2) : undefined };
+    },
+  };
 }

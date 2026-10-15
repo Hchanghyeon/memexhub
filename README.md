@@ -63,7 +63,8 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | `day_summary`, `week_summary` (one call per day / week for routines) | ✅ |
 | Built-in WebDAV to sync the server's vault with Obsidian | ✅ |
 | Notion output (payments, health) — [docs](docs/notion.md) | ✅ |
-| One-click Cloudflare deploy, Notion as vault storage | 📝 |
+| One-click Cloudflare deploy (Workers + D1 + R2) — [docs](docs/cloudflare.md) | ✅ |
+| Notion as vault storage, app-store packages | 📝 |
 
 ## Quick start (development)
 
@@ -75,7 +76,9 @@ npm run dev
 
 The server prints a **one-time setup code**. Open the admin UI (`http://localhost:8791`), enter the code, create the admin account, connect a vault, then add `PUBLIC_URL/mcp` as a custom connector in Claude.
 
-**Docker:** see [install](docs/install.md) (signed images, hardened compose file). One-click installs are planned — see [roadmap](docs/roadmap.md).
+**No server?** [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Hchanghyeon/memexhub) — [Cloudflare guide](docs/cloudflare.md).
+
+**Docker:** see [install](docs/install.md) (signed images, hardened compose file). App-store packages are planned — see [roadmap](docs/roadmap.md).
 
 ## Security
 

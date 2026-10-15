@@ -1,0 +1,19 @@
+# Cloudflare Workers deployment — see docs/cloudflare.md
+name = "memexhub"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+TZ = "UTC"
+# PUBLIC_URL = "https://memex.example.com"   # optional; defaults to the Worker's own address
+
+[[d1_databases]]
+binding = "DB"
+database_name = "memexhub"
+
+[[r2_buckets]]
+binding = "VAULT"
+bucket_name = "memexhub-vault"
+
+[triggers]
+crons = ["*/5 * * * *"]

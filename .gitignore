@@ -8,3 +8,4 @@ data/
 !.env.example
 coverage/
 .DS_Store
+dist-worker/

@@ -21,6 +21,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=low
       - run: npm run typecheck
       - run: npm run build
+      - name: the Cloudflare Workers bundle builds without Node built-ins
+        run: npm run check:worker
       - run: npm test
       - name: core must not import node built-ins (runtime portability)
         run: |

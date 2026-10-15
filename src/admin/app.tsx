@@ -160,8 +160,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <Csrf c={c} />
             <label>Where should your vault live?
               <select name="provider">
-                <option value="builtin">Create on this server (recommended)</option>
-                <option value="folder">Existing folder on this server</option>
+                {hub.platform.name === "workers" ? (
+                  <option value="r2">The R2 bucket of this Worker (recommended)</option>
+                ) : (
+                  <>
+                    <option value="builtin">Create on this server (recommended)</option>
+                    <option value="folder">Existing folder on this server</option>
+                  </>
+                )}
                 <option value="webdav">WebDAV</option>
               </select>
             </label>
@@ -396,7 +402,9 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const f = await c.req.parseBody();
     const provider = String(f.provider);
     try {
-      if (provider === "builtin") {
+      if (provider === "r2") {
+        await hub.connections.upsert({ kind: "storage", provider: "r2", name: "vault", config: { binding: "VAULT" } }, actor(c));
+      } else if (provider === "builtin") {
         await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: {} }, actor(c));
       } else if (provider === "folder") {
         await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: String(f.path ?? "") } }, actor(c));

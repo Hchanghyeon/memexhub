@@ -63,7 +63,8 @@ flowchart LR
 | `day_summary`, `week_summary` (루틴용 하루·한 주 한 번에) | ✅ |
 | 서버 볼트를 Obsidian과 동기화하는 내장 WebDAV | ✅ |
 | Notion 내보내기 (결제, 건강) | ✅ |
-| Cloudflare 버튼 설치, Notion을 볼트 저장소로 | 📝 |
+| Cloudflare 버튼 설치 (Workers + D1 + R2) | ✅ |
+| Notion을 볼트 저장소로, 앱스토어 패키지 | 📝 |
 
 ## 빠르게 시작 (개발)
 
@@ -74,6 +75,8 @@ npm run dev
 ```
 
 서버가 **일회용 설치 코드**를 출력해요. 관리 화면(`http://localhost:8791`)을 열어 코드를 넣고, 관리자 계정을 만들고, 볼트를 연결한 뒤, Claude에 `PUBLIC_URL/mcp`를 사용자 지정 커넥터로 추가하면 돼요.
+
+**서버가 없다면?** [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Hchanghyeon/memexhub) — [Cloudflare 안내](docs/ko/cloudflare.md)
 
 **Docker:** [설치 안내](docs/ko/install.md) (서명된 이미지, 보안 설정된 compose 파일). 버튼 한 번 설치는 예정이에요 — [로드맵](docs/ko/roadmap.md).
 

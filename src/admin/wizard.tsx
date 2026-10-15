@@ -57,9 +57,15 @@ export function wizardRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B: string) {
           <form method="post" action={`${B}/vault`}>
             <Csrf c={c} />
             <input type="hidden" name="next" value="3" />
-            <label><input type="radio" name="provider" value="builtin" checked style="display:inline;width:auto;margin-right:.4rem" /><b>Create on this server</b> (recommended) — you can sync it to Obsidian on your devices later</label>
-            <label><input type="radio" name="provider" value="folder" style="display:inline;width:auto;margin-right:.4rem" />An existing folder on this server</label>
-            <label>Folder path (only for an existing folder)<input name="path" /></label>
+            {hub.platform.name === "workers" ? (
+              <label><input type="radio" name="provider" value="r2" checked style="display:inline;width:auto;margin-right:.4rem" /><b>This Worker's R2 bucket</b> (recommended) — sync it to Obsidian with Remotely Save (S3)</label>
+            ) : (
+              <>
+                <label><input type="radio" name="provider" value="builtin" checked style="display:inline;width:auto;margin-right:.4rem" /><b>Create on this server</b> (recommended) — you can sync it to Obsidian on your devices later</label>
+                <label><input type="radio" name="provider" value="folder" style="display:inline;width:auto;margin-right:.4rem" />An existing folder on this server</label>
+                <label>Folder path (only for an existing folder)<input name="path" /></label>
+              </>
+            )}
             <label><input type="radio" name="provider" value="webdav" style="display:inline;width:auto;margin-right:.4rem" />A WebDAV server (Nextcloud, NAS)</label>
             <label>WebDAV URL<input name="url" placeholder="https://dav.example.com/vault" /></label>
             <label>WebDAV username<input name="username" autocomplete="off" /></label>

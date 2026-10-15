@@ -8,11 +8,13 @@ import { sqliteDb } from "../../src/platform/node.js";
 import { migrate } from "../../src/core/migrations.js";
 import type { VaultStorage } from "../../src/storage/types.js";
 import { S3Storage } from "../../src/storage/s3.js";
-import { fakeS3 } from "../helpers.js";
+import { fakeR2, fakeS3 } from "../helpers.js";
+import { R2Storage } from "../../src/storage/r2.js";
 
 /** Contract every storage adapter must pass. Add new adapters to `adapters`. */
 const adapters: Record<string, () => VaultStorage> = {
   fs: () => new FsStorage(mkdtempSync(join(tmpdir(), "mx-fs-"))),
+  r2: () => new R2Storage(fakeR2(), "vault"),
   s3: () => new S3Storage({ endpoint: "https://s3.example.com", region: "auto", bucket: "vault-bucket", prefix: "my vault", accessKeyId: "AKIDEXAMPLE", secretAccessKey: "secret" }, fakeS3().fetch),
 };
 

@@ -1,0 +1,5 @@
+# Secrets for Cloudflare (the deploy button asks for these; or: npx wrangler secret put NAME)
+# A long random value — generate one: openssl rand -base64 48
+MEMEXHUB_SECRET=
+# The one-time code you will type on /admin/setup (at least 12 characters, letters and digits)
+SETUP_CODE=

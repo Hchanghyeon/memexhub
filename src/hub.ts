@@ -58,10 +58,11 @@ export class Hub {
     this.google = new GoogleSignIn(this.connections, new Cursors(db, () => platform.now()), env.PUBLIC_URL, gfetch, () => platform.now());
   }
 
-  async init() {
+  async init(opts: { setupCode?: string } = {}) {
     await migrate(this.platform.db);
     await this.reload();
     if (!(await this.admin.hasAdmin())) {
+      if (opts.setupCode) return this.admin.useSetupCode(opts.setupCode);
       const code = await this.admin.issueSetupCode();
       // The only place the setup code ever appears.
       console.log(`\n  memexhub is unclaimed. Open the admin UI and enter this one-time setup code:\n\n      ${code}\n`);

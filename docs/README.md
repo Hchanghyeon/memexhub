@@ -5,6 +5,7 @@
 ## Start
 - [Install with Docker](install.md) — run, expose, verify signatures, upgrade
 - [Moving from another setup](migrating.md) — import payments, health, device tokens
+- [Cloudflare (no server)](cloudflare.md) — deploy button, Workers + D1 + R2
 - [Easy install options](easy-install.md) — one-click and app-store plans
 
 ## Use with Claude
