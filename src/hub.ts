@@ -126,7 +126,7 @@ export class Hub {
           allowPrivate: def.allowPrivate?.(config) ?? false,
           isPrivate: this.platform.isPrivateHost?.bind(this.platform),
         });
-        return def.create({ config, secrets, fetch, platform: this.platform, connection: { id: c.id, name: c.name } });
+        return def.create({ config, secrets, fetch, platform: this.platform, timezone: (await this.settings.get()).timezone, connection: { id: c.id, name: c.name } });
       })());
     }
     return (await this.instances.get(key)) as T;

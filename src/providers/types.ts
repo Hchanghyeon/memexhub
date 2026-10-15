@@ -15,6 +15,8 @@ export interface ProviderContext<C, S> {
   /** Outbound HTTP limited to this connection's hosts (see guarded-fetch). Providers must use it. */
   fetch: typeof fetch;
   platform: Platform;
+  /** IANA time zone from settings. */
+  timezone: string;
   connection: { id: string; name: string };
 }
 
