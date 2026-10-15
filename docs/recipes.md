@@ -111,6 +111,7 @@ JavaScript regexes cannot be interrupted, so recipes are checked before use:
 
 ## Inbox
 
+- Only **payment-like** messages go here: at least an amount was found. Anything else is rejected and nothing is kept.
 - Stored in the database, **encrypted** (AES-256-GCM, its own key purpose), with the reason and the generic guess. It is **not** stored in the vault, because raw messages carry partial names and card digits and the vault syncs to phones.
 - Items are deleted 30 days after arrival, or when resolved (configurable).
 - Digit runs of 8 or more (account or card numbers) are masked whenever an item is shown to Claude.
@@ -119,10 +120,10 @@ JavaScript regexes cannot be interrupted, so recipes are checked before use:
 
 | Tool | Does | Writes |
 |---|---|---|
-| `ledger_inbox` | pending messages with reason and guess. Text is marked **untrusted**. | — |
-| `ledger_inbox_resolve(id, record \| ignore, fields?)` | records the message (optionally with corrected fields) or drops it | ledger event |
-| `ledger_recipe_propose(note, sampleIds)` | validates a recipe, tests it against inbox samples and its own examples, writes it to `<recipes>/proposed/`, returns per-sample results | vault, proposed folder only |
-| `ledger_recipes` | active and proposed recipes with match counts and test status | — |
+| `ledger_inbox` ✅ | pending messages with reason and guess. Text is marked **untrusted**. | — |
+| `ledger_inbox_resolve(id, record \| ignore, fields?)` ✅ | records the message (optionally with corrected fields) or drops it | ledger event |
+| `ledger_recipe_propose(recipe_json, description?, samples?)` ✅ | validates a recipe, refuses examples copied from real inbox messages, tests it against its own examples and the inbox samples, writes it to `<recipes>/proposed/`, returns per-sample results | vault, proposed folder only |
+| `ledger_recipes` ✅ | active, proposed and broken recipes (with the reason), and the inbox count | — |
 
 Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active recipe notes as examples, records what is clear, and proposes a recipe for a new sender. The next message from that sender is then parsed by the engine without Claude.
 
@@ -131,7 +132,7 @@ Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active
 Under **Features → Ledger → Recipes**:
 
 - **Try a message.** Paste a text and see which step handled it (recipe, generic parser or inbox) and the fields.
-- **Recipes.** Lists built-in, active and proposed recipes, with test results and match counts. **Approve** moves a proposed note into `<recipes>/`, and **Disable** sets `enabled: false`.
+- **Recipes.** Lists built-in, active and proposed recipes, with test results. **Approve** moves a proposed note into `<recipes>/`, and **Disable** sets `enabled: false`.
 - **New recipe from a message.** Builds a draft from the generic guess. You adjust it and save it as a note.
 - **Inbox.** Record, edit and record, or ignore each item.
 - **Import / export.** Accepts a JSON pack of recipes (e.g. shared by others); each recipe is written as a proposed note.

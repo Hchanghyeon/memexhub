@@ -50,4 +50,4 @@ Paths, note language (`en` / `ko`) and office places: Admin UI → *Features* �
 |---|---|
 | `payments_day(date)` ✅ | one day's payments, totals, transit and office taps — compact |
 | `payments_from_mail(date?)` 📝 | read the configured mail folders now, through the same recipes |
-| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` 📝 | unreadable messages and recipes — see [message recipes](recipes.md) |
+| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | unreadable messages and recipes — see [message recipes](recipes.md) |

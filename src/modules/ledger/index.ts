@@ -9,6 +9,8 @@ import { vaultRecipeSource } from "./messages/notes.js";
 import { Layout } from "../wiki/layout.js";
 import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
 import { nowIn } from "../../core/time.js";
+import { Inbox } from "../../core/inbox.js";
+import { inboxTools, type PendingMessage } from "./inbox-tools.js";
 
 export default defineModule({
   id: "ledger",
@@ -50,9 +52,16 @@ export default defineModule({
       return loaded.result;
     };
     const reader = new MessageReader(async () => (await recipes()).active, { tz: () => settings.timezone, now: () => platform.now() });
+    const inbox = new Inbox(platform.db, platform.secret, () => platform.now());
+    const extra = inboxTools({
+      inbox, ledger, vault: () => vault, recipesDir, recipes,
+      tz: () => settings.timezone, now: () => platform.now(), inboxDays: () => settings.ledger.inboxDays,
+    });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
     return {
+      jobs: extra.jobs,
       tools: [
+        ...extra.tools,
         defineTool({
           name: "payments_day",
           readOnly: true,
@@ -103,7 +112,11 @@ export default defineModule({
             const r = await reader.read(m);
             if (r.kind === "ignore") return { kind: "ignored", recipe: r.recipeId };
             if (!r.confident || !r.payment) {
-              // The inbox (#38) will keep these for Claude; until then they are rejected without storing the text.
+              // Payment-like but unsure → inbox (encrypted) for Claude or the admin. No amount at all → rejected, nothing kept.
+              if (r.payment?.amount) {
+                const data: PendingMessage = { message: { channel: m.channel, from: m.from, subject: m.subject, text: m.text, time: m.time }, guess: r.payment, step: r.step };
+                return { kind: "pending", inbox: await inbox.add("ledger", m.channel ?? "text", r.reason ?? "unreadable", data) };
+              }
               await ledger.reject("/ingest/message", r.reason ?? "unreadable", keysOf(body));
               throw new Error(r.reason ?? "unreadable");
             }

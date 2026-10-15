@@ -60,6 +60,9 @@ export type RecipeInput = z.input<typeof RecipeSchema>;
 
 export interface CompiledRecipe {
   recipe: Recipe;
+  /** Where it came from ("built-in", "vault") and the note path, for status screens. */
+  source?: string;
+  path?: string;
   from?: RegExp;
   subject?: RegExp;
   any: RegExp[];

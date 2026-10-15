@@ -72,7 +72,7 @@ export async function loadRecipes(
           fail(`example ${failed[0]!.index + 1} failed: ${failed[0]!.diff}`);
           continue;
         }
-        if (c.recipe.enabled) active.push(c);
+        if (c.recipe.enabled) active.push({ ...c, source, ...(path ? { path } : {}) });
         break;
       } catch (e) {
         fail((e as Error).message);

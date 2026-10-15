@@ -40,6 +40,16 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
          target TEXT, detail TEXT)`,
     ],
   },
+  {
+    id: 2,
+    sql: [
+      // Messages a module could not read, waiting for Claude or the admin. Text is encrypted; cleared when resolved.
+      `CREATE TABLE inbox (
+         id TEXT PRIMARY KEY, module TEXT NOT NULL, channel TEXT NOT NULL, received_at TEXT NOT NULL,
+         reason TEXT NOT NULL, blob TEXT, status TEXT NOT NULL DEFAULT 'pending', resolved_at TEXT)`,
+      `CREATE INDEX inbox_module_status ON inbox(module, status, received_at)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

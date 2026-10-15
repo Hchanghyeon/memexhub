@@ -42,8 +42,10 @@ export const SettingsSchema = z.object({
       paymentsNote: z.string().default("ledger/payments/{year}.md"),
       moneyNote: z.string().default("ledger/money.md"),
       language: z.enum(["ko", "en"]).default("en"),
+      /** Days an unreadable message waits in the inbox before it is deleted. */
+      inboxDays: z.number().int().min(1).max(365).default(30),
     })
-    .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en" }),
+    .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en", inboxDays: 30 }),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),

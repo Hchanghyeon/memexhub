@@ -50,4 +50,4 @@
 |---|---|
 | `payments_day(date)` ✅ | 하루치 결제, 합계, 교통·출입을 짧게 |
 | `payments_from_mail(date?)` 📝 | 정해 둔 메일 폴더를 지금 읽어요. 같은 레시피로 해석해요 |
-| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` 📝 | 못 읽은 메시지와 레시피 — [메시지 레시피](recipes.md) |
+| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | 못 읽은 메시지와 레시피 — [메시지 레시피](recipes.md) |

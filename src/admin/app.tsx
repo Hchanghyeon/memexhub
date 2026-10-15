@@ -226,6 +226,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Note language
               <select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.ledger.language === l}>{l}</option>)}</select>
             </label>
+            <label>Keep unreadable messages (days)<input name="inboxDays" type="number" min="1" max="365" value={String(s.ledger.inboxDays)} /></label>
             <button>Save ledger</button>
           </form>
           <p class="muted">Any device or automation (iOS Shortcuts, Android Tasker / MacroDroid, a script) posts to <code>/ingest/message</code> (raw text such as a card SMS: <code>{"{\"channel\": \"sms\", \"text\": …}"}</code>) and <code>/ingest/transaction</code> (wallet transaction) with header <code>X-Ingest-Token</code> — create a token with scope <code>ledger</code> below. See docs/ledger.md.</p>
@@ -457,6 +458,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       paymentsNote: note(f.paymentsNote, s.ledger.paymentsNote),
       moneyNote: note(f.moneyNote, s.ledger.moneyNote),
       language: f.language === "ko" ? "ko" : "en",
+      inboxDays: Math.min(365, Math.max(1, Number(f.inboxDays) || s.ledger.inboxDays)),
     });
     await hub.reload();
     return c.redirect("/#features");
