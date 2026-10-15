@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Db } from "../platform/types.js";
+import { RolesSchema } from "../modules/wiki/layout.js";
 
 /** Non-secret settings. Secrets never go here — they go to connections.secrets_enc. */
 export const SettingsSchema = z.object({
@@ -27,6 +28,13 @@ export const SettingsSchema = z.object({
   oauth: z
     .object({ allowedRedirectHosts: z.array(z.string()).default(["claude.ai", "claude.com"]) })
     .default({ allowedRedirectHosts: ["claude.ai", "claude.com"] }),
+  wiki: z
+    .object({
+      preset: z.string().optional(),
+      roles: RolesSchema.default({ index: { style: "none" }, rules: [] }),
+      lint: z.record(z.string(), z.object({ enabled: z.boolean(), options: z.record(z.string(), z.unknown()).optional() })).default({}),
+    })
+    .default({ roles: { index: { style: "none" }, rules: [] }, lint: {} }),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),

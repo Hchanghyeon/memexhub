@@ -9,6 +9,7 @@ import { EventBus } from "./core/events.js";
 import { pick } from "./core/i18n.js";
 import type { IngestRoute, ModuleDef, ToolDef } from "./core/registry.js";
 import { SafeVault } from "./storage/safe-vault.js";
+import { Layout } from "./modules/wiki/layout.js";
 import { StorageError } from "./storage/types.js";
 import { buildStorage, type StorageBuilders } from "./storage/factory.js";
 import { AdminAuth } from "./auth/admin.js";
@@ -57,7 +58,15 @@ export class Hub {
     this.vault = undefined;
     try {
       const store = await buildStorage(this.connections, s.vault.connection, this.storageBuilders);
-      if (store) this.vault = new SafeVault(store, s.vault, this.platform.db, "system");
+      if (store) {
+        const layout = new Layout(s.wiki.roles);
+        this.vault = new SafeVault(
+          store,
+          { ...s.vault, protectedPaths: [...s.vault.protectedPaths, ...layout.protectedGlobs()], writeOncePaths: layout.writeOnceGlobs() },
+          this.platform.db,
+          "system",
+        );
+      }
     } catch (e) {
       this.platform.log.warn("vault storage unavailable", { error: (e as Error).message });
     }
@@ -65,7 +74,7 @@ export class Hub {
     const ingest: IngestRoute[] = [];
     this.moduleStatus = [];
     for (const m of this.modules) {
-      const enabled = s.modules[m.id]?.enabled ?? (m.id === "vault" || m.id === "hub");
+      const enabled = s.modules[m.id]?.enabled ?? ["vault", "wiki", "hub"].includes(m.id);
       if (!enabled) {
         this.moduleStatus.push({ id: m.id, enabled: false });
         continue;

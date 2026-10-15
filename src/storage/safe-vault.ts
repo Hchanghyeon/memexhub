@@ -8,6 +8,8 @@ export interface VaultPolicy {
   readOnly: boolean;
   protectedPaths: string[];
   maxWriteBytes: number;
+  /** Create allowed; overwrite, append, move and trash refused (immutable sources). */
+  writeOncePaths?: string[];
 }
 
 const TRASH = ".trash";
@@ -34,10 +36,12 @@ export class SafeVault {
     return p;
   }
 
-  private checkWritable(p: string) {
+  private checkWritable(p: string, op: "create" | "change" = "change") {
     if (this.policy.readOnly) throw new StorageError("forbidden", "the vault is in read-only mode");
     if (matchesAny(p, this.policy.protectedPaths))
       throw new StorageError("forbidden", `"${p}" is protected and can only be changed outside of tools`);
+    if (op === "change" && matchesAny(p, this.policy.writeOncePaths ?? []))
+      throw new StorageError("forbidden", `"${p}" is a source note — sources are never edited, moved or deleted`);
   }
 
   async read(path: string) {
@@ -57,10 +61,10 @@ export class SafeVault {
   /** Writes only if content changed (avoids sync churn). Returns whether it wrote. */
   async write(path: string, text: string, opts: { overwrite?: boolean; ifMatch?: string } = {}) {
     const p = this.checkNote(path);
-    this.checkWritable(p);
+    const existing = await this.store.stat(p);
+    this.checkWritable(p, existing ? "change" : "create");
     const bytes = new TextEncoder().encode(text).length;
     if (bytes > this.policy.maxWriteBytes) throw new StorageError("invalid", `note too large (${bytes} bytes)`);
-    const existing = await this.store.stat(p);
     if (existing && opts.overwrite === false) throw new StorageError("exists", `"${p}" already exists`);
     if (existing) {
       const cur = await this.store.read(p);
@@ -99,7 +103,7 @@ export class SafeVault {
     const a = this.checkNote(from);
     const b = this.checkNote(to);
     this.checkWritable(a);
-    this.checkWritable(b);
+    this.checkWritable(b, "create");
     if (await this.store.stat(b)) throw new StorageError("exists", `"${b}" already exists`);
     await this.store.move(a, b);
     await audit(this.db, this.actor, "vault.move", a, { to: b });

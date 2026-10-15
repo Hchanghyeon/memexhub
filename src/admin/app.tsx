@@ -7,6 +7,7 @@ import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 import { safeEqual } from "../core/crypto.js";
 import { securityHeaders } from "../http/common.js";
 import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
+import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
@@ -105,7 +106,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
-        <nav><a href="#vault">Vault</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
+        <nav><a href="#vault">Vault</a><a href="#wiki">Wiki</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
 
         <div class="card" id="vault">
           <h2>Vault</h2>
@@ -124,6 +125,36 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>WebDAV username<input name="username" autocomplete="off" /></label>
             <label>WebDAV password (stored encrypted, never shown again)<input name="password" type="password" autocomplete="new-password" /></label>
             <button>Save &amp; test</button>
+          </form>
+        </div>
+
+        <div class="card" id="wiki">
+          <h2>Wiki layout</h2>
+          <p class="muted">memexhub knows roles, not folder names. Pick a preset, then adjust.</p>
+          <form method="post" action="/wiki/preset">
+            <Csrf c={c} />
+            <label>Preset
+              <select name="preset">
+                {Object.keys(PRESETS).map((p) => <option value={p} selected={s.wiki.preset === p}>{p}</option>)}
+              </select>
+            </label>
+            <button>Apply preset</button>
+          </form>
+          <form method="post" action="/wiki/roles">
+            <Csrf c={c} />
+            <label>Sources folder (write-once)<input name="sources" value={s.wiki.roles.sources ?? ""} placeholder="raw" /></label>
+            <label>Wiki folder (empty = off, "/" = whole vault)<input name="wiki" value={s.wiki.roles.wiki === "" ? "/" : s.wiki.roles.wiki ?? ""} /></label>
+            <label>Index style
+              <select name="index">
+                {(["none", "folder-note", "index-file"] as const).map((x) => <option value={x} selected={s.wiki.roles.index.style === x}>{x}</option>)}
+              </select>
+            </label>
+            <label>Index file name (for index-file)<input name="indexFile" value={s.wiki.roles.index.style === "index-file" ? s.wiki.roles.index.file : "index.md"} /></label>
+            <label>Log note<input name="log" value={s.wiki.roles.log ?? ""} /></label>
+            <label>Daily notes pattern<input name="daily" value={s.wiki.roles.daily ?? ""} placeholder="Journal/{YYYY-MM-DD}.md" /></label>
+            <label>Protected rule notes (comma-separated globs)<input name="rules" value={s.wiki.roles.rules.join(", ")} /></label>
+            <label>Archive folder<input name="archive" value={s.wiki.roles.archive ?? ""} /></label>
+            <button>Save layout</button>
           </form>
         </div>
 
@@ -223,6 +254,36 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     } catch (e) {
       return c.text(`vault test failed: ${(e as Error).message}`, 400);
     }
+  });
+
+  app.post("/wiki/preset", async (c) => {
+    const f = await c.req.parseBody();
+    const name = String(f.preset);
+    const roles = PRESETS[name];
+    if (!roles) return c.text("unknown preset", 400);
+    const s = await hub.settings.get();
+    await hub.settings.set("wiki", { ...s.wiki, preset: name, roles });
+    await hub.reload();
+    return c.redirect("/#wiki");
+  });
+  app.post("/wiki/roles", async (c) => {
+    const f = await c.req.parseBody();
+    const str = (k: string) => (String(f[k] ?? "").trim() || undefined);
+    const wiki = String(f.wiki ?? "").trim();
+    const parsed = RolesSchema.safeParse({
+      sources: str("sources"),
+      wiki: wiki === "/" ? "" : wiki || undefined,
+      index: f.index === "index-file" ? { style: "index-file", file: str("indexFile") ?? "index.md" } : { style: f.index === "folder-note" ? "folder-note" : "none" },
+      log: str("log"),
+      daily: str("daily"),
+      rules: String(f.rules ?? "").split(",").map((x) => x.trim()).filter(Boolean),
+      archive: str("archive"),
+    });
+    if (!parsed.success) return c.text("invalid layout", 400);
+    const s = await hub.settings.get();
+    await hub.settings.set("wiki", { ...s.wiki, preset: undefined, roles: parsed.data });
+    await hub.reload();
+    return c.redirect("/#wiki");
   });
 
   app.post("/settings/language", async (c) => {

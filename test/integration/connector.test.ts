@@ -110,7 +110,7 @@ describe("connector flow", () => {
     expect(init.status).toBe(200);
     const list = await (await rpc({ method: "tools/list" })).json();
     const names = list.result.tools.map((t: any) => t.name);
-    expect(names).toEqual(expect.arrayContaining(["list_notes", "read_note", "search_notes", "vault_stats", "write_note", "append_note", "hub_status"]));
+    expect(names).toEqual(expect.arrayContaining(["list_notes", "read_note", "search_notes", "vault_stats", "write_note", "append_note", "hub_status", "wiki_layout"]));
     expect(names).not.toContain("delete_note");
     const w = await (await rpc({ method: "tools/call", params: { name: "write_note", arguments: { path: "inbox/hello.md", content: "# hi" } } })).json();
     expect(w.result.content[0].text).toBe("created: inbox/hello.md");
