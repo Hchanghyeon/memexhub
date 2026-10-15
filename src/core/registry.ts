@@ -26,6 +26,8 @@ export interface IngestRoute {
   scope: string; // "ledger"
   maxBytes: number;
   handle(body: unknown, ctx: { tokenId: string }): Promise<Record<string, unknown>>;
+  /** Response body when the sender expects its own format (OwnTracks wants a JSON array). Default `{ ok: true, ...result }`. */
+  reply?(result: Record<string, unknown>): unknown;
 }
 
 export interface ModuleContext {

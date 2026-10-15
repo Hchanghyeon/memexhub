@@ -7,7 +7,7 @@ Where you were, as **stays** ("10:00–10:30 · Sample Cafe"). Payments get plac
 | Provider | What | Setup |
 |---|---|---|
 | **Dawarich** | your self-hosted Dawarich server | Connections → Dawarich: URL + API key. Use an address Dawarich accepts (listed in its `APPLICATION_HOSTS`, e.g. its public https name) — Dawarich refuses other host names. Named **Areas** you draw in Dawarich ("Home", "Office") are used as place names. |
-| **OwnTracks** | the OwnTracks app (or anything speaking its HTTP format) sends points to memexhub | Connections → OwnTracks; type named places, one per line: `name, latitude, longitude, radius`. In the app: Mode *HTTP*, URL `https://<ingest host>/ingest/owntracks`, header `X-Ingest-Token` with a device token of scope `location`. Points are kept for `keepDays` (default 400). |
+| **OwnTracks** | the OwnTracks app (or anything speaking its HTTP format) sends points to memexhub | Connections → OwnTracks; type named places, one per line: `name, latitude, longitude, radius`. In the app: Mode *HTTP*, URL `https://<ingest host>/ingest/owntracks`, *Authentication* on, any *UserID*, and a device token of scope `location` as the *Password* (the app cannot set headers; memexhub also accepts the token as the Basic auth password on every `/ingest/*` path). Leave *Secret encryption key* empty. Points are kept for `keepDays` (default 400). |
 | **Nominatim** (place names) | OpenStreetMap reverse geocoding | Connections → Nominatim. Public server: ≤ 1 request/s, add a contact; results are cached. You can point it at your own Nominatim. |
 
 Admin UI → Features → **Location**: which source and geocoder to use, **private places** (never written — e.g. "Home"), language.

@@ -100,11 +100,21 @@ describe("OwnTracks ingest", () => {
   it("stores location points in the database only, ignores other message types", async () => {
     const post = (b: unknown) => app.request("https://hub.example.com/ingest/owntracks", { method: "POST", headers: { "x-ingest-token": token, "content-type": "application/json" }, body: JSON.stringify(b) });
     const r = await post([{ _type: "location", lat: 37.6, lon: 127.1, tst: T0 + 20 * 3600, acc: 12 }, { _type: "transition" }, { _type: "location", lat: 999, lon: 0, tst: 1 }]);
-    expect(await r.json()).toMatchObject({ stored: 1 });
+    expect(await r.json()).toEqual([]);
     const s = await hub.settings.get();
     await hub.settings.set("location", { ...s.location, connection: "phone" });
     await hub.reload();
     expect(await tool("location_day").run({ date: "2026-10-14" }, { actor: "t" })).toContain("점 1개");
     expect(JSON.stringify(await hub.vault!.list())).not.toContain("owntracks");
+  });
+
+  it("takes the token as the Basic auth password (the OwnTracks app cannot set headers)", async () => {
+    const post = (auth: string) => app.request("https://hub.example.com/ingest/owntracks", { method: "POST", headers: { authorization: auth, "content-type": "application/json" }, body: JSON.stringify({ _type: "location", lat: 37.6, lon: 127.1, tst: T0 + 21 * 3600 }) });
+    const r = await post(`Basic ${btoa(`phone:${token}`)}`);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual([]);
+    expect((await post(`Basic ${btoa("phone:wrong")}`)).status).toBe(401);
+    expect((await post(`Basic ${btoa(token)}`)).status).toBe(401);
+    expect((await post("Basic !!!")).status).toBe(401);
   });
 });

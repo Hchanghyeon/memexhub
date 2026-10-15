@@ -145,6 +145,8 @@ export default defineModule({
             }
             return { stored };
           },
+          // OwnTracks reads the reply as a list of messages for the app; an empty list means "nothing for you".
+          reply: () => [],
         },
       ],
       jobs: [
