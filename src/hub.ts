@@ -70,6 +70,7 @@ export class Hub {
 
   /** Re-read settings, rebuild storage and modules. */
   async reload() {
+    this.settings.invalidate();
     const s = await this.settings.get();
     this.vault = undefined;
     this.davFiles = undefined;

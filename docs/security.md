@@ -29,7 +29,7 @@ Every control below is designed so that one broken layer is caught by the next. 
 | T5 | Supply chain | 5 runtime deps · lockfile + `npm ci` · Dependabot with review · Actions pinned by SHA · no secrets for fork PRs · CodeQL · OSV-Scanner · signed images 📝 | ✅ / 📝 |
 | T6 | RCE blast radius | non-root image · read-only root FS · `cap_drop: ALL` · `no-new-privileges` · writable only `DATA_DIR` and the vault · no Docker socket · memory/pids limits | ✅ (compose example) |
 | T7 | SSRF | providers only call admin-configured hosts · tools never take URLs · private IPs only per connection opt-in · no redirects followed | ✅ webdav / 📝 others |
-| T8 | DB / backup leak | secrets encrypted with a key outside the DB · `DATA_DIR` 700, DB 600 · encrypted backup export 📝 | ✅ / 📝 |
+| T8 | DB / backup leak | secrets encrypted with a key outside the DB · `DATA_DIR` 700, DB 600 · backups encrypted (AES-256-GCM, key from `MEMEXHUB_SECRET`), files 600 | ✅ |
 | T9 | PII in logs | logs carry ids and counts only · secrets never logged | ✅ |
 | T10 | Misconfiguration | placeholder secrets rejected · http `PUBLIC_URL` refused (except localhost) · admin opening to the internet requires TOTP 📝 · security card in the UI | ✅ / 📝 |
 | T11 | Fresh-instance takeover | setup needs a one-time code printed only to the server log · MCP and ingest refuse requests until an admin exists | ✅ |

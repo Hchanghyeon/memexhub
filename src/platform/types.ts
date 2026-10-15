@@ -26,6 +26,16 @@ export interface Platform {
   log: Logger;
   /** Does this host name resolve to a private / loopback / link-local address? (SSRF guard). Optional on runtimes that can't reach private networks. */
   isPrivateHost?(host: string): Promise<boolean>;
+  /** Where automatic backups are kept (Node: DATA_DIR/backups). Optional on runtimes without a disk. */
+  backups?: BackupStore;
+}
+
+export interface BackupStore {
+  save(name: string, data: string): Promise<void>;
+  list(): Promise<{ name: string; size: number; created: Date }[]>;
+  read(name: string): Promise<string>;
+  /** Keep the newest `keep` files. */
+  prune(keep: number): Promise<void>;
 }
 
 export interface Logger {

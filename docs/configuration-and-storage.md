@@ -22,7 +22,7 @@ DATA_DIR/
 ├─ memexhub.db   SQLite (WAL), mode 600
 ├─ vault/        built-in vault (if chosen)
 ├─ cache/        remote-vault cache and search index (safe to delete) 📝
-└─ backups/      daily database backups 📝
+└─ backups/      daily encrypted database backups (newest 14)
 ```
 
 | Table | Content | Secret handling |
@@ -73,3 +73,9 @@ When the vault lives on the server (built-in or a folder), memexhub can serve it
 3. Obsidian → install **Remotely Save** → WebDAV: address `https://<ingest address>/dav/`, any username, the device token as password.
 
 Off by default · Basic auth with per-device tokens (revoke one when a device is lost) · rate limited · paths can never leave the vault (traversal and symbolic links refused) · deletes go to `.trash` (invisible over WebDAV) · file size limit (default 50 MB) · responses sandboxed (`Content-Security-Policy: sandbox`) · every write audited without content.
+
+## Backups ✅
+
+Admin UI → **Backups**: download an encrypted backup now, see the automatic daily copies (newest 14 in `DATA_DIR/backups`), or restore one (type `RESTORE` to confirm). A backup holds settings, connections (their secrets stay encrypted), tokens (hashes), records, the inbox and the activity log. **It needs the same `MEMEXHUB_SECRET` to restore** — keep that secret somewhere safe apart from the backup. Vault notes are not included; back the vault up with your storage or sync.
+
+Admin UI → **Activity** shows sign-ins, vault writes by Claude and devices, settings and connection changes — never contents or secrets.

@@ -1,11 +1,29 @@
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import { summaryTools } from "./summary-tools.js";
+import { exportBackup } from "../../core/backup.js";
 
 export default defineModule({
   id: "hub",
   title: T("Hub status", "허브 상태"),
   setup: (ctx) => ({
+    jobs: ctx.platform.backups
+      ? [
+          {
+            // Daily encrypted copy of the database in DATA_DIR/backups; the newest 14 are kept.
+            id: "daily-backup",
+            everyMinutes: 60,
+            run: async () => {
+              const store = ctx.platform.backups!;
+              const last = (await store.list())[0];
+              if (last && +ctx.platform.now() - +last.created < 20 * 3600_000) return;
+              const now = ctx.platform.now();
+              await store.save(`memexhub-${now.toISOString().replace(/[:.]/g, "-")}.mxb`, await exportBackup(ctx.platform.db, ctx.platform.secret, now));
+              await store.prune(14);
+            },
+          },
+        ]
+      : [],
     tools: [
       ...summaryTools(ctx),
       defineTool({

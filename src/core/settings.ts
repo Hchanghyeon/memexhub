@@ -81,6 +81,11 @@ export class SettingsStore {
   private cache?: Settings;
   constructor(private db: Db) {}
 
+  /** Forget the cached copy (after a restore or anything else that changed the table directly). */
+  invalidate() {
+    this.cache = undefined;
+  }
+
   async get(): Promise<Settings> {
     if (this.cache) return this.cache;
     const rows = await this.db.all<{ key: string; value: string }>(`SELECT key, value FROM settings`);

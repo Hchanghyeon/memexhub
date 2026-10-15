@@ -13,12 +13,13 @@ import { fieldsOf, INTERNAL, Inputs, valuesOf } from "./forms.js";
 import { pick } from "../core/i18n.js";
 import { recipeRoutes } from "./recipes.js";
 import { wizardNext, wizardRoutes } from "./wizard.js";
+import { opsRoutes } from "./ops.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
 
 /** What the security card checks. Plain words; "high" ones are shown in red. */
-export function securityChecks(o: { totp: boolean; s: import("../core/settings.js").Settings; vault: boolean; davTokens: number; publicUrl: string }) {
+export function securityChecks(o: { totp: boolean; s: import("../core/settings.js").Settings; vault: boolean; davTokens: number; publicUrl: string; lastBackup?: Date | null; now?: Date }) {
   const out: { ok: boolean; level?: "high"; text: string }[] = [];
   out.push(o.totp ? { ok: true, text: "Two-factor sign-in is on." } : { ok: false, level: o.s.admin.allowPublic ? "high" : undefined, text: o.s.admin.allowPublic ? "The admin UI is open to the internet without two-factor — turn two-factor on now." : "Two-factor sign-in is off. Turn it on below." });
   out.push(o.s.admin.allowPublic ? { ok: false, text: "The admin UI accepts connections from the internet." } : { ok: true, text: "The admin UI only answers on your private network." });
@@ -27,6 +28,8 @@ export function securityChecks(o: { totp: boolean; s: import("../core/settings.j
   if (!o.vault) out.push({ ok: false, text: "No vault is connected yet." });
   if (o.s.dav.enabled) out.push(o.davTokens ? { ok: true, text: `Vault sync (WebDAV) is on for ${o.davTokens} device(s).` } : { ok: false, text: "Vault sync (WebDAV) is on but no device has a token yet." });
   if (o.s.vault.readOnly) out.push({ ok: true, text: "The vault is read-only for Claude." });
+  if (o.lastBackup !== undefined)
+    out.push(o.lastBackup && +(o.now ?? new Date()) - +o.lastBackup < 2 * 86_400_000 ? { ok: true, text: "A backup was made in the last two days." } : { ok: false, text: "No recent backup — see Backups." });
   return out;
 }
 
@@ -118,6 +121,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   const Csrf = (p: { c: Context<Vars> }) => <input type="hidden" name="csrf" value={p.c.get("csrf")} />;
   recipeRoutes(app, hub, Csrf, B);
   wizardRoutes(app, hub, Csrf, B);
+  opsRoutes(app, hub, Csrf, B);
 
   app.get("/", async (c) => {
     const s = await hub.settings.get();
@@ -127,6 +131,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const statusOf = (id: string) => rows.find((r) => r.id === id);
     const addable = hub.providers.filter((p) => p.kind !== "storage" && p.runtimes.includes(hub.platform.name));
     const tokens = await hub.ingestTokens.list();
+    const lastBackup = hub.platform.backups ? ((await hub.platform.backups.list())[0]?.created ?? null) : undefined;
     const clients = await hub.oauth.clients();
     const tools = await hub.visibleTools();
     const totp = await hub.admin.hasTotp(c.get("adminId"));
@@ -134,7 +139,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
-        <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
+        <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a><a href={`${B}/activity`}>Activity</a><a href={`${B}/backups`}>Backups</a></nav>
         {!s.onboarded && (
           <div class="card"><p><b>Finish setting up</b> — time zone, vault, wiki layout and the Claude connector, one step at a time.</p><a href={`${B}/start`}><button>Continue setup</button></a></div>
         )}
@@ -346,7 +351,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="security">
           <h2>Security</h2>
           <ul>
-            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t: any) => !t.revoked_at && String(t.scopes).split(",").includes("dav")).length, publicUrl: hub.env.PUBLIC_URL }).map((x) => (
+            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t: any) => !t.revoked_at && String(t.scopes).split(",").includes("dav")).length, publicUrl: hub.env.PUBLIC_URL, lastBackup, now: hub.platform.now() }).map((x) => (
               <li>{x.ok ? <span class="ok">✓</span> : <span class={x.level === "high" ? "err" : ""}>⚠</span>} {x.text}</li>
             ))}
           </ul>

@@ -29,7 +29,7 @@ memexhub는 위치 기록, 결제, 건강, 메일 접근, 노트 쓰기 권한�
 | T5 | 공급망 | 런타임 의존성 5개 · lockfile + `npm ci` · Dependabot + 리뷰 · Actions SHA 고정 · 포크 PR에 비밀 없음 · CodeQL · OSV-Scanner · 서명 이미지 📝 | ✅ / 📝 |
 | T6 | 서버 탈취 후 확산 | root 아닌 이미지 · 읽기 전용 루트 · `cap_drop: ALL` · `no-new-privileges` · 쓰기는 `DATA_DIR`과 볼트만 · docker 소켓 없음 · 메모리·프로세스 제한 | ✅ (compose 예시) |
 | T7 | SSRF | 관리자가 등록한 주소만 요청 · 도구 입력으로 URL을 안 받음 · 사설 IP는 연결별로 허용했을 때만 · 리다이렉트 안 따라감 | ✅ webdav / 📝 나머지 |
-| T8 | DB·백업 유출 | 비밀은 DB 밖 열쇠로 암호화 · `DATA_DIR` 700, DB 600 · 백업 내보내기 암호화 📝 | ✅ / 📝 |
+| T8 | DB·백업 유출 | 비밀은 DB 밖 열쇠로 암호화 · `DATA_DIR` 700, DB 600 · 백업은 암호화(AES-256-GCM, 열쇠는 `MEMEXHUB_SECRET`에서), 파일 600 | ✅ |
 | T9 | 로그로 새는 개인정보 | 로그엔 id와 개수만 · 비밀은 절대 안 찍음 | ✅ |
 | T10 | 잘못된 설정 | 예시 같은 열쇠 거부 · http `PUBLIC_URL` 거부 (localhost 제외) · 관리 화면을 밖에 열면 TOTP 강제 📝 · 화면에 보안 카드 | ✅ / 📝 |
 | T11 | 갓 띄운 서버 가로채기 | 설치는 서버 로그에만 찍히는 일회용 코드가 있어야 시작 · 관리자가 생기기 전엔 MCP·수집 거부 | ✅ |
