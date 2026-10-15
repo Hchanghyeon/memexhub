@@ -228,6 +228,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Note language
               <select name="language">{(["en", "ko"] as const).map((l) => <option value={l} selected={s.ledger.language === l}>{l}</option>)}</select>
             </label>
+            <label>Receipt mail folders — one per line as <code>account: folder</code> (read every 15 minutes through recipes)<textarea name="mailSources" rows={2} placeholder="kakao: Payments">{s.ledger.mailSources.map((m) => `${m.connection}: ${m.folder}`).join("\n")}</textarea></label>
             <label>Keep unreadable messages (days)<input name="inboxDays" type="number" min="1" max="365" value={String(s.ledger.inboxDays)} /></label>
             <button>Save ledger</button>
           </form>
@@ -462,6 +463,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       moneyNote: note(f.moneyNote, s.ledger.moneyNote),
       language: f.language === "ko" ? "ko" : "en",
       inboxDays: Math.min(365, Math.max(1, Number(f.inboxDays) || s.ledger.inboxDays)),
+      mailSources: String(f.mailSources ?? "").split("\n").map((l) => l.match(/^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/)).filter((m): m is RegExpMatchArray => !!m).slice(0, 10).map((m) => ({ connection: m[1]!, folder: m[2]! })),
     });
     await hub.reload();
     return c.redirect("/#features");

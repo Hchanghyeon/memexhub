@@ -44,8 +44,10 @@ export const SettingsSchema = z.object({
       language: z.enum(["ko", "en"]).default("en"),
       /** Days an unreadable message waits in the inbox before it is deleted. */
       inboxDays: z.number().int().min(1).max(365).default(30),
+      /** Mail folders read for receipt mails (through recipes), e.g. { connection: "kakao", folder: "Payments" }. */
+      mailSources: z.array(z.object({ connection: z.string().min(1).max(32), folder: z.string().min(1).max(200) })).max(10).default([]),
     })
-    .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en", inboxDays: 30 }),
+    .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en", inboxDays: 30, mailSources: [] }),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),

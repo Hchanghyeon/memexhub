@@ -137,9 +137,9 @@ Under **Features → Ledger → Recipes & inbox** ✅:
 - **Inbox.** Record, edit and record, or ignore each item.
 - **Import / export.** Accepts a JSON pack of recipes (e.g. shared by others); each recipe is written as a proposed note.
 
-## Mail
+## Mail ✅
 
-The mail job (every 15 minutes) reads only the folders listed in **Ledger → Mail sources**, e.g. `connection: kakao, folder: 결제`. It keeps a per-folder UID cursor and feeds each new mail as a message with `channel: "mail"`, `from` and `subject`. Receipt mails such as KCP or online shops are recipes with `kind: "item"` or `"payment"`. The tool `payments_from_mail(date?)` runs the same job on demand.
+The mail job (every 15 minutes) reads only the folders listed in **Ledger → Mail sources**, one per line as `account: folder`, e.g. `kakao: Payments`. It keeps a per-folder UID cursor and feeds each new mail as a message with `channel: "mail"`, `from` and `subject`. Receipt mails such as KCP or online shops are recipes with `kind: "item"` or `"payment"`. Only mails a recipe recognises are recorded; other payment-like mails go to the inbox (the generic parser is not trusted on mail). The tool `payments_from_mail(since?, until?)` runs the same job on demand. Built-in: `kr.kcp.mail` (NHN KCP payment and cancellation mails).
 
 ## Built-in recipes
 

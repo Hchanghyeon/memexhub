@@ -101,6 +101,7 @@ describe("recipes", () => {
     const broken = { id: "kr.broken", match: { any: ["샘플"] }, set: { card: "샘플카드" }, examples: [{ text: "샘플 승인 1,000원 10/14 12:00 가게", expect: { card: "다른카드" } }] };
     const { active, errors } = await loadRecipes([builtinSource, { id: "vault", list: () => [broken, { id: "kr.samsung.sms", enabled: false, match: { any: ["삼성"] } }] }]);
     expect(errors.map((e) => e.id)).toEqual(["kr.broken"]);
-    expect(active.map((c) => c.recipe.id)).toEqual(["kr.hyundai.sms"]); // the vault note switched samsung off
+    expect(active.map((c) => c.recipe.id)).toContain("kr.hyundai.sms");
+    expect(active.map((c) => c.recipe.id)).not.toContain("kr.samsung.sms"); // the vault note switched samsung off
   });
 });

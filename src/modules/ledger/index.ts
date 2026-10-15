@@ -12,11 +12,14 @@ import { nowIn } from "../../core/time.js";
 import { Inbox } from "../../core/inbox.js";
 import { inboxTools, type PendingMessage } from "./inbox-tools.js";
 import { ledgerAdmin } from "./admin-api.js";
+import { syncReceiptMails } from "./mail-job.js";
+import { Cursors } from "../../core/cursors.js";
+import type { MailProvider } from "../../providers/mail/types.js";
 
 export default defineModule({
   id: "ledger",
   title: T("Ledger", "결제"),
-  setup: ({ settings, bus, vault, platform }) => {
+  setup: ({ settings, bus, vault, platform, provider }) => {
     const ledger = new Ledger(bus, { officePlaces: settings.ledger.officePlaces });
     const tz = settings.timezone;
     const opts = () => ({ tz, officePlaces: settings.ledger.officePlaces, lang: settings.ledger.language, now: platform.now() });
@@ -59,11 +62,39 @@ export default defineModule({
       tz: () => settings.timezone, now: () => platform.now(), inboxDays: () => settings.ledger.inboxDays,
     });
     const keysOf = (b: unknown) => (b && typeof b === "object" ? Object.keys(b as object) : []);
+    const mailSync = (o?: { since?: string; until?: string }) =>
+      syncReceiptMails({
+        sources: () => settings.ledger.mailSources, provider: (name) => provider<MailProvider>("mail", name),
+        reader, ledger, inbox, cursors: new Cursors(platform.db, () => platform.now()), tz: () => settings.timezone, now: () => platform.now(),
+      }, o);
     return {
       admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now() }),
-      jobs: extra.jobs,
+      jobs: [
+        ...extra.jobs,
+        ...(settings.ledger.mailSources.length ? [{ id: "ledger-receipt-mails", everyMinutes: 15, run: async () => void (await mailSync()) }] : []),
+      ],
       tools: [
         ...extra.tools,
+        defineTool({
+          name: "payments_from_mail",
+          readOnly: false,
+          description: T(
+            "Read the receipt-mail folders set in the admin UI now (normally every 15 minutes) and record what the recipes recognise: receipts add the item name to the matching card payment, or become a payment. Each mail is read only once. Optional date range (YYYY-MM-DD) to look further back.",
+            "관리 화면에 정한 결제 메일 폴더를 지금 읽는다(평소엔 15분마다). 레시피가 알아보는 메일만 기록 — 영수증은 같은 카드 결제에 품목을 붙이거나 새 결제가 된다. 같은 메일은 한 번만. 더 예전을 보려면 날짜(YYYY-MM-DD) 범위.",
+          ),
+          input: {
+            since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+            until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          },
+          async run({ since, until }) {
+            if (!settings.ledger.mailSources.length) return "no receipt-mail folders set — admin UI → Features → Ledger";
+            const r = await mailSync({ since, until });
+            return [
+              `read ${r.read} new mails: ${r.recorded} recorded · ${r.attached} items attached · ${r.pending} to the inbox · ${r.ignored} ignored · ${r.skipped} not payments`,
+              ...r.problems.map((p) => `! ${p}`),
+            ].join("\n");
+          },
+        }),
         defineTool({
           name: "payments_day",
           readOnly: true,

@@ -11,7 +11,7 @@
 
 헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. 본문은 4KB까지(`/ingest/message`는 20KB), 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
 
-카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드, 삼성카드). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md).
+카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드·삼성카드 문자, NHN KCP 결제 메일). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md).
 
 ## 아이폰 설정 (iOS 단축어)
 
@@ -49,5 +49,5 @@
 | 도구 | 하는 일 |
 |---|---|
 | `payments_day(date)` ✅ | 하루치 결제, 합계, 교통·출입을 짧게 |
-| `payments_from_mail(date?)` 📝 | 정해 둔 메일 폴더를 지금 읽어요. 같은 레시피로 해석해요 |
+| `payments_from_mail(since?, until?)` ✅ | 결제 메일 폴더를 지금 읽어요(평소엔 15분마다). 같은 레시피로 해석하고, 같은 메일은 한 번만 |
 | `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | 못 읽은 메시지와 레시피 — [메시지 레시피](recipes.md) |

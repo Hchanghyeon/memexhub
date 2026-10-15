@@ -55,7 +55,7 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | OAuth 2.1 for Claude connectors, device tokens, IP allowlist | ✅ |
 | Admin UI: setup wizard, vault, connectors, device tokens, 2FA | ✅ minimal |
 | Wiki module (layout, lint, save source, index, log, backlinks), roles & presets, write-once sources | ✅ |
-| Ledger: card SMS (Hyundai, Samsung), Apple Pay / transit, payments & money notes, `payments_day` | ✅ · receipt mails 🚧 |
+| Ledger: card SMS (Hyundai, Samsung), Apple Pay / transit, payments & money notes, receipt mails, `payments_day`, message recipes + inbox | ✅ |
 | Mail (read-only IMAP: Kakao, Naver, Gmail, Outlook, custom) | ✅ |
 | Location (Dawarich, OwnTracks), health, tasks, `day_summary` | 📝 |
 | Built-in WebDAV for Obsidian sync, Notion output, one-click Cloudflare deploy | 📝 |

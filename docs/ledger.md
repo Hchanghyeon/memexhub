@@ -11,7 +11,7 @@ Your devices report payments the moment they happen (a phone automation, an app 
 
 Header `X-Ingest-Token: <device token with scope ledger>`. Bodies are limited to 4 KB (`/ingest/message`: 20 KB), unknown fields are rejected, and rejected requests are logged without their values.
 
-Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md).
+Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card SMS; NHN KCP receipt mails). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md).
 
 ## iPhone setup (iOS Shortcuts)
 
@@ -49,5 +49,5 @@ Paths, note language (`en` / `ko`) and office places: Admin UI → *Features* �
 | Tool | Does |
 |---|---|
 | `payments_day(date)` ✅ | one day's payments, totals, transit and office taps — compact |
-| `payments_from_mail(date?)` 📝 | read the configured mail folders now, through the same recipes |
+| `payments_from_mail(since?, until?)` ✅ | read the receipt-mail folders now (normally every 15 minutes), through the same recipes; each mail once |
 | `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | unreadable messages and recipes — see [message recipes](recipes.md) |
