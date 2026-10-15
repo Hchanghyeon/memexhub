@@ -189,12 +189,15 @@ export class Hub {
         {
           description: pick(t.description, s.toolLanguage),
           inputSchema: t.input,
+          // Every tool returns text; it is also given as structured { result } — the shape many MCP servers use,
+          // so clients that cached such a schema keep validating.
+          outputSchema: { result: z.string() },
           annotations: { readOnlyHint: !!t.readOnly, destructiveHint: !!t.destructive },
         },
         async (args: any) => {
           try {
             const text = await t.run(z.object(t.input).parse(args), { actor });
-            return { content: [{ type: "text" as const, text }] };
+            return { content: [{ type: "text" as const, text }], structuredContent: { result: text } };
           } catch (e) {
             // Expected errors are shown to the model; unexpected ones are logged without details.
             const msg = e instanceof StorageError || e instanceof z.ZodError ? (e as Error).message : "internal error";
