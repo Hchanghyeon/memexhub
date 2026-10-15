@@ -67,6 +67,8 @@ export const SettingsSchema = z.object({
   health: z
     .object({ note: z.string().default("health/{year}.md"), language: z.enum(["ko", "en"]).default("en") })
     .default({ note: "health/{year}.md", language: "en" }),
+  /** First-run wizard finished (or skipped). */
+  onboarded: z.boolean().default(false),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),

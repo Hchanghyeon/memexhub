@@ -12,9 +12,23 @@ import { effectiveRules } from "../modules/wiki/lint.js";
 import { fieldsOf, INTERNAL, Inputs, valuesOf } from "./forms.js";
 import { pick } from "../core/i18n.js";
 import { recipeRoutes } from "./recipes.js";
+import { wizardNext, wizardRoutes } from "./wizard.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 const COOKIE = "mx_admin";
+
+/** What the security card checks. Plain words; "high" ones are shown in red. */
+export function securityChecks(o: { totp: boolean; s: import("../core/settings.js").Settings; vault: boolean; davTokens: number; publicUrl: string }) {
+  const out: { ok: boolean; level?: "high"; text: string }[] = [];
+  out.push(o.totp ? { ok: true, text: "Two-factor sign-in is on." } : { ok: false, level: o.s.admin.allowPublic ? "high" : undefined, text: o.s.admin.allowPublic ? "The admin UI is open to the internet without two-factor — turn two-factor on now." : "Two-factor sign-in is off. Turn it on below." });
+  out.push(o.s.admin.allowPublic ? { ok: false, text: "The admin UI accepts connections from the internet." } : { ok: true, text: "The admin UI only answers on your private network." });
+  out.push(o.s.mcp.enforceAllow ? { ok: true, text: "Only Anthropic's servers may call /mcp." } : { ok: false, text: "Any address may call /mcp (sign-in is still required). Restrict it to Anthropic's servers below." });
+  if (o.publicUrl.startsWith("http://")) out.push({ ok: false, level: "high", text: "PUBLIC_URL uses http — use https outside local testing." });
+  if (!o.vault) out.push({ ok: false, text: "No vault is connected yet." });
+  if (o.s.dav.enabled) out.push(o.davTokens ? { ok: true, text: `Vault sync (WebDAV) is on for ${o.davTokens} device(s).` } : { ok: false, text: "Vault sync (WebDAV) is on but no device has a token yet." });
+  if (o.s.vault.readOnly) out.push({ ok: true, text: "The vault is read-only for Claude." });
+  return out;
+}
 
 /** Admin surface. Private networks only unless explicitly opened (and then TOTP is required). */
 export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string; base?: string }) {
@@ -60,7 +74,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     try {
       const id = await hub.admin.createAdmin(String(f.username), String(f.password), `setup:${c.get("ip")}`);
       await startSession(c, id);
-      return c.redirect(R);
+      return c.redirect(`${B}/start`);
     } catch (e) {
       return c.text((e as Error).message, 400);
     }
@@ -103,6 +117,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   const actor = (c: Context<Vars>) => `admin:${c.get("adminId")}`;
   const Csrf = (p: { c: Context<Vars> }) => <input type="hidden" name="csrf" value={p.c.get("csrf")} />;
   recipeRoutes(app, hub, Csrf, B);
+  wizardRoutes(app, hub, Csrf, B);
 
   app.get("/", async (c) => {
     const s = await hub.settings.get();
@@ -120,6 +135,9 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       <Layout title="memexhub">
         <h1>memexhub</h1>
         <nav><a href="#vault">Vault</a><a href="#connections">Connections</a><a href="#wiki">Wiki</a><a href="#features">Features</a><a href="#claude">Claude</a><a href="#devices">Devices</a><a href="#security">Security</a></nav>
+        {!s.onboarded && (
+          <div class="card"><p><b>Finish setting up</b> — time zone, vault, wiki layout and the Claude connector, one step at a time.</p><a href={`${B}/start`}><button>Continue setup</button></a></div>
+        )}
 
         <div class="card" id="vault">
           <h2>Vault</h2>
@@ -328,17 +346,18 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="security">
           <h2>Security</h2>
           <ul>
-            <li>Two-factor: {totp ? <span class="ok">on</span> : <span class="err">off</span>}</li>
-            <li>MCP IP allowlist: {s.mcp.enforceAllow ? <span class="ok">enforced ({s.mcp.allowCidrs.join(", ")})</span> : <span class="err">off</span>}</li>
-            <li>Vault read-only: {s.vault.readOnly ? "yes" : "no"} · protected paths: <code>{s.vault.protectedPaths.join(", ")}</code></li>
+            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t: any) => !t.revoked_at && String(t.scopes).split(",").includes("dav")).length, publicUrl: hub.env.PUBLIC_URL }).map((x) => (
+              <li>{x.ok ? <span class="ok">✓</span> : <span class={x.level === "high" ? "err" : ""}>⚠</span>} {x.text}</li>
+            ))}
           </ul>
+          <p class="muted">Protected from Claude: <code>{s.vault.protectedPaths.join(", ")}</code></p>
           {!totp && (
             <form method="post" action={`${B}/totp`}><Csrf c={c} /><button>Enable two-factor</button></form>
           )}
           <form method="post" action={`${B}/mcp-allow`}>
             <Csrf c={c} />
             <input type="hidden" name="enforce" value={s.mcp.enforceAllow ? "0" : "1"} />
-            <button>{s.mcp.enforceAllow ? "Turn off IP allowlist" : "Only allow Anthropic servers to call /mcp"}</button>
+            <button class={totp ? "" : "secondary"}>{s.mcp.enforceAllow ? "Turn off IP allowlist" : "Only allow Anthropic servers to call /mcp"}</button>
           </form>
           <form method="post" action={`${B}/logout`}><Csrf c={c} /><button class="secondary">Log out</button></form>
         </div>
@@ -367,7 +386,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       await hub.vault.list(); // connection test
       const con = await hub.connections.get("storage", "vault");
       if (con) await hub.connections.setStatus(con.id, true);
-      return c.redirect(`${R}#vault`);
+      return c.redirect(wizardNext(B, f.next) ?? `${R}#vault`);
     } catch (e) {
       return c.text(`vault test failed: ${(e as Error).message}`, 400);
     }
@@ -381,7 +400,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const s = await hub.settings.get();
     await hub.settings.set("wiki", { ...s.wiki, preset: name, roles });
     await hub.reload();
-    return c.redirect(`${R}#wiki`);
+    return c.redirect(wizardNext(B, f.next) ?? `${R}#wiki`);
   });
   app.post("/wiki/lint", async (c) => {
     const f = await c.req.parseBody({ all: true });
