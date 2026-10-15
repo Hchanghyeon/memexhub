@@ -6,7 +6,8 @@
 - [Install with Docker](install.md) — run, expose, verify signatures, upgrade
 - [Moving from another setup](migrating.md) — import payments, health, device tokens
 - [Cloudflare (no server)](cloudflare.md) — deploy button, Workers + D1 + R2
-- [Easy install options](easy-install.md) — one-click and app-store plans
+- [Home Assistant, Synology, Railway](app-stores.md)
+- [Easy install options](easy-install.md) — overview
 
 ## Use with Claude
 - [Claude integration](claude-integration.md) — connector, OAuth, `day_summary` / `week_summary`

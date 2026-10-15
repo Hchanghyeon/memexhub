@@ -1,0 +1,4 @@
+# Home Assistant add-on repository: Settings → Add-ons → Add-on store → ⋮ → Repositories → add this repository's URL.
+name: memexhub
+url: https://github.com/Hchanghyeon/memexhub
+maintainer: memexhub contributors

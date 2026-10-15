@@ -45,7 +45,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   app.use("*", async (c, next) => {
     const s = await hub.settings.get();
     // Cloudflare Workers has no private network: there the admin UI is always reached over the internet (two-factor enforced below).
-    if (!s.admin.allowPublic && hub.platform.name !== "workers" && !inAny(c.get("ip"), PRIVATE_CIDRS)) return c.text("admin is only available from your private network", 403);
+    if (!s.admin.allowPublic && !hub.env.ADMIN_PUBLIC && hub.platform.name !== "workers" && !inAny(c.get("ip"), PRIVATE_CIDRS)) return c.text("admin is only available from your private network", 403);
     await next();
   });
 
@@ -379,7 +379,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
         <div class="card" id="security">
           <h2>Security</h2>
           <ul>
-            {securityChecks({ totp, s, vault: !!hub.vault, davTokens: tokens.filter((t) => !t.revoked_at && (JSON.parse(t.scopes) as string[]).includes("dav")).length, publicUrl: hub.env.PUBLIC_URL, lastBackup, now: hub.platform.now() }).map((x) => (
+            {securityChecks({ totp, s: { ...s, admin: { allowPublic: s.admin.allowPublic || hub.env.ADMIN_PUBLIC || hub.platform.name === "workers" } }, vault: !!hub.vault, davTokens: tokens.filter((t) => !t.revoked_at && (JSON.parse(t.scopes) as string[]).includes("dav")).length, publicUrl: hub.env.PUBLIC_URL, lastBackup, now: hub.platform.now() }).map((x) => (
               <li>{x.ok ? <span class="ok">✓</span> : <span class={x.level === "high" ? "err" : ""}>⚠</span>} {x.text}</li>
             ))}
           </ul>

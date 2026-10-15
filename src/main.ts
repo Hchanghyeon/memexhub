@@ -13,8 +13,9 @@ import { NODE_PROVIDERS } from "./providers/node.js";
 import { mcpApp } from "./http/mcp.js";
 import { ingestApp } from "./http/ingest.js";
 import { adminApp } from "./admin/app.js";
+import { bootEnv } from "./platform/env-sources.js";
 
-const env = loadEnv(process.env);
+const env = loadEnv(bootEnv(process.env));
 const platform = nodePlatform({ dataDir: env.DATA_DIR, secret: env.MEMEXHUB_SECRET });
 const builtinVault = resolve(join(env.DATA_DIR, "vault"));
 const vaultRoots = env.VAULT_ROOTS.split(",").map((r) => resolve(r.trim())).filter(Boolean);

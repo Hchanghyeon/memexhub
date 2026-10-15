@@ -64,7 +64,8 @@ Knowledge is compiled into the wiki once and refined over time, so answers come 
 | Built-in WebDAV to sync the server's vault with Obsidian | ✅ |
 | Notion output (payments, health) — [docs](docs/notion.md) | ✅ |
 | One-click Cloudflare deploy (Workers + D1 + R2) — [docs](docs/cloudflare.md) | ✅ |
-| Notion as vault storage, app-store packages | 📝 |
+| Home Assistant add-on, Synology, Railway — [docs](docs/app-stores.md) | ✅ (after the first release) |
+| Notion as vault storage | 📝 |
 
 ## Quick start (development)
 
@@ -78,7 +79,7 @@ The server prints a **one-time setup code**. Open the admin UI (`http://localhos
 
 **No server?** [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Hchanghyeon/memexhub) — [Cloudflare guide](docs/cloudflare.md).
 
-**Docker:** see [install](docs/install.md) (signed images, hardened compose file). App-store packages are planned — see [roadmap](docs/roadmap.md).
+**Docker:** see [install](docs/install.md) (signed images, hardened compose file). Home Assistant, Synology, Railway: see [app stores](docs/app-stores.md).
 
 ## Security
 

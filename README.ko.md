@@ -64,7 +64,8 @@ flowchart LR
 | 서버 볼트를 Obsidian과 동기화하는 내장 WebDAV | ✅ |
 | Notion 내보내기 (결제, 건강) | ✅ |
 | Cloudflare 버튼 설치 (Workers + D1 + R2) | ✅ |
-| Notion을 볼트 저장소로, 앱스토어 패키지 | 📝 |
+| 홈 어시스턴트 애드온, 시놀로지, Railway | ✅ (첫 릴리스 후) |
+| Notion을 볼트 저장소로 | 📝 |
 
 ## 빠르게 시작 (개발)
 
@@ -78,7 +79,7 @@ npm run dev
 
 **서버가 없다면?** [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Hchanghyeon/memexhub) — [Cloudflare 안내](docs/ko/cloudflare.md)
 
-**Docker:** [설치 안내](docs/ko/install.md) (서명된 이미지, 보안 설정된 compose 파일). 버튼 한 번 설치는 예정이에요 — [로드맵](docs/ko/roadmap.md).
+**Docker:** [설치 안내](docs/ko/install.md) (서명된 이미지, 보안 설정된 compose 파일). 홈 어시스턴트·시놀로지·Railway: [앱스토어](docs/ko/app-stores.md).
 
 ## 보안
 

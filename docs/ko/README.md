@@ -6,7 +6,8 @@
 - [Docker로 설치](install.md) — 실행, 밖으로 열기, 서명 확인, 업그레이드
 - [다른 설정에서 옮겨오기](migrating.md) — 결제·건강·기기 토큰 가져오기
 - [Cloudflare (서버 없이)](cloudflare.md) — 배포 버튼, Workers + D1 + R2
-- [쉬운 설치](easy-install.md) — 버튼 한 번 설치와 앱스토어 계획
+- [홈 어시스턴트, 시놀로지, Railway](app-stores.md)
+- [쉬운 설치](easy-install.md) — 한눈에 보기
 
 ## Claude와 쓰기
 - [Claude 연동](claude-integration.md) — 커넥터, OAuth, `day_summary` / `week_summary`

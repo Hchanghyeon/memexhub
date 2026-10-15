@@ -19,6 +19,8 @@ export const EnvSchema = z.object({
   ADMIN_PORT: z.coerce.number().int().default(8791),
   SINGLE_PORT: z.coerce.number().int().default(8787),
   TZ: z.string().default("UTC"),
+  /** The admin UI is only reachable over the internet (Railway, Render …): allow it, with two-factor enforced. */
+  ADMIN_PUBLIC: z.enum(["0", "1", "true", "false"]).default("0").transform((v) => v === "1" || v === "true"),
   /** Folders the admin UI may choose as a server-local vault (security boundary). The built-in vault lives in DATA_DIR/vault. */
   VAULT_ROOTS: z.string().default("/vaults"),
   /** Comma-separated CIDRs whose X-Real-IP / X-Forwarded-For we trust (your reverse proxy). Default: private ranges. */

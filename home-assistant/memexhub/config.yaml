@@ -1,0 +1,28 @@
+name: memexhub
+version: "0.1.0"
+slug: memexhub
+description: Self-hosted LLM Wiki engine for Claude — your vault, life logs and one connector
+url: https://github.com/Hchanghyeon/memexhub
+arch: [amd64, aarch64]
+image: ghcr.io/hchanghyeon/memexhub
+init: false
+startup: application
+boot: auto
+ports:
+  8787/tcp: 8787
+  8790/tcp: 8790
+  8791/tcp: 8791
+ports_description:
+  8787/tcp: "Claude connector (MCP) — put behind HTTPS"
+  8790/tcp: "Devices and automations (ingest, vault sync)"
+  8791/tcp: "Admin UI — keep on your home network"
+map:
+  - share:rw
+options:
+  memexhub_secret: ""
+  public_url: ""
+  timezone: "UTC"
+schema:
+  memexhub_secret: password
+  public_url: url
+  timezone: str
