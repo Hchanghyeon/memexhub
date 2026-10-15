@@ -154,5 +154,10 @@ describe("protocol versions", () => {
     expect(withKnownProtocolVersion(mk("2020-01-01")).headers.get("mcp-protocol-version")).toBe("2020-01-01"); // older unknown: still refused by the SDK
     expect(withKnownProtocolVersion(mk()).headers.get("mcp-protocol-version")).toBeNull();
     expect(await withKnownProtocolVersion(mk("2026-07-28")).text()).toBe("{}");
+    const { withResultType } = await import("../../src/http/mcp.js");
+    const res = await withResultType(new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { content: [] } }), { headers: { "content-type": "application/json" } }));
+    expect(await res.json()).toEqual({ jsonrpc: "2.0", id: 1, result: { content: [], resultType: "complete" } });
+    const err = await withResultType(new Response(JSON.stringify({ jsonrpc: "2.0", id: 2, error: { code: -1, message: "x" } }), { headers: { "content-type": "application/json" } }));
+    expect(await err.json()).toEqual({ jsonrpc: "2.0", id: 2, error: { code: -1, message: "x" } });
   });
 });

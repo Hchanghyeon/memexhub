@@ -14,9 +14,31 @@ type Vars = { Variables: { ip: string } };
  * The messages we serve (initialize, tools/list, tools/call) are unchanged, so a newer version header is
  * answered as the newest version we support instead of a 400. Older, unknown versions are still refused.
  */
+const isNewerProtocol = (v: string | null | undefined) => !!v && !SUPPORTED_PROTOCOL_VERSIONS.includes(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) && v > LATEST_PROTOCOL_VERSION;
+
+/**
+ * Newer protocol revisions require every result to say it is final (`resultType: "complete"`); earlier
+ * revisions treat a missing field as complete. Our results are always complete, so we add it for those clients.
+ */
+export async function withResultType(res: Response): Promise<Response> {
+  if (!(res.headers.get("content-type") ?? "").includes("application/json")) return res;
+  const text = await res.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return new Response(text, { status: res.status, headers: res.headers });
+  }
+  const mark = (m: any) => (m && typeof m === "object" && m.result && typeof m.result === "object" && !("resultType" in m.result) ? { ...m, result: { ...m.result, resultType: "complete" } } : m);
+  const out = Array.isArray(body) ? body.map(mark) : mark(body);
+  const headers = new Headers(res.headers);
+  headers.delete("content-length");
+  return new Response(JSON.stringify(out), { status: res.status, headers });
+}
+
 export function withKnownProtocolVersion(req: Request): Request {
   const v = req.headers.get("mcp-protocol-version");
-  if (!v || SUPPORTED_PROTOCOL_VERSIONS.includes(v) || !/^\d{4}-\d{2}-\d{2}$/.test(v) || v < LATEST_PROTOCOL_VERSION) return req;
+  if (!isNewerProtocol(v)) return req;
   const headers = new Headers(req.headers);
   headers.set("mcp-protocol-version", LATEST_PROTOCOL_VERSION);
   return new Request(req, { headers });
@@ -124,7 +146,9 @@ export function mcpApp(hub: Hub) {
     const server = await hub.buildMcpServer(`mcp:${who.clientId}`);
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
-    return transport.handleRequest(withKnownProtocolVersion(c.req.raw));
+    const newer = isNewerProtocol(c.req.header("mcp-protocol-version"));
+    const res = await transport.handleRequest(withKnownProtocolVersion(c.req.raw));
+    return newer ? await withResultType(res) : res;
   });
 
   return app;
