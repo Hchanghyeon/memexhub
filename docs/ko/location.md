@@ -6,7 +6,7 @@
 
 | 공급자 | 무엇 | 설정 |
 |---|---|---|
-| **Dawarich** | 내가 띄운 Dawarich 서버 | 연결 → Dawarich: 주소 + API 키. Dawarich에 그려 둔 **Areas**("집", "회사")가 장소 이름이 돼요. |
+| **Dawarich** | 내가 띄운 Dawarich 서버 | 연결 → Dawarich: 주소 + API 키. Dawarich가 허용하는 주소(`APPLICATION_HOSTS`에 있는 것, 예: 공개 https 이름)를 쓰세요 — 다른 호스트 이름은 거절해요. Dawarich에 그려 둔 **Areas**("집", "회사")가 장소 이름이 돼요. |
 | **OwnTracks** | OwnTracks 앱(또는 같은 형식)이 memexhub로 위치를 보냄 | 연결 → OwnTracks. 장소는 한 줄에 하나씩 `이름, 위도, 경도, 반경(m)`. 앱: 모드 *HTTP*, 주소 `https://<수집 주소>/ingest/owntracks`, 헤더 `X-Ingest-Token`에 범위 `location` 기기 토큰. 점은 `keepDays`(기본 400일) 동안만 보관해요. |
 | **Nominatim** (지명) | OpenStreetMap 역지오코딩 | 연결 → Nominatim. 공개 서버는 초당 1건, 연락처를 적어 주세요. 결과는 캐시해요. 내 Nominatim 주소로 바꿀 수도 있어요. |
 

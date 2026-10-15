@@ -6,7 +6,7 @@ import type { Area, LocationProvider, Point, Visit } from "./types.js";
 /** Dawarich (self-hosted location history) over its REST API. Read-only. */
 export class Dawarich implements LocationProvider {
   constructor(
-    private o: { url: string; apiKey: string; hostHeader?: string },
+    private o: { url: string; apiKey: string },
     private f: typeof fetch,
   ) {}
 
@@ -14,7 +14,6 @@ export class Dawarich implements LocationProvider {
     const u = new URL(`${this.o.url.replace(/\/+$/, "")}/api/v1/${path}`);
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
     const headers: Record<string, string> = { authorization: `Bearer ${this.o.apiKey}`, accept: "application/json" };
-    if (this.o.hostHeader) headers.host = this.o.hostHeader;
     const r = await this.f(u, { headers });
     if (!r.ok) throw new Error(`dawarich ${path}: HTTP ${r.status}`);
     return { data: (await r.json()) as unknown, pages: Number(r.headers.get("x-total-pages") ?? 1) || 1 };
@@ -56,15 +55,15 @@ export const dawarichProvider = defineProvider({
   id: "dawarich",
   title: T("Dawarich", "Dawarich"),
   config: z.object({
-    url: z.string().url().describe("Dawarich URL, e.g. http://192.168.0.10:3000"),
-    hostHeader: z.string().max(200).optional().describe("Host header to send (only if Dawarich rejects the address you use)"),
+    // Use an address Dawarich accepts (its APPLICATION_HOSTS), e.g. its public https name — fetch cannot override Host.
+    url: z.string().url().describe("Dawarich URL as listed in its APPLICATION_HOSTS, e.g. https://location.example.com"),
     allowPrivateNetwork: z.boolean().default(false).describe("Server is on my private network"),
   }),
   secrets: z.object({ apiKey: z.string().min(1).describe("API key (Dawarich → Account)") }),
   runtimes: ["node", "workers"],
   hosts: (c: any) => [new URL(c.url).hostname],
   allowPrivate: (c: any) => !!c.allowPrivateNetwork,
-  create: ({ config, secrets, fetch }) => new Dawarich({ url: config.url, apiKey: secrets.apiKey, hostHeader: config.hostHeader || undefined }, fetch),
+  create: ({ config, secrets, fetch }) => new Dawarich({ url: config.url, apiKey: secrets.apiKey }, fetch),
   test: async (d) => {
     await d.areas();
   },

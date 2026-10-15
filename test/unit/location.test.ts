@@ -49,7 +49,7 @@ describe("stays", () => {
 });
 
 describe("providers", () => {
-  it("Dawarich pages through points, sends the key and host header", async () => {
+  it("Dawarich pages through points and sends the key", async () => {
     const seen: { url: string; headers: Record<string, string> }[] = [];
     const f = (async (u: URL, init: RequestInit) => {
       seen.push({ url: String(u), headers: init.headers as Record<string, string> });
@@ -58,11 +58,11 @@ describe("providers", () => {
         return new Response(JSON.stringify([{ timestamp: T0 + page, latitude: "37.5", longitude: "127.0", accuracy: 8 }, { timestamp: "x" }]), { headers: { "x-total-pages": "2" } });
       return new Response(JSON.stringify([{ name: "Home", latitude: 37.5, longitude: 127, radius: 80 }, { name: "" }]));
     }) as unknown as typeof fetch;
-    const d = new Dawarich({ url: "http://dawarich.example.com/", apiKey: "k", hostHeader: "localhost" }, f);
+    const d = new Dawarich({ url: "http://dawarich.example.com/", apiKey: "k" }, f);
     expect((await d.points(new Date(T0 * 1000), new Date((T0 + 86400) * 1000))).map((p) => p.t)).toEqual([T0 + 1, T0 + 2]);
     expect(await d.areas()).toEqual([{ name: "Home", lat: 37.5, lon: 127, radius: 80 }]);
     expect(seen[0]!.url).toMatch(/^http:\/\/dawarich\.example\.com\/api\/v1\/points\?/);
-    expect(seen[0]!.headers).toMatchObject({ authorization: "Bearer k", host: "localhost" });
+    expect(seen[0]!.headers).toMatchObject({ authorization: "Bearer k" });
   });
 
   it("stored points and Nominatim with cache and rate limit", async () => {
