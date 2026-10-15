@@ -1,0 +1,12 @@
+[
+  {"name": "hyundai-multiline", "text": "[Web발신]\n현대카드 M 승인\n홍*동\n12,500원 일시불\n10/14 12:30\n샘플카페\n누적 345,000원"},
+  {"name": "hyundai-short-form", "text": "[Web발신]\n현대 네이버 승인\n홍*동\n19,900원 일시불\n10/14 20:56\n샘플식당\n누적1,234,560원"},
+  {"name": "hyundai-installment", "text": "[Web발신]\n현대카드 ZERO 승인\n홍*동\n360,000원 3개월\n10/02 18:05\n샘플전자\n누적 1,000,000원"},
+  {"name": "hyundai-oneline-cancel", "text": "[현대카드] 홍*동님 09/15 샘플페이(주) 사용 106,800원 취소처리되었습니다"},
+  {"name": "hyundai-foreign-cancel", "text": "[현대카드] 홍*동님 10/13 해외사용 Sample*Shop CNY 21.30 취소처리 되었습니다."},
+  {"name": "samsung-merchant-on-time-line", "text": "[Web발신]\n삼성1234승인 홍*동\n1,500원 일시불\n10/15 09:11 샘플편의점\n누적98,765원"},
+  {"name": "samsung-card-word", "text": "[Web발신]\n삼성카드 승인 홍*동\n8,000원 일시불\n10/15 13:02\n샘플분식\n누적 50,000원"},
+  {"name": "samsung-cancel", "text": "[Web발신]\n삼성1234취소 홍*동\n8,000원\n10/15 13:40 샘플분식"},
+  {"name": "not-a-card", "text": "[Web발신]\n택배가 도착했습니다"},
+  {"name": "no-approval-word", "text": "[Web발신]\n현대카드 안내\n이번 달 명세서가 발송되었습니다"}
+]

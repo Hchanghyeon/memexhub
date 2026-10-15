@@ -1,0 +1,56 @@
+{
+ "hyundai-multiline": {
+  "merchant": "샘플카페",
+  "amount": "₩12,500",
+  "card": "현대카드 M 일시불",
+  "time": "2026-10-14T12:30:00+09:00"
+ },
+ "hyundai-short-form": {
+  "merchant": "샘플식당",
+  "amount": "₩19,900",
+  "card": "현대카드 네이버 일시불",
+  "time": "2026-10-14T20:56:00+09:00"
+ },
+ "hyundai-installment": {
+  "merchant": "샘플전자",
+  "amount": "₩360,000",
+  "card": "현대카드 ZERO 3개월",
+  "time": "2026-10-02T18:05:00+09:00"
+ },
+ "hyundai-oneline-cancel": {
+  "merchant": "샘플페이(주)",
+  "amount": "-₩106,800",
+  "card": "현대카드 취소",
+  "time": ""
+ },
+ "hyundai-foreign-cancel": {
+  "merchant": "Sample*Shop",
+  "amount": "-CNY 21.30",
+  "card": "현대카드 취소",
+  "time": ""
+ },
+ "samsung-merchant-on-time-line": {
+  "merchant": "샘플편의점",
+  "amount": "₩1,500",
+  "card": "삼성카드 일시불",
+  "time": "2026-10-15T09:11:00+09:00"
+ },
+ "samsung-card-word": {
+  "merchant": "샘플분식",
+  "amount": "₩8,000",
+  "card": "삼성카드 일시불",
+  "time": "2026-10-15T13:02:00+09:00"
+ },
+ "samsung-cancel": {
+  "merchant": "샘플분식",
+  "amount": "-₩8,000",
+  "card": "삼성카드 취소",
+  "time": "2026-10-15T13:40:00+09:00"
+ },
+ "not-a-card": {
+  "error": true
+ },
+ "no-approval-word": {
+  "error": true
+ }
+}

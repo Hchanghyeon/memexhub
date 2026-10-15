@@ -11,7 +11,7 @@ src/storage/    VaultStorage interface, path policy, SafeVault (decorator), fs /
 src/auth/       admin (setup code, sessions, TOTP), oauth (OAuth 2.1 server), ingest-tokens
 src/http/       Hono surfaces: mcp (8787), ingest (8790); common middleware
 src/admin/      admin UI (Hono JSX, server-rendered) incl. OAuth consent page
-src/modules/    feature plugins: vault, hub, (wiki, ledger, mail, location, health, tasks …)
+src/modules/    feature plugins: vault, wiki (layout, lint, upkeep), ledger, hub, (mail, location, health, tasks …)
 src/hub.ts      composition root — loads modules, builds the MCP server per request
 src/main.ts     Node entry point (listeners)
 test/unit · test/contract · test/integration · test/golden · test/fixtures
