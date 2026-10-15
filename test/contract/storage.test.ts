@@ -1,0 +1,83 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { FsStorage } from "../../src/storage/fs.js";
+import { SafeVault } from "../../src/storage/safe-vault.js";
+import { sqliteDb } from "../../src/platform/node.js";
+import { migrate } from "../../src/core/migrations.js";
+import type { VaultStorage } from "../../src/storage/types.js";
+
+/** Contract every storage adapter must pass. Add new adapters to `adapters`. */
+const adapters: Record<string, () => VaultStorage> = {
+  fs: () => new FsStorage(mkdtempSync(join(tmpdir(), "mx-fs-"))),
+};
+
+for (const [name, make] of Object.entries(adapters)) {
+  describe(`storage contract: ${name}`, () => {
+    let s: VaultStorage;
+    beforeEach(() => {
+      s = make();
+    });
+    it("writes, reads, lists, stats", async () => {
+      await s.write("a/b/note.md", "hello", { ifNoneMatch: "*" });
+      expect((await s.read("a/b/note.md")).text).toBe("hello");
+      expect((await s.list()).map((f) => f.path)).toContain("a/b/note.md");
+      expect((await s.stat("a/b/note.md"))?.size).toBe(5);
+      expect(await s.stat("missing.md")).toBeNull();
+    });
+    it("refuses create-if-absent on existing and detects conflicts", async () => {
+      await s.write("n.md", "1");
+      await expect(s.write("n.md", "2", { ifNoneMatch: "*" })).rejects.toMatchObject({ code: "exists" });
+      await expect(s.write("n.md", "2", { ifMatch: "stale" })).rejects.toMatchObject({ code: "conflict" });
+    });
+    it("moves without overwriting", async () => {
+      await s.write("x.md", "x");
+      await s.write("y.md", "y");
+      await expect(s.move("x.md", "y.md")).rejects.toMatchObject({ code: "exists" });
+      await s.move("x.md", "z/x.md");
+      expect((await s.read("z/x.md")).text).toBe("x");
+    });
+  });
+}
+
+describe("SafeVault policy", () => {
+  let v: SafeVault;
+  let root: string;
+  beforeEach(async () => {
+    root = mkdtempSync(join(tmpdir(), "mx-safe-"));
+    const db = sqliteDb(":memory:");
+    await migrate(db);
+    v = new SafeVault(new FsStorage(root), { readOnly: false, protectedPaths: ["CLAUDE.md", "rules/**"], maxWriteBytes: 100 }, db, "test");
+  });
+  it("blocks traversal, hidden paths and non-notes", async () => {
+    await expect(v.read("../etc/passwd.md")).rejects.toMatchObject({ code: "forbidden" });
+    await expect(v.write(".obsidian/x.md", "x")).rejects.toMatchObject({ code: "forbidden" });
+    await expect(v.write("a/../../x.md", "x")).rejects.toMatchObject({ code: "forbidden" });
+    await expect(v.write("img.png", "x")).rejects.toMatchObject({ code: "invalid" });
+  });
+  it("protects rule notes", async () => {
+    await expect(v.write("CLAUDE.md", "evil")).rejects.toMatchObject({ code: "forbidden" });
+    await expect(v.append("rules/nightly.md", "evil")).rejects.toMatchObject({ code: "forbidden" });
+    await expect(v.move("ok.md", "rules/x.md")).rejects.toThrow();
+  });
+  it("limits size and skips unchanged writes", async () => {
+    await expect(v.write("big.md", "x".repeat(101))).rejects.toMatchObject({ code: "invalid" });
+    expect((await v.write("n.md", "same")).changed).toBe(true);
+    expect((await v.write("n.md", "same")).changed).toBe(false);
+  });
+  it("trashes instead of deleting and hides trash from listings", async () => {
+    await v.write("gone.md", "bye");
+    const r = await v.trash("gone.md");
+    expect(r.movedTo.startsWith(".trash/")).toBe(true);
+    expect((await v.list()).map((f) => f.path)).not.toContain("gone.md");
+    expect((await v.list()).some((f) => f.path.startsWith(".trash"))).toBe(false);
+  });
+  it("searches", async () => {
+    mkdirSync(join(root, "w"));
+    writeFileSync(join(root, "w", "redis.md"), "line one\nRedis TTL note\n");
+    const hits = await v.search("redis ttl", {});
+    expect(hits[0]?.path).toBe("w/redis.md");
+    expect(hits[0]?.lines[0]?.n).toBe(2);
+  });
+});
