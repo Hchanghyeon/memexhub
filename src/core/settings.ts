@@ -35,6 +35,15 @@ export const SettingsSchema = z.object({
       lint: z.record(z.string(), z.object({ enabled: z.boolean(), options: z.record(z.string(), z.unknown()).optional() })).default({}),
     })
     .default({ roles: { index: { style: "none" }, rules: [] }, lint: {} }),
+  ledger: z
+    .object({
+      /** Place names (from your location provider's named areas) that mean "office": a transit-card tap there is an office gate, not a ride. */
+      officePlaces: z.array(z.string()).default([]),
+      paymentsNote: z.string().default("ledger/payments/{year}.md"),
+      moneyNote: z.string().default("ledger/money.md"),
+      language: z.enum(["ko", "en"]).default("en"),
+    })
+    .default({ officePlaces: [], paymentsNote: "ledger/payments/{year}.md", moneyNote: "ledger/money.md", language: "en" }),
   admin: z
     .object({ allowPublic: z.boolean().default(false) })
     .default({ allowPublic: false }),
