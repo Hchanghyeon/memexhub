@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Hono } from "hono";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,52 +6,51 @@ import { Hub } from "../../src/hub.js";
 import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
-import { adminApp, securityChecks, vaultChoice } from "../../src/admin/app.js";
+import { securityChecks, vaultChoice } from "../../src/admin/app.js";
 import { SettingsSchema } from "../../src/core/settings.js";
 import { testFs } from "../helpers.js";
+import { adminClient } from "../admin-client.js";
 
-let hub: Hub, app: Hono, cookie = "", csrf = "";
-const BASE = "http://10.0.0.2";
-const form = (p: string, f: Record<string, string>) =>
-  app.request(`${BASE}${p}`, { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrf, ...f }).toString() });
+let hub: Hub, a: ReturnType<typeof adminClient>, code = "";
 
 beforeAll(async () => {
   const env = loadEnv({ MEMEXHUB_SECRET: "k".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-wz-")) });
   hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-wzv-")))]);
   const log = console.log;
-  let code = "";
-  console.log = (...a: unknown[]) => {
-    const m = String(a.join(" ")).match(/setup code[^A-Za-z0-9]*([A-Za-z0-9-]{6,})/i);
+  console.log = (...x: unknown[]) => {
+    const m = String(x.join(" ")).match(/setup code[^A-Za-z0-9]*([A-Za-z0-9-]{6,})/i);
     if (m) code = m[1]!;
   };
   await hub.init();
   console.log = log;
-  app = new Hono().use("*", (c: any, n: any) => (c.set("ip", "10.0.0.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-  const r = await app.request(`${BASE}/setup`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, username: "owner", password: "a-long-test-password" }).toString() });
-  expect(r.headers.get("location")).toBe("/start");
-  cookie = r.headers.get("set-cookie")!.split(";")[0]!;
-  csrf = (await (await app.request(`${BASE}/start`, { headers: { cookie } })).text()).match(/name="csrf" value="([^"]+)"/)![1]!;
+  a = adminClient(hub);
 });
 
-describe("first-run wizard", () => {
-  it("walks through the four steps, each skippable", async () => {
-    const one = await (await app.request(`${BASE}/start`, { headers: { cookie } })).text();
-    expect(one).toContain("Step 1 of 4");
-    expect(one).toContain('<option value="Asia/Seoul"');
-    expect(one).toContain('href="/start?step=2"');
-    expect((await form("/start/basics", { timezone: "Asia/Seoul", notes: "ko", tools: "both" })).headers.get("location")).toBe("/start?step=2");
+describe("first run", () => {
+  it("creates the admin with the setup code, once", async () => {
+    expect((await a.post("/setup", { code: "wrong-code-000", username: "owner", password: "a-long-test-password" })).status).toBe(403);
+    expect((await a.post("/setup", { code, username: "owner", password: "short" })).status).toBe(400);
+    await a.adopt(await a.post("/setup", { code, username: "owner", password: "a-long-test-password" }));
+    expect(await a.json("/session")).toMatchObject({ signedIn: true, username: "owner", onboarded: false });
+    expect((await a.post("/setup", { code, username: "again", password: "a-long-test-password" })).status).toBe(409);
+  });
+
+  it("walks through the setup steps", async () => {
+    const start = await a.json("/start");
+    expect(start.zones).toContain("Asia/Seoul");
+    expect(start.mcpUrl).toBe("https://hub.example.com/mcp");
+    expect((await a.post("/start/basics", { timezone: "Asia/Seoul", notes: "ko", tools: "both" })).status).toBe(200);
     const s = await hub.settings.get();
     expect([s.timezone, s.toolLanguage, s.ledger.language, s.health.language, s.location.language]).toEqual(["Asia/Seoul", "both", "ko", "ko", "ko"]);
-    expect((await form("/start/basics", { timezone: "Mars/Olympus" })).status).toBe(302);
+    await a.post("/start/basics", { timezone: "Mars/Olympus", notes: "ko", tools: "ko" });
     expect((await hub.settings.get()).timezone).toBe("Asia/Seoul");
-    expect((await form("/vault", { provider: "builtin", next: "3" })).headers.get("location")).toBe("/start?step=3");
+    expect((await a.post("/vault", { provider: "builtin" })).status).toBe(200);
     expect(hub.vault).toBeDefined();
-    expect((await form("/wiki/preset", { preset: "para-ko", next: "https://evil.example.com" })).headers.get("location")).toBe("/vault?ok=Layout+%22para-ko%22+applied.");
-    expect((await form("/wiki/preset", { preset: "llm-wiki", next: "4" })).headers.get("location")).toBe("/start?step=4");
-    expect(await (await app.request(`${BASE}/start?step=4`, { headers: { cookie } })).text()).toContain("https://hub.example.com/mcp");
-    expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).toContain("Continue setup");
-    expect((await form("/start/done", {})).headers.get("location")).toBe("/");
-    expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).not.toContain("Continue setup");
+    expect((await a.post("/wiki/preset", { preset: "nope" })).status).toBe(400);
+    expect((await a.post("/wiki/preset", { preset: "llm-wiki" })).status).toBe(200);
+    expect((await a.json("/overview")).onboarded).toBe(false);
+    await a.post("/start/done");
+    expect((await a.json("/overview")).onboarded).toBe(true);
   });
 });
 
@@ -63,24 +61,28 @@ describe("vault form", () => {
     expect(vaultChoice({ provider: "webdav", config: { url: "https://dav.example.com/v", username: "me" } })).toMatchObject({ provider: "webdav", url: "https://dav.example.com/v", username: "me" });
     expect(vaultChoice(undefined)).toEqual({});
     await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: "/vaults/notes" } }, "t");
-    const html = await (await app.request(`${BASE}/vault`, { headers: { cookie } })).text();
-    expect(html).toMatch(/<option value="folder" selected="">/);
-    expect(html).not.toMatch(/<option value="builtin" selected="">/);
-    expect(html).toContain('value="/vaults/notes"');
+    expect((await a.json("/vault")).choice).toEqual({ provider: "folder", path: "/vaults/notes" });
+  });
+});
+
+describe("devices and connections", () => {
+  it("creates a token with chosen scopes and refuses unknown ones", async () => {
+    const r = await (await a.post("/devices", { name: "phone", scopes: ["ledger", "location"] })).json();
+    expect(r.token).toMatch(/.{24,}/);
+    expect((await a.json("/devices")).tokens[0]).toMatchObject({ name: "phone", scopes: ["ledger", "location"] });
+    expect((await a.post("/devices", { name: "x", scopes: ["admin"] })).status).toBe(400);
+    expect((await a.post("/devices", { name: "x", scopes: [] })).status).toBe(400);
   });
 });
 
 describe("security checks", () => {
   const base = SettingsSchema.parse({});
-  it("flags an open admin without two-factor as high and lists the rest plainly", () => {
+  it("flags an open admin without two-factor as high and lists the rest", () => {
     const bad = securityChecks({ totp: false, s: { ...base, admin: { allowPublic: true, language: "auto" } }, vault: false, davTokens: 0, publicUrl: "http://localhost:8787" });
-    expect(bad.filter((x) => x.level === "high").map((x) => x.text)).toEqual([
-      "The admin UI is open to the internet without two-factor — turn two-factor on now.",
-      "PUBLIC_URL uses http — use https outside local testing.",
-    ]);
+    expect(bad.filter((x) => x.level === "high").map((x) => x.id)).toEqual(["totp_off_public", "http_url"]);
     const good = securityChecks({ totp: true, s: { ...base, mcp: { allowCidrs: ["160.79.104.0/21"], enforceAllow: true } }, vault: true, davTokens: 0, publicUrl: "https://hub.example.com" });
     expect(good.every((x) => x.ok)).toBe(true);
     const dav = securityChecks({ totp: true, s: { ...base, dav: { enabled: true, maxFileMb: 50 } }, vault: true, davTokens: 0, publicUrl: "https://x" });
-    expect(dav.find((x) => x.text.includes("WebDAV"))?.ok).toBe(false);
+    expect(dav.find((x) => x.id === "dav_no_devices")?.ok).toBe(false);
   });
 });

@@ -17,3 +17,12 @@ bucket_name = "memexhub-vault"
 
 [triggers]
 crons = ["*/5 * * * *"]
+
+# The admin web app (built by `npm run build:web` into dist-web/), served through the Worker.
+[assets]
+directory = "./dist-web"
+binding = "ASSETS"
+run_worker_first = true
+
+[build]
+command = "npm run build:web"

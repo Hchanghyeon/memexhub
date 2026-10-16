@@ -8,7 +8,7 @@ import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
 import { mcpApp } from "../../src/http/mcp.js";
-import { adminApp } from "../../src/admin/app.js";
+import { adminClient } from "../admin-client.js";
 import { OAuthServer } from "../../src/auth/oauth.js";
 import { pkceS256, randomToken } from "../../src/core/crypto.js";
 import { testFs } from "../helpers.js";
@@ -120,20 +120,21 @@ describe("pages and the admin surface", () => {
     expect(r.headers.get("strict-transport-security")).toMatch(/max-age=/);
   });
 
-  it("admin: private network only, hardened session cookie, CSRF on every POST, new session id per login", async () => {
-    const admin = (ipAddr: string) => new Hono().use("*", (c: any, n: any) => (c.set("ip", ipAddr), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-    expect((await admin("203.0.113.9").request("https://admin.example.com/login")).status).toBe(403);
-    const lan = admin("192.168.0.5");
-    const login = () => lan.request("https://admin.example.com/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=owner&password=a-long-test-password" });
+  it("admin: private network only, hardened session cookie, CSRF header on every change, new session id per login", async () => {
+    expect((await adminClient(hub, { ip: "203.0.113.9", origin: "https://admin.example.com" }).get("/session")).status).toBe(403);
+    const lan = adminClient(hub, { ip: "192.168.0.5", origin: "https://admin.example.com" });
+    const login = () => lan.post("/login", { username: "owner", password: "a-long-test-password" });
     const one = (await login()).headers.get("set-cookie")!;
     expect(one).toMatch(/HttpOnly/i);
     expect(one).toMatch(/SameSite=Strict/i);
     expect(one).toMatch(/Secure/i);
-    const two = (await login()).headers.get("set-cookie")!;
-    expect(one.split(";")[0]).not.toBe(two.split(";")[0]);
-    const cookie = two.split(";")[0]!;
-    const noCsrf = await lan.request("https://admin.example.com/tokens", { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: "name=x&scopes=ledger" });
-    expect(noCsrf.status).toBe(403);
+    const two = await login();
+    expect(one.split(";")[0]).not.toBe(two.headers.get("set-cookie")!.split(";")[0]);
+    await lan.adopt(two);
+    expect((await lan.post("/devices", { name: "x", scopes: ["ledger"] }, { "x-csrf": "" })).status).toBe(403);
+    expect((await lan.post("/devices", { name: "x", scopes: ["ledger"] }, { "x-csrf": "nope" })).status).toBe(403);
+    expect((await lan.post("/devices", { name: "x", scopes: ["ledger"] })).status).toBe(200);
+    expect((await lan.post("/login", { username: "owner", password: "wrong" })).status).toBe(401);
   });
 });
 
@@ -154,10 +155,10 @@ describe("anomaly signals and an internet-facing admin", () => {
   it("refuses sign-in from the internet without two-factor even when the admin UI is opened", async () => {
     await hub.settings.set("admin", { allowPublic: true, language: "auto" });
     await hub.platform.db.run(`UPDATE admins SET created_at = ?`, [new Date(Date.now() - 2 * 86_400_000).toISOString()]); // the enrolment window is over
-    const pub = new Hono().use("*", (c: any, n: any) => (c.set("ip", "203.0.113.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-    const r = await pub.request("https://admin.example.com/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=owner&password=a-long-test-password" });
+    const pub = adminClient(hub, { ip: "203.0.113.9", origin: "https://admin.example.com" });
+    const r = await pub.post("/login", { username: "owner", password: "a-long-test-password" });
     expect(r.status).toBe(403);
-    expect(await r.text()).toMatch(/Two-factor sign-in is required/);
+    expect((await r.json()).error).toBe("two_factor_required");
     expect(r.headers.get("set-cookie")).toBeNull();
     await hub.settings.set("admin", { allowPublic: false, language: "auto" });
   });
@@ -168,50 +169,36 @@ describe("two-factor enrolment", () => {
     const { totp } = await import("../../src/core/crypto.js");
     await hub.settings.set("admin", { allowPublic: true, language: "auto" });
     const id = await hub.admin.createAdmin("fresh", "another-long-password", "t");
-    const pub = new Hono().use("*", (c: any, n: any) => (c.set("ip", "203.0.113.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-    const login = await pub.request("https://admin.example.com/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=fresh&password=another-long-password" });
-    expect(login.status).toBe(302);
-    const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
-    const get = (p: string) => pub.request(`https://admin.example.com${p}`, { headers: { cookie } });
-    expect((await get("/")).headers.get("location")).toBe("/two-factor");
-    expect((await get("/backups")).headers.get("location")).toBe("/two-factor");
-    const page = await (await get("/two-factor")).text();
-    const csrf = page.match(/name="csrf" value="([^"]+)"/)![1]!;
-    const post = (p: string, f: Record<string, string>) => pub.request(`https://admin.example.com${p}`, { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrf, ...f }).toString() });
-    const shown = await (await post("/totp", {})).text();
-    const secret = shown.match(/<pre>([A-Z2-7]+)<\/pre>/)![1]!;
+    const pub = adminClient(hub, { ip: "203.0.113.9", origin: "https://admin.example.com" });
+    await pub.login("fresh", "another-long-password");
+    expect(await pub.json("/session")).toMatchObject({ signedIn: true, mustEnrol: true });
+    expect((await pub.get("/overview")).status).toBe(403);
+    expect((await pub.get("/backups")).status).toBe(403);
+    const { secret } = await (await pub.post("/totp/start")).json();
     expect(await hub.admin.hasTotp(id)).toBe(false); // nothing changes before a code is confirmed
-    expect(await (await post("/totp/confirm", { code: "000000" })).text()).toContain("did not match");
+    expect((await (await pub.post("/totp/confirm", { code: "000000" })).json()).error).toBe("wrong_code");
     expect(await hub.admin.hasTotp(id)).toBe(false);
-    expect((await post("/totp/confirm", { code: await totp(secret, Date.now()) })).status).toBe(302);
+    expect((await pub.post("/totp/confirm", { code: await totp(secret, Date.now()) })).status).toBe(200);
     expect(await hub.admin.hasTotp(id)).toBe(true);
-    expect((await get("/")).status).toBe(200);
+    expect((await pub.get("/overview")).status).toBe(200);
     await hub.settings.set("admin", { allowPublic: false, language: "auto" });
   });
 
   it("opens the admin UI to the internet only for an admin with two-factor", async () => {
-    const lan = new Hono().use("*", (c: any, n: any) => (c.set("ip", "10.0.0.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-    const signIn = async (u: string, p: string) => {
-      const r = await lan.request("http://10.0.0.2/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ username: u, password: p }).toString() });
-      const cookie = r.headers.get("set-cookie")!.split(";")[0]!;
-      const csrf = (await (await lan.request("http://10.0.0.2/security", { headers: { cookie } })).text()).match(/name="csrf" value="([^"]+)"/)![1]!;
-      return (f: Record<string, string>) => lan.request("http://10.0.0.2/admin-public", { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrf, ...f }).toString() });
-    };
     await hub.admin.createAdmin("nototp", "yet-another-long-password", "t");
-    const without = await signIn("nototp", "yet-another-long-password");
-    expect(decodeURIComponent((await without({ enable: "1" })).headers.get("location")!)).toMatch(/two-factor.first/);
+    const without = adminClient(hub);
+    await without.login("nototp", "yet-another-long-password");
+    expect((await (await without.post("/admin-public", { enable: true })).json()).error).toBe("two_factor_first");
     expect((await hub.settings.get()).admin.allowPublic).toBe(false);
     const { totp } = await import("../../src/core/crypto.js");
     const id = await hub.admin.createAdmin("withtotp", "a-fourth-long-password", "t");
     const secret = await hub.admin.startTotp(id);
     expect(await hub.admin.confirmTotp(id, await totp(secret, Date.now()))).toBe(true);
-    const r = await lan.request("http://10.0.0.2/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ username: "withtotp", password: "a-fourth-long-password", totp: await totp(secret, Date.now()) }).toString() });
-    const cookie = r.headers.get("set-cookie")!.split(";")[0]!;
-    const csrf = (await (await lan.request("http://10.0.0.2/security", { headers: { cookie } })).text()).match(/name="csrf" value="([^"]+)"/)![1]!;
-    const post = (f: Record<string, string>) => lan.request("http://10.0.0.2/admin-public", { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrf, ...f }).toString() });
-    expect(decodeURIComponent((await post({ enable: "1" })).headers.get("location")!)).toMatch(/opens.from.anywhere/);
+    const lan = adminClient(hub);
+    await lan.login("withtotp", "a-fourth-long-password", await totp(secret, Date.now()));
+    expect((await lan.post("/admin-public", { enable: true })).status).toBe(200);
     expect((await hub.settings.get()).admin.allowPublic).toBe(true);
-    await post({ enable: "0" });
+    await lan.post("/admin-public", { enable: false });
     expect((await hub.settings.get()).admin.allowPublic).toBe(false);
   });
 

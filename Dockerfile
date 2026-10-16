@@ -12,7 +12,8 @@ RUN npm ci
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY recipes ./recipes
-RUN npm run build && npm prune --omit=dev && npm cache clean --force
+COPY web ./web
+RUN npm run build && npm run build:web && npm prune --omit=dev && npm cache clean --force
 
 FROM ${NODE_IMAGE}
 LABEL org.opencontainers.image.source="https://github.com/Hchanghyeon/memexhub" \
@@ -24,7 +25,7 @@ COPY --from=build --chown=root:root /app/node_modules ./node_modules
 COPY --from=build --chown=root:root /app/dist ./dist
 COPY --from=build --chown=root:root /app/recipes ./recipes
 COPY --chown=root:root package.json ./
-COPY --chown=root:root assets ./assets
+COPY --from=build --chown=root:root /app/dist-web ./dist-web
 # The app code is owned by root and read-only for the app user; only /data and /vaults are writable.
 RUN mkdir -p /data /vaults && chown node:node /data /vaults && chmod 700 /data
 USER node

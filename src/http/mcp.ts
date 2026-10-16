@@ -6,7 +6,7 @@ import { OAuthError } from "../auth/oauth.js";
 import { inAny } from "../core/ip.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
-import { langOf } from "../admin/ui.js";
+import { langOf } from "../admin/lang.js";
 import { recordAccess } from "../core/access.js";
 
 type Vars = { Variables: { ip: string } };

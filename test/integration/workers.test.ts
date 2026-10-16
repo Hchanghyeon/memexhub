@@ -6,19 +6,17 @@ import { fakeD1, fakeR2 } from "../helpers.js";
 /** Runs the real Workers entry with a D1 on SQLite and an in-memory R2 bucket. */
 const env = { MEMEXHUB_SECRET: "w".repeat(48), PUBLIC_URL: "https://memex.example.workers.dev", SETUP_CODE: "TEST-SETU-PCOD-E123", TZ: "UTC", DB: fakeD1(), VAULT: fakeR2() };
 const ctx = { waitUntil: (_p: Promise<unknown>) => {} };
-let cookie = "";
-const req = (path: string, init: RequestInit & { form?: Record<string, string> } = {}) => {
+let cookie = "", csrf = "";
+const req = (path: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   headers.set("cf-connecting-ip", "203.0.113.50");
   if (cookie) headers.set("cookie", cookie);
-  let body = init.body;
-  if (init.form) {
-    headers.set("content-type", "application/x-www-form-urlencoded");
-    body = new URLSearchParams(init.form).toString();
-  }
-  return worker.fetch(new Request(`https://memex.example.workers.dev${path}`, { ...init, headers, body }), env as any, ctx);
+  return worker.fetch(new Request(`https://memex.example.workers.dev${path}`, { ...init, headers }), env as any, ctx);
 };
-const csrfOf = async (path: string) => (await (await req(path)).text()).match(/name="csrf" value="([^"]+)"/)![1]!;
+const api = (path: string, body?: unknown) =>
+  req(`/admin/api${path}`, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json", "x-csrf": csrf }, body: JSON.stringify(body) });
+const ASSETS = { fetch: async (r: Request) => (new URL(r.url).pathname === "/index.html" ? new Response("<!doctype html><div id=root></div>") : new Response("missing", { status: 404 })) };
+(env as any).ASSETS = ASSETS;
 
 describe("Cloudflare Workers entry", () => {
   it("serves health, OAuth metadata and refuses MCP before setup", async () => {
@@ -28,28 +26,26 @@ describe("Cloudflare Workers entry", () => {
   });
 
   it("sets up with SETUP_CODE, forces two-factor first, then connects the R2 vault", async () => {
-    expect((await req("/admin/setup", { method: "POST", form: { code: "wrong-code-0000", username: "owner", password: "a-long-test-password" } })).status).toBe(403);
-    const r = await req("/admin/setup", { method: "POST", form: { code: "test-setu-pcod-e123", username: "owner", password: "a-long-test-password" } });
-    expect(r.headers.get("location")).toBe("/admin/start");
+    expect((await api("/setup", { code: "wrong-code-0000", username: "owner", password: "a-long-test-password" })).status).toBe(403);
+    const r = await api("/setup", { code: "test-setu-pcod-e123", username: "owner", password: "a-long-test-password" });
+    expect(r.status).toBe(200);
     cookie = r.headers.get("set-cookie")!.split(";")[0]!;
-    expect((await req("/admin/start")).headers.get("location")).toBe("/admin/two-factor");
-    const csrf = await csrfOf("/admin/two-factor");
-    const key = (await (await req("/admin/totp", { method: "POST", form: { csrf } })).text()).match(/<pre>([A-Z2-7]+)<\/pre>/)![1]!;
-    expect((await req("/admin/totp/confirm", { method: "POST", form: { csrf, code: await totp(key, Date.now()) } })).status).toBe(302);
-    const vaultPage = await (await req("/admin/start?step=2")).text();
-    expect(vaultPage).toContain('value="r2"');
-    expect(vaultPage).not.toContain('value="builtin"');
-    expect((await req("/admin/vault", { method: "POST", form: { csrf, provider: "r2", next: "3" } })).headers.get("location")).toBe("/admin/start?step=3");
-    expect((await req("/admin/wiki/preset", { method: "POST", form: { csrf, preset: "llm-wiki", next: "4" } })).status).toBe(302);
+    const s = (await (await api("/session")).json()) as any;
+    expect(s).toMatchObject({ signedIn: true, mustEnrol: true, platform: "workers" });
+    csrf = s.csrf;
+    expect((await api("/overview")).status).toBe(403);
+    const { secret } = (await (await api("/totp/start", {})).json()) as any;
+    expect((await api("/totp/confirm", { code: await totp(secret, Date.now()) })).status).toBe(200);
+    expect(((await (await api("/start")).json()) as any).runtime).toBe("workers");
+    expect((await api("/vault", { provider: "r2" })).status).toBe(200);
+    expect((await api("/wiki/preset", { preset: "llm-wiki" })).status).toBe(200);
+    const page = await req("/admin/vault");
+    expect(await page.text()).toContain("<div id=root>");
   });
 
   it("records a payment from a device into the R2 vault and runs jobs on the cron trigger", async () => {
-    const csrf = await csrfOf("/admin/features");
-    const on = new URLSearchParams({ csrf });
-    for (const m of ["wiki", "ledger"]) on.append("on", m);
-    await req("/admin/modules", { method: "POST", body: on.toString(), headers: { "content-type": "application/x-www-form-urlencoded" } });
-    const loc = (await req("/admin/tokens", { method: "POST", form: { csrf, name: "phone", scopes: "ledger" } })).headers.get("location")!;
-    const token = new URL(loc, "https://x").searchParams.get("new_token")!;
+    await api("/modules", { on: ["wiki", "ledger"] });
+    const { token } = (await (await api("/devices", { name: "phone", scopes: ["ledger"] })).json()) as any;
     const r = await worker.fetch(
       new Request("https://memex.example.workers.dev/ingest/transaction", { method: "POST", headers: { "x-ingest-token": token, "content-type": "application/json", "cf-connecting-ip": "198.51.100.1" }, body: JSON.stringify({ merchant: "Sample Cafe", amount: "₩4,500", card: "Card", time: "2026-10-14T03:30:00Z" }) }),
       env as any,

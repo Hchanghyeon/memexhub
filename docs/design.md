@@ -9,7 +9,7 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 3. **Explain in plain words.** Labels say what happens ("Only allow Anthropic's servers to call /mcp"), not how it is implemented. Help text is one sentence.
 4. **Safe by design, not by warning.** Dangerous actions are hidden or need a second step; secrets are shown once with a copy button and a clear "won't be shown again".
 5. **Always confirm results.** After saving: a short success message; after a failed test: what went wrong and how to fix it.
-6. **Fast and light.** Server-rendered HTML, no frontend build, works without JavaScript where possible, readable on a phone.
+6. **Fast and light.** A small React app (no UI framework, no router library, ~95 KB gzip) talking to a JSON API; works on a phone and in dark mode.
 7. **Accessible.** Real `<label>`s, keyboard reachable, visible focus, contrast ≥ 4.5:1, never color alone to carry meaning (pair with text or an icon).
 8. **Bilingual.** Every user-facing string exists in English and Korean.
 
@@ -30,18 +30,20 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 
 ## Screens
 
-The signed-in admin UI has one screen per task, reached from tabs that scroll sideways on a phone:
+The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/` and served by the server under `/admin` — by the Node entry from disk, on Cloudflare Workers from static assets. It talks to the JSON API at `/admin/api` (`src/admin/api.ts`): session cookie (HttpOnly, SameSite=Strict), CSRF token in the `X-CSRF` header, private network only unless opened with two-factor. The CSP allows only the app's own scripts, styles and fonts.
 
-| Tab | What it is for |
+| Screen | What it is for |
 |---|---|
-| Overview | status at a glance (vault, Claude, payments, location, health, devices, backup) and a "needs attention" list with links |
-| Vault | where notes live (the current choice is preselected), Obsidian sync, wiki layout and checks |
-| Connections | outside services with their state, test / turn off, add |
-| Features | switch features on, settings per feature |
-| Recipes & inbox | messages the engine could not read, recipes |
-| Claude | connector address, signed-in apps, tools |
-| Devices | device tokens (scopes as checkboxes), where to send |
-| Security | checks, two-factor, who may call `/mcp`, sign out |
-| Activity · Backups | audit log; backups, restore and import |
+| Overview | *Getting started* checklist (required / recommended / optional), status cards, *Needs attention* |
+| Vault | where notes live (current choice preselected), wiki layout, Obsidian sync |
+| Claude app | how to add the connector (copy button), signed-in apps, tools |
+| Devices | device tokens (scopes as checkboxes, shown once with a copy button), where to send |
+| Connections | outside services with their state; add one in a dialog with the provider's own fields |
+| Features | switches for optional features, each with its settings |
+| Recipes & inbox | messages that could not be read, try a message, recipes |
+| Activity | who connected (with IP) and what changed |
+| Security · Backups | checks, two-factor, who may connect, open from outside; download, restore, import |
 
-Every save returns to its screen with a one-line result. The UI follows the browser language (Korean or English) and can be switched in the header; light and dark follow the device.
+Every change shows a short toast with the result. Text exists in English and Korean side by side in the page code (`t("Save", "저장")`); the language follows the browser and can be switched in the menu. The OAuth consent page stays server-rendered (`src/admin/consent.tsx`) because it is part of the sign-in redirect.
+
+Development: `npm run dev` (server on 8787) and `npm run dev:web` (Vite with hot reload, proxies `/admin/api`).

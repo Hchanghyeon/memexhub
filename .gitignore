@@ -9,3 +9,4 @@ data/
 coverage/
 .DS_Store
 dist-worker/
+dist-web/

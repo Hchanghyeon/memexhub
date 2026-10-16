@@ -74,6 +74,8 @@ Check the new commits' author and committer identities (`git log --format='%an <
 ```bash
 npm install
 cp .env.example .env     # MEMEXHUB_SECRET, PUBLIC_URL
-npm run dev
+npm run dev            # server
+npm run dev:web        # admin web app with hot reload (http://localhost:5173/admin/)
+npm run build:web      # what the server serves under /admin
 npm test
 ```

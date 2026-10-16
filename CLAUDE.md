@@ -10,7 +10,8 @@ src/core/       config, crypto, migrations, settings, connections, events (obser
 src/storage/    VaultStorage interface, path policy, SafeVault (decorator), fs / webdav adapters, factory
 src/auth/       admin (setup code, sessions, TOTP), oauth (OAuth 2.1 server), ingest-tokens
 src/http/       Hono surfaces: mcp (8787), ingest (8790); common middleware
-src/admin/      admin UI (Hono JSX, server-rendered) incl. OAuth consent page
+src/admin/      admin JSON API (api.ts), serving the web app (app.ts), OAuth consent page (server-rendered)
+web/            admin web app: React + Vite → dist-web/ (docs/design.md)
 src/modules/    feature plugins: vault, wiki (layout, lint, upkeep), ledger, mail, hub, (location, health, tasks …)
 src/providers/  external services behind interfaces (webdav, imap …)
 recipes/        built-in message recipes (JSON data, not code) — docs/recipes.md
@@ -66,6 +67,6 @@ npm run build
 
 ## UI (details: docs/design.md)
 
-Convenience first: one task per screen, recommended option first, plain words, results always confirmed. Clean and quiet: neutral grays, one accent color for the primary action, red only for errors/destructive, green only for ok. Server-rendered, bilingual, accessible.
+Convenience first: one task per screen, recommended option first, plain words, results always confirmed. Clean and quiet: neutral grays, one accent color for the primary action, red only for errors/destructive, green only for ok. React app over a JSON API, bilingual, accessible.
 
 Before you commit: `npm run typecheck && npm test`, check `git diff` for anything personal or secret, and run `gitleaks protect --staged` if available.

@@ -1,4 +1,3 @@
-/** @jsxImportSource hono/jsx */
 import { z } from "zod";
 
 export const INTERNAL = "@internal";
@@ -46,20 +45,3 @@ export function valuesOf(fields: Field[], form: Record<string, unknown>, prefix:
   return out;
 }
 
-export function Inputs(p: { fields: Field[]; prefix: string; values?: Record<string, unknown> }) {
-  return (
-    <>
-      {p.fields.map((f) => {
-        const name = `${p.prefix}.${f.key}`;
-        const v = p.values?.[f.key] ?? f.defaultValue;
-        if (f.type === "checkbox")
-          return <label><input type="checkbox" name={name} checked={!!v} style="display:inline;width:auto;margin-right:.4rem" />{f.label}</label>;
-        if (f.type === "select")
-          return <label>{f.label}<select name={name}>{f.options!.map((o) => <option value={o} selected={v === o}>{o}</option>)}</select></label>;
-        if (f.type === "password")
-          return <label>{f.label} <span class="muted">(stored encrypted, never shown again — leave empty to keep)</span><input type="password" name={name} autocomplete="new-password" /></label>;
-        return <label>{f.label}{f.optional ? "" : " *"}<input type={f.type} name={name} value={v === undefined ? "" : String(v)} required={!f.optional} /></label>;
-      })}
-    </>
-  );
-}

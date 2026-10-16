@@ -1,6 +1,6 @@
 /** @jsxImportSource hono/jsx */
 import { Layout } from "./layout.js";
-import { tr, type Lang } from "./ui.js";
+import { tr, type Lang } from "./lang.js";
 
 export function consentPage(p: {
   v: { clientName: string; redirectHost: string };

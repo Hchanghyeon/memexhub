@@ -24,7 +24,7 @@ const trusted = env.TRUSTED_PROXIES.split(",").map((s) => s.trim());
 
 const hub = new Hub(platform, env, MODULES, [...PORTABLE_PROVIDERS, ...NODE_PROVIDERS, fsProvider({ builtinVault, vaultRoots })]);
 await hub.init();
-const assets = await nodeAdminAssets();
+const assets = nodeAdminAssets();
 // Module jobs (receipt mails, …): check every minute what is due.
 setInterval(() => void hub.runDueJobs(), 60_000).unref();
 
@@ -47,6 +47,9 @@ if (env.LISTEN === "single") {
 } else {
   serve({ fetch: mount(mcpApp(hub)).fetch, port: env.MCP_PORT });
   serve({ fetch: mount(ingestApp(hub)).fetch, port: env.INGEST_PORT });
-  serve({ fetch: mount(adminApp(hub, { vaultRoots, builtinVault, assets })).fetch, port: env.ADMIN_PORT });
+  // The admin web app lives under /admin on its own port too (same paths as LISTEN=single).
+  const admin = new Hono({ strict: false }).use("*", withIp).route("/admin", adminApp(hub, { vaultRoots, builtinVault, base: "/admin", assets }));
+  admin.get("/", (c) => c.redirect("/admin/"));
+  serve({ fetch: admin.fetch, port: env.ADMIN_PORT });
   platform.log.info("listening", { mode: "split", mcp: env.MCP_PORT, ingest: env.INGEST_PORT, admin: env.ADMIN_PORT });
 }

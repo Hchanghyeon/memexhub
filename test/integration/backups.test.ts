@@ -8,11 +8,11 @@ import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger, fileBackups } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
 import { exportBackup, importBackup } from "../../src/core/backup.js";
-import { adminApp } from "../../src/admin/app.js";
+import { adminClient } from "../admin-client.js";
 import { testFs } from "../helpers.js";
 
 const dataDir = mkdtempSync(join(tmpdir(), "mx-bk-"));
-let hub: Hub, app: Hono, cookie = "", csrf = "";
+let hub: Hub, a: ReturnType<typeof adminClient>;
 let now = new Date("2026-10-15T03:00:00Z");
 const BASE = "http://10.0.0.2";
 
@@ -27,10 +27,8 @@ beforeAll(async () => {
   await hub.connections.upsert({ kind: "mail", provider: "imap", name: "personal", config: { username: "someone" }, secrets: { password: "app-pass" } }, "t");
   await hub.settings.set("timezone", "Asia/Seoul");
   await hub.bus.append({ type: "ledger", occurredAt: now.toISOString(), source: "t", payload: { merchant: "Sample Cafe", amount: "₩4,500" } as any });
-  app = new Hono().use("*", (c: any, n: any) => (c.set("ip", "10.0.0.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
-  const login = await app.request(`${BASE}/login`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=owner&password=a-long-test-password" });
-  cookie = login.headers.get("set-cookie")!.split(";")[0]!;
-  csrf = (await (await app.request(`${BASE}/backups`, { headers: { cookie } })).text()).match(/name="csrf" value="([^"]+)"/)![1]!;
+  a = adminClient(hub);
+  await a.login();
 });
 
 describe("backups", () => {
@@ -68,21 +66,16 @@ describe("backups", () => {
   });
 
   it("admin: download, restore needs the word RESTORE, activity log filters", async () => {
-    const dl = await app.request(`${BASE}/backups/download`, { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: `csrf=${csrf}` });
+    const dl = await a.post("/backups/download");
     expect(dl.headers.get("content-disposition")).toMatch(/attachment; filename="memexhub-\d{4}-\d{2}-\d{2}\.mxb"/);
     const blob = await dl.text();
-    const restore = (confirm: string) => {
-      const fd = new FormData();
-      fd.set("csrf", csrf);
-      fd.set("confirm", confirm);
-      fd.set("file", new File([blob], "b.mxb"));
-      return app.request(`${BASE}/backups/restore`, { method: "POST", headers: { cookie }, body: fd });
-    };
-    expect(decodeURIComponent((await restore("yes")).headers.get("location")!)).toContain("Type RESTORE");
-    expect(decodeURIComponent((await restore("RESTORE")).headers.get("location")!)).toMatch(/ok=Restored \d+ rows/);
-    const page = await (await app.request(`${BASE}/activity?view=changes&who=admin&days=30`, { headers: { cookie } })).text();
-    expect(page).toContain("backup.restore");
-    expect(page).toContain("backup.download");
-    expect(await (await app.request(`${BASE}/security`, { headers: { cookie } })).text()).toContain("A backup was made in the last two days.");
+    expect((await (await a.upload("/backups/restore", "b.mxb", blob, { confirm: "yes" })).json()).error).toBe("type_restore");
+    const ok = await (await a.upload("/backups/restore", "b.mxb", blob, { confirm: "RESTORE" })).json();
+    expect(ok.rows).toBeGreaterThan(0);
+    await a.login(); // the restore replaced the sessions table
+    const rows = (await a.json("/activity?view=changes&who=admin&days=30")).rows.map((r: { action: string }) => r.action);
+    expect(rows).toContain("backup.restore");
+    expect(rows).toContain("backup.download");
+    expect((await a.json("/security")).checks.map((c: { id: string }) => c.id)).toContain("backup_recent");
   });
 });

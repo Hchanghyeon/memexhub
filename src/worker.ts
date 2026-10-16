@@ -5,7 +5,7 @@ import { loadEnv } from "./core/config.js";
 import { PORTABLE_PROVIDERS } from "./providers/registry.js";
 import { r2Provider } from "./storage/r2.js";
 import { workersPlatform, type D1Like } from "./platform/workers.js";
-import { adminApp } from "./admin/app.js";
+import { adminApp, typeOf, type AdminAssets } from "./admin/app.js";
 import { ingestApp } from "./http/ingest.js";
 import { mcpApp } from "./http/mcp.js";
 
@@ -21,6 +21,8 @@ export interface WorkerEnv {
   TZ?: string;
   DB: D1Like;
   VAULT?: unknown;
+  /** Static assets (the admin web app, dist-web/). */
+  ASSETS?: unknown;
   [binding: string]: unknown;
 }
 
@@ -37,7 +39,15 @@ async function boot(env: WorkerEnv, origin: string) {
     c.set("ip" as never, (c.req.header("cf-connecting-ip") ?? "0.0.0.0") as never);
     await next();
   });
-  app.route("/admin", adminApp(hub, { vaultRoots: [], builtinVault: "", base: "/admin" }));
+  // The admin web app's files come from the Workers static-assets binding (wrangler.toml [assets]).
+  const files = env.ASSETS as { fetch(r: Request): Promise<Response> } | undefined;
+  const assets: AdminAssets | undefined = files && {
+    async file(path) {
+      const r = await files.fetch(new Request(`https://assets.local/${path}`));
+      return r.ok ? { body: new Uint8Array(await r.arrayBuffer()), type: typeOf(path) } : null;
+    },
+  };
+  app.route("/admin", adminApp(hub, { vaultRoots: [], builtinVault: "", base: "/admin", assets }));
   app.route("/", ingestApp(hub));
   app.route("/", mcpApp(hub));
   return { hub, app };

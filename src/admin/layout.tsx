@@ -62,10 +62,6 @@ details{margin:.6rem 0}summary{cursor:pointer;color:var(--accent)}
 form:has(option[value=builtin]:checked) .vf-builtin,form:has(option[value=folder]:checked) .vf-folder,form:has(option[value=webdav]:checked) .vf-webdav,form:has(option[value=notion]:checked) .vf-notion,form:has(option[value=r2]:checked) .vf-r2{display:block}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}`;
 
-let fontHref: string | undefined;
-/** Set once at startup when the runtime serves the web font (see assets.ts). */
-export const setFontHref = (href: string | undefined) => void (fontHref = href);
-
 /**
  * Page frame. With `nav` it is the signed-in app (sticky header with tabs that scroll sideways on a phone);
  * without it a narrow centred page (sign-in, setup, consent).
@@ -79,7 +75,6 @@ export function Layout(p: { title: string; children: Child; lang?: "en" | "ko"; 
         <meta name="robots" content="noindex" />
         <meta name="theme-color" content="#2457c5" />
         <title>{p.title}</title>
-        {fontHref && <link rel="stylesheet" href={fontHref} />}
         {/* Raw: JSX would escape the quotes in font names and drop the whole rule. The CSS is a constant. */}
         <style dangerouslySetInnerHTML={{ __html: css }} />
       </head>
