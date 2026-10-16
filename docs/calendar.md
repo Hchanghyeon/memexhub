@@ -4,6 +4,7 @@ memexhub reads your calendars (read-only) so Claude sees your day in `day_summar
 
 | Service | Connection | Address | Password |
 |---|---|---|---|
+| Google | **Google Calendar** → *Sign in with Google* | (fixed) | an OAuth client from Google Cloud (Web application) with the Google Calendar API on; only read-only access is asked |
 | iCloud | **iCloud Calendar** | (fixed) | an app-specific password from appleid.apple.com → Sign-In and Security |
 | Naver | **CalDAV** | `https://caldav.calendar.naver.com` | your Naver password, or an app password if two-step login is on |
 | Synology Calendar | **CalDAV** | `https://<nas>:5001/caldav/` — tick "on my home network" | your DSM password |

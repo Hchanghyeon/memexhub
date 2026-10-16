@@ -57,7 +57,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | geocoder | `reverse` | OpenStreetMap Nominatim ✅ | Kakao Local, Naver |
 | health | ingest payload → standard records | shortcut ✅ · Health Auto Export ✅ | Health Connect, app |
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, reminders |
-| calendar | `calendars · events(from, to)` | CalDAV ✅ · iCloud ✅ | Google |
+| calendar | `calendars · events(from, to)` | CalDAV ✅ · iCloud ✅ · Google ✅ | — |
 | weather | `place · days(from, to)` | Open-Meteo ✅ | — |
 
 ## Modules

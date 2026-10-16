@@ -11,7 +11,7 @@ import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
 import { GoogleSignIn } from "./auth/google-signin.js";
-import { GOOGLE } from "./providers/tasks/google.js";
+import { GOOGLE } from "./providers/google/auth.js";
 import { Cursors } from "./core/cursors.js";
 import { SafeVault } from "./storage/safe-vault.js";
 import { Layout } from "./modules/wiki/layout.js";

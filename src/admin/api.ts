@@ -297,7 +297,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({
       key: `${def.kind}:${def.id}`, kind: def.kind, title: def.title,
       fields: fieldsOf(def.config), secrets: fieldsOf(def.secrets, true),
-      googleRedirect: def.kind === "tasks" && def.id === "google" ? hub.google.redirectUri : null,
+      googleRedirect: def.id === "google" ? hub.google.redirectUri : null,
     });
   });
   api.post("/connections", async (c) => {

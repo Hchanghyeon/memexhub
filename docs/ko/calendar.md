@@ -4,6 +4,7 @@ memexhub가 캘린더를 읽어서(읽기 전용) Claude가 `day_summary`로 하
 
 | 서비스 | 연결 | 주소 | 비밀번호 |
 |---|---|---|---|
+| Google | **Google 캘린더** → *Google로 로그인* | (고정) | Google Cloud의 OAuth 클라이언트(웹 애플리케이션)와 Google Calendar API. 읽기 권한만 요청해요 |
 | iCloud | **iCloud 캘린더** | (고정) | appleid.apple.com → 로그인 및 보안 → 앱 암호 |
 | 네이버 | **CalDAV** | `https://caldav.calendar.naver.com` | 네이버 비밀번호 (2단계 인증이면 애플리케이션 비밀번호) |
 | 시놀로지 캘린더 | **CalDAV** | `https://<NAS>:5001/caldav/` — "집 네트워크" 체크 | DSM 비밀번호 |

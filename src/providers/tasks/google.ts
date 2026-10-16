@@ -2,18 +2,10 @@ import { z } from "zod";
 import { defineProvider } from "../types.js";
 import { T } from "../../core/i18n.js";
 import type { Task, TaskList, TaskProvider } from "./types.js";
+import { GOOGLE, GoogleError, GoogleToken } from "../google/auth.js";
 
-export const GOOGLE = {
-  auth: "https://accounts.google.com/o/oauth2/v2/auth",
-  token: "https://oauth2.googleapis.com/token",
-  userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
-  tasks: "https://tasks.googleapis.com/tasks/v1",
-  /** Minimal: tasks, plus the e-mail to tell accounts apart. */
-  scopes: ["openid", "email", "https://www.googleapis.com/auth/tasks"],
-  hosts: ["oauth2.googleapis.com", "openidconnect.googleapis.com", "tasks.googleapis.com"],
-};
-
-export class GoogleError extends Error {}
+export { GoogleError };
+const TASKS = "https://tasks.googleapis.com/tasks/v1";
 
 const toTask = (t: any): Task => ({
   id: String(t.id),
@@ -30,41 +22,15 @@ const dueOf = (d: string) => {
 
 /** Google Tasks REST API with a refresh token. Access tokens are cached until a minute before they expire. */
 export class GoogleTasks implements TaskProvider {
-  private access?: { token: string; until: number };
-  constructor(
-    private o: { clientId: string; clientSecret: string; refreshToken?: string },
-    private f: typeof fetch,
-    private now: () => number = () => Date.now(),
-  ) {}
-
-  private async token(force = false) {
-    if (!this.o.refreshToken) throw new GoogleError("not signed in — admin UI → Connections → Sign in with Google");
-    if (!force && this.access && this.access.until > this.now() + 60_000) return this.access.token;
-    const r = await this.f(GOOGLE.token, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ client_id: this.o.clientId, client_secret: this.o.clientSecret, refresh_token: this.o.refreshToken, grant_type: "refresh_token" }),
-    });
-    const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
-    if (!r.ok || !j.access_token) throw new GoogleError(`Google sign-in expired or revoked (${j.error ?? r.status}) — sign in again`);
-    this.access = { token: j.access_token, until: this.now() + (j.expires_in ?? 3600) * 1000 };
-    return j.access_token;
+  private auth: GoogleToken;
+  constructor(o: { clientId: string; clientSecret: string; refreshToken?: string }, f: typeof fetch, now: () => number = () => Date.now()) {
+    this.auth = new GoogleToken(o, f, now);
   }
 
-  private async api(method: string, path: string, body?: unknown, params?: Record<string, string>): Promise<any> {
-    for (const retry of [false, true]) {
-      const u = new URL(`${GOOGLE.tasks}${path}`);
-      for (const [k, v] of Object.entries(params ?? {})) u.searchParams.set(k, v);
-      const r = await this.f(u, {
-        method,
-        headers: { authorization: `Bearer ${await this.token(retry)}`, "content-type": "application/json" },
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      });
-      if (r.status === 401 && !retry) continue;
-      if (!r.ok) throw new GoogleError(`Google Tasks ${r.status}: ${(await r.text()).slice(0, 200)}`);
-      const text = await r.text();
-      return text ? JSON.parse(text) : {};
-    }
+  private api(method: string, path: string, body?: unknown, params?: Record<string, string>): Promise<any> {
+    const u = new URL(`${TASKS}${path}`);
+    for (const [k, v] of Object.entries(params ?? {})) u.searchParams.set(k, v);
+    return this.auth.api(u, { method, body });
   }
 
   async lists(): Promise<TaskList[]> {
@@ -118,7 +84,7 @@ export const googleTasksProvider = defineProvider({
     refreshToken: z.string().optional().describe("@internal"), // set by the sign-in callback
   }),
   runtimes: ["node", "workers"],
-  hosts: () => GOOGLE.hosts,
+  hosts: () => [...GOOGLE.hosts, "tasks.googleapis.com"],
   create: ({ config, secrets, fetch }) => new GoogleTasks({ clientId: config.clientId, clientSecret: secrets.clientSecret, refreshToken: secrets.refreshToken }, fetch),
   test: async (g) => {
     await (g as GoogleTasks).lists();

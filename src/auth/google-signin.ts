@@ -1,7 +1,7 @@
 import type { Connections } from "../core/connections.js";
 import type { Cursors } from "../core/cursors.js";
 import { pkceS256, randomToken, sha256Hex } from "../core/crypto.js";
-import { GOOGLE } from "../providers/tasks/google.js";
+import { GOOGLE } from "../providers/google/auth.js";
 
 /**
  * "Sign in with Google" for a connection: authorization code + PKCE, offline access, minimal scopes.
@@ -31,7 +31,7 @@ export class GoogleSignIn {
       client_id: String(c.config.clientId ?? ""),
       redirect_uri: this.redirectUri,
       response_type: "code",
-      scope: GOOGLE.scopes.join(" "),
+      scope: (GOOGLE.scopes[c.kind] ?? GOOGLE.scopes.tasks!).join(" "),
       access_type: "offline",
       prompt: "consent select_account",
       state,

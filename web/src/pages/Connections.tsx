@@ -87,7 +87,7 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
       {form.secrets.map((f) => (
         <Input key={f.key} label={f.label} hint={t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
       ))}
-      {form.googleRedirect && <Callout><p>{t("In Google Cloud create an OAuth client (Web application), enable the Google Tasks API and add this redirect URI:", "Google Cloud에서 OAuth 클라이언트(웹 애플리케이션)를 만들고 Google Tasks API를 켠 뒤 이 리디렉션 URI를 추가하세요:")}</p><code>{form.googleRedirect}</code></Callout>}
+      {form.googleRedirect && <Callout><p>{t("In Google Cloud create an OAuth client (Web application), enable the API (Google Tasks API or Google Calendar API) and add this redirect URI:", "Google Cloud에서 OAuth 클라이언트(웹 애플리케이션)를 만들고 API(Google Tasks API 또는 Google Calendar API)를 켠 뒤 이 리디렉션 URI를 추가하세요:")}</p><code>{form.googleRedirect}</code></Callout>}
       <Actions><Button type="submit" busy={busy}>{t("Save and test", "저장하고 시험")}</Button></Actions>
     </form>
   );
