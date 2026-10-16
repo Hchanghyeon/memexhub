@@ -15,6 +15,7 @@ import { recipeRoutes } from "./recipes.js";
 import { wizardNext, wizardRoutes } from "./wizard.js";
 import { opsRoutes } from "./ops.js";
 import { recordAccess } from "../core/access.js";
+import { audit } from "../core/audit.js";
 import { ago, back, Check, langOf, pageFrame, tr, when, type Tr } from "./ui.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
@@ -945,6 +946,23 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
               <button class={s.mcp.enforceAllow ? "secondary" : ""}>{s.mcp.enforceAllow ? t("Allow any address", "모든 주소 허용") : t("Only allow Anthropic servers to call /mcp", "Anthropic 서버만 허용")}</button>
             </form>
           </div>
+          <div class="card" id="outside">
+            <h2>{t("Use this page from outside", "밖에서 관리 화면 쓰기")}</h2>
+            {hub.env.ADMIN_PUBLIC || hub.platform.name === "workers" ? (
+              <p class="muted">{t("This server always serves the admin UI over the internet; two-factor is required there.", "이 서버는 관리 화면을 항상 인터넷으로 열어요. 그때는 2단계 인증이 필요해요.")}</p>
+            ) : s.admin.allowPublic ? (
+              <>
+                <p><span class="dot ok" />{t("Open from anywhere at", "어디서나 열 수 있어요:")} <code>{hub.env.PUBLIC_URL}/admin</code></p>
+                <p class="muted">{t("Sign-in from outside needs the password and the authenticator code.", "밖에서 로그인할 때는 비밀번호와 인증 앱 코드가 필요해요.")}</p>
+                <form method="post" action={`${B}/admin-public`}><Csrf c={c} /><input type="hidden" name="enable" value="0" /><button class="secondary">{t("Home network only", "집 네트워크에서만 열기")}</button></form>
+              </>
+            ) : (
+              <>
+                <p class="muted">{t("Now only on your home network. Turn on two-factor first, then you can open it from anywhere.", "지금은 집 네트워크에서만 열려요. 2단계 인증을 먼저 켜면 어디서나 열 수 있어요.")}</p>
+                <form method="post" action={`${B}/admin-public`}><Csrf c={c} /><input type="hidden" name="enable" value="1" /><button disabled={!totp} class={totp ? "" : "secondary"}>{t("Open from anywhere", "어디서나 열기")}</button></form>
+              </>
+            )}
+          </div>
           <div class="card">
             <h2>{t("Protected from Claude", "Claude가 못 고치는 곳")}</h2>
             <p>{s.vault.protectedPaths.map((p) => <code style="margin-right:.3rem">{p}</code>)}</p>
@@ -995,6 +1013,16 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const secret = await hub.admin.pendingTotp(id);
     if (!secret) return c.redirect(`${B}/two-factor`);
     return enrolPage(c, secret, (await T(c))("That code did not match. Check the time on your phone and try the newest code.", "코드가 맞지 않아요. 폰 시간을 확인하고 가장 새 코드를 넣어 보세요."));
+  });
+  app.post("/admin-public", async (c) => {
+    const f = await c.req.parseBody();
+    const t = await T(c);
+    const s = await hub.settings.get();
+    const enable = f.enable === "1";
+    if (enable && !(await hub.admin.hasTotp(c.get("adminId")))) return back(c, B, "/security", { err: t("Turn on two-factor first.", "먼저 2단계 인증을 켜세요.") });
+    await hub.settings.set("admin", { ...s.admin, allowPublic: enable });
+    await audit(hub.platform.db, actor(c), enable ? "admin.open_outside" : "admin.home_only");
+    return back(c, B, "/security", { ok: enable ? t("The admin UI now opens from anywhere (with two-factor).", "이제 어디서나 관리 화면을 열 수 있어요(2단계 인증 필요).") : t("The admin UI is home-network only again.", "다시 집 네트워크에서만 열려요.") });
   });
   app.post("/mcp-allow", async (c) => {
     const f = await c.req.parseBody();
