@@ -55,10 +55,10 @@
       }
     },
     {
-      "text": "[현대카드] 홍*동님 10/13 해외사용 Sample*Shop CNY 21.30 취소처리 되었습니다.",
+      "text": "[현대카드] 홍*동님 10/13 해외사용 Sample*Shop CNY 48.60 취소처리 되었습니다.",
       "expect": {
         "merchant": "Sample*Shop",
-        "amount": "-CNY 21.30",
+        "amount": "-CNY 48.60",
         "card": "현대카드 취소"
       }
     }

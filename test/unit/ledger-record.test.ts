@@ -29,7 +29,7 @@ describe("Ledger.record", () => {
     expect((await l.record({ name: "Tmoney", time: NOW.toISOString() })).kind).toBe("office");
     const l2 = mk({ places: { placeAt: async () => "Sample Station" } });
     expect((await l2.record({ name: "Tmoney", time: NOW.toISOString() })).kind).toBe("transit");
-    await l.record({ merchant: "Netflix", amount: "₩17,000", card: "Card", time: "2026-10-01T00:00:00Z" });
+    await l.record({ merchant: "Netflix", amount: "₩9,900", card: "Card", time: "2026-10-01T00:00:00Z" });
     const rows = await all();
     const nf = rows.find((r) => r.merchant === "Netflix");
     expect(nf.online).toBe(true);

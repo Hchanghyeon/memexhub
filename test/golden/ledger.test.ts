@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, moneySkeleton, type LedgerRow } from "../../src/modules/ledger/render.js";
 
-/** Golden files were produced by the reference implementation from the same fake fixture. */
+/** Golden files: the reference implementation's output, regenerated from the fake fixture after it was changed (2026-10). */
 const rows: LedgerRow[] = readFileSync("test/fixtures/ledger/transactions.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l));
 const o = { tz: "Asia/Seoul", officePlaces: ["회사"], lang: "ko" as const, now: new Date("2026-10-16T14:30:00Z") };
 
@@ -16,8 +16,8 @@ describe("ledger rendering (golden)", () => {
   it("renders English and a full note with frontmatter", () => {
     const en = renderPaymentsNote(rows, 2026, { ...o, lang: "en" });
     expect(en).toContain("title: 2026 payments");
-    expect(en).toContain("## 2026-10 — 6 paid · ₩82,010 · 2 cancelled");
-    expect(en).toContain("🏢 09:26 – 19:01 · 2 gate taps");
+    expect(en).toContain("## 2026-10 — 6 paid · ₩74,710 · 2 cancelled");
+    expect(en).toContain("🏢 09:04 – 18:20 · 2 gate taps");
     expect(renderMoney(rows, { ...o, lang: "en" })).toContain("**Subscriptions & fixed costs**");
   });
   it("only replaces the auto section", () => {

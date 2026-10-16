@@ -20,7 +20,7 @@ export type Message = z.input<typeof MessageInput>;
 /** Fields a recipe or the generic parser can fill. Card numbers are never among them. */
 export interface ReadPayment {
   merchant: string;
-  amount: string; // "₩12,500" · "-₩8,000" · "CNY 21.30"
+  amount: string; // "₩12,500" · "-₩8,000" · "CNY 48.60"
   card: string; // "현대카드 M 일시불"
   time: string; // ISO with offset, or "" when the message has none
   item: string;
