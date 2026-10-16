@@ -33,6 +33,17 @@ export function securityChecks(o: { totp: boolean; s: import("../core/settings.j
   return out;
 }
 
+/** The vault form's choice for the current storage connection, so saving the form unchanged keeps the vault. */
+export function vaultChoice(con?: { provider: string; config: Record<string, unknown> }): { provider?: string; path?: string; url?: string; username?: string; notionPage?: string } {
+  if (!con) return {};
+  const c = con.config;
+  const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+  if (con.provider === "fs") return str(c.path) ? { provider: "folder", path: str(c.path) } : { provider: "builtin" };
+  if (con.provider === "webdav") return { provider: "webdav", url: str(c.url), username: str(c.username) };
+  if (con.provider === "notion") return { provider: "notion", notionPage: str(c.parentPage) };
+  return { provider: con.provider };
+}
+
 /** Admin surface. Private networks only unless explicitly opened (and then TOTP is required). */
 export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string; base?: string }) {
   /** Mount prefix ("" on its own port, "/admin" in LISTEN=single). Every link, form and redirect uses it. */
@@ -145,6 +156,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     const tools = await hub.visibleTools();
     const totp = await hub.admin.hasTotp(c.get("adminId"));
     const newToken = c.req.query("new_token");
+    const cur = vaultChoice(storage[0]);
     return c.html(
       <Layout title="memexhub">
         <h1>memexhub</h1>
@@ -161,23 +173,23 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
             <label>Where should your vault live?
               <select name="provider">
                 {hub.platform.name === "workers" ? (
-                  <option value="r2">The R2 bucket of this Worker (recommended)</option>
+                  <option value="r2" selected={cur.provider === "r2"}>The R2 bucket of this Worker (recommended)</option>
                 ) : (
                   <>
-                    <option value="builtin">Create on this server (recommended)</option>
-                    <option value="folder">Existing folder on this server</option>
+                    <option value="builtin" selected={cur.provider === "builtin"}>Create on this server (recommended)</option>
+                    <option value="folder" selected={cur.provider === "folder"}>Existing folder on this server</option>
                   </>
                 )}
-                <option value="webdav">WebDAV</option>
-                <option value="notion">Notion (beta — small vaults)</option>
+                <option value="webdav" selected={cur.provider === "webdav"}>WebDAV</option>
+                <option value="notion" selected={cur.provider === "notion"}>Notion (beta — small vaults)</option>
               </select>
             </label>
-            <label>Folder (for "existing folder", under {opts.vaultRoots.join(" or ")})<input name="path" placeholder={`${opts.vaultRoots[0]}/my-vault`} /></label>
-            <label>WebDAV URL<input name="url" placeholder="https://dav.example.com/vault" /></label>
-            <label>WebDAV username<input name="username" autocomplete="off" /></label>
+            <label>Folder (for "existing folder", under {opts.vaultRoots.join(" or ")})<input name="path" value={cur.path ?? ""} placeholder={`${opts.vaultRoots[0]}/my-vault`} /></label>
+            <label>WebDAV URL<input name="url" value={cur.url ?? ""} placeholder="https://dav.example.com/vault" /></label>
+            <label>WebDAV username<input name="username" value={cur.username ?? ""} autocomplete="off" /></label>
             <label>WebDAV password (stored encrypted, never shown again)<input name="password" type="password" autocomplete="new-password" /></label>
             <label><input type="checkbox" name="allowPrivateNetwork" style="display:inline;width:auto;margin-right:.4rem" />WebDAV server is on my private network</label>
-            <label>Notion page for the vault (link — share it with your integration)<input name="notionPage" placeholder="https://www.notion.so/…" /></label>
+            <label>Notion page for the vault (link — share it with your integration)<input name="notionPage" value={cur.notionPage ?? ""} placeholder="https://www.notion.so/…" /></label>
             <label>Notion integration secret (stored encrypted)<input name="notionToken" type="password" autocomplete="new-password" /></label>
             <button>Save &amp; test</button>
           </form>

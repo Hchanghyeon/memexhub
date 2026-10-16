@@ -7,7 +7,7 @@ import { Hub } from "../../src/hub.js";
 import { MODULES } from "../../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../../src/platform/node.js";
 import { loadEnv } from "../../src/core/config.js";
-import { adminApp, securityChecks } from "../../src/admin/app.js";
+import { adminApp, securityChecks, vaultChoice } from "../../src/admin/app.js";
 import { SettingsSchema } from "../../src/core/settings.js";
 import { testFs } from "../helpers.js";
 
@@ -53,6 +53,20 @@ describe("first-run wizard", () => {
     expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).toContain("Continue setup");
     expect((await form("/start/done", {})).headers.get("location")).toBe("/");
     expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).not.toContain("Continue setup");
+  });
+});
+
+describe("vault form", () => {
+  it("shows the current vault, so saving it unchanged keeps it", async () => {
+    expect(vaultChoice({ provider: "fs", config: { path: "/vaults/notes" } })).toEqual({ provider: "folder", path: "/vaults/notes" });
+    expect(vaultChoice({ provider: "fs", config: {} })).toEqual({ provider: "builtin" });
+    expect(vaultChoice({ provider: "webdav", config: { url: "https://dav.example.com/v", username: "me" } })).toMatchObject({ provider: "webdav", url: "https://dav.example.com/v", username: "me" });
+    expect(vaultChoice(undefined)).toEqual({});
+    await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: "/vaults/notes" } }, "t");
+    const html = await (await app.request(`${BASE}/`, { headers: { cookie } })).text();
+    expect(html).toMatch(/<option value="folder" selected="">/);
+    expect(html).not.toMatch(/<option value="builtin" selected="">/);
+    expect(html).toContain('value="/vaults/notes"');
   });
 });
 
