@@ -313,6 +313,9 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const internal = existing ? Object.fromEntries(Object.keys(shape).filter((k) => shape[k]!.description === INTERNAL && existing.config[k] !== undefined).map((k) => [k, existing.config[k]])) : {};
     const secrets = existing && Object.keys(sec).length ? { ...(await hub.connections.secretsOf(existing.id)), ...sec } : sec;
     const id = await hub.connections.upsert({ kind: def.kind, provider: def.id, name: f.name, config: { ...cfg.data, ...internal }, secrets: Object.keys(secrets).length ? secrets : undefined }, actor(c));
+    // A feature named after the kind (weather, calendar …) is what uses the connection: switch it on with the first one.
+    const s = await hub.settings.get();
+    if (hub.modules.some((m) => m.id === def.kind) && !s.modules[def.kind]?.enabled) await hub.settings.set("modules", { ...s.modules, [def.kind]: { ...s.modules[def.kind], enabled: true } });
     await hub.reload();
     return c.json({ id, test: await testConnection(id) });
   });

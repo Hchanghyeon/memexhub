@@ -58,6 +58,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | health | 수집 본문 → 표준 기록 | 단축어 ✅ · Health Auto Export ✅ | Health Connect, 앱 |
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, 미리 알림 |
 | calendar | `calendars · events` | 인터페이스만 | google, CalDAV |
+| weather | `place · days(from, to)` | Open-Meteo ✅ | — |
 
 ## 모듈
 
@@ -71,6 +72,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |
+| weather | `weather_days` | — | — | ✅ |
 
 ## 결제: 메시지 레시피 ✅
 

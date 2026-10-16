@@ -15,6 +15,7 @@ const KIND: Record<string, [string, string, string, string]> = {
   geocoder: ["Place names", "지명", "Turns coordinates into area names.", "좌표를 동네 이름으로 바꿔요."],
   tasks: ["Tasks", "할 일", "Claude can read and add tasks.", "Claude가 할 일을 보고 추가해요."],
   notion: ["Notion", "Notion", "Copy records into Notion.", "기록을 Notion으로 복사해요."],
+  weather: ["Weather", "날씨", "The day's weather at a place you choose.", "고른 장소의 그날 날씨."],
 };
 
 export function Connections() {

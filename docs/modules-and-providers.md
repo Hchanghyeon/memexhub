@@ -58,6 +58,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | health | ingest payload → standard records | shortcut ✅ · Health Auto Export ✅ | Health Connect, app |
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, reminders |
 | calendar | `calendars · events(from, to)` | interface only | google, CalDAV |
+| weather | `place · days(from, to)` | Open-Meteo ✅ | — |
 
 ## Modules
 
@@ -71,6 +72,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([location](location.md)) |
 | health | `health_day` | `/ingest/health` | health | ✅ ([health](health.md)) |
 | tasks | `task_*` | — | — | ✅ ([tasks](tasks.md)) |
+| weather | `weather_days` | — | — | ✅ |
 
 ## Ledger: message recipes ✅
 

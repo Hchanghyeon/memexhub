@@ -45,7 +45,7 @@ export class Hub {
   jobs: { module: string; job: JobDef }[] = [];
   private instances = new Map<string, Promise<unknown>>();
 
-  constructor(public platform: Platform, public env: Env, private modules: ModuleDef[], public providers: ProviderDef[]) {
+  constructor(public platform: Platform, public env: Env, public readonly modules: ModuleDef[], public providers: ProviderDef[]) {
     const db = platform.db;
     this.settings = new SettingsStore(db);
     this.connections = new Connections(db, platform.secret);
