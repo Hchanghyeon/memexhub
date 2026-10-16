@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import type { Hub } from "../hub.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { davRoutes } from "./dav.js";
+import { recordAccess } from "../core/access.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -34,6 +35,7 @@ export function ingestApp(hub: Hub) {
     const route = hub.ingest.find((r) => r.path === c.req.path);
     if (!route) return c.json({ error: "not_found" }, 404);
     const tok = await hub.ingestTokens.verify(ingestToken(c), route.scope);
+    await recordAccess(hub.platform.db, { kind: "device", ip: c.get("ip"), ok: !!tok, who: tok?.id, detail: c.req.path }, { now: hub.platform.now(), windowMinutes: tok ? 60 : 10 });
     if (!tok) return c.json({ error: "unauthorized" }, 401);
     const raw = await readBodyLimited(c.req.raw, route.maxBytes);
     if (raw === null) return c.json({ error: "too_large" }, 413);

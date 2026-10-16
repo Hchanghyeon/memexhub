@@ -80,7 +80,7 @@ describe("backups", () => {
     };
     expect(decodeURIComponent((await restore("yes")).headers.get("location")!)).toContain("Type RESTORE");
     expect(decodeURIComponent((await restore("RESTORE")).headers.get("location")!)).toMatch(/ok=Restored \d+ rows/);
-    const page = await (await app.request(`${BASE}/activity?who=admin&days=30`, { headers: { cookie } })).text();
+    const page = await (await app.request(`${BASE}/activity?view=changes&who=admin&days=30`, { headers: { cookie } })).text();
     expect(page).toContain("backup.restore");
     expect(page).toContain("backup.download");
     expect(await (await app.request(`${BASE}/security`, { headers: { cookie } })).text()).toContain("A backup was made in the last two days.");

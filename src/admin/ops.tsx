@@ -1,7 +1,10 @@
 /** @jsxImportSource hono/jsx */
 import type { Context, Hono } from "hono";
 import type { Hub } from "../hub.js";
-import { pageFrame, when } from "./ui.js";
+import { pageFrame, when, type Tr } from "./ui.js";
+import { listAccess } from "../core/access.js";
+import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
+import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
 import { exportBackup, importBackup } from "../core/backup.js";
 import { audit } from "../core/audit.js";
 import { importLedgerLines } from "../modules/ledger/import.js";
@@ -14,25 +17,84 @@ const KINDS = ["all", "admin", "mcp", "dav", "ledger", "health", "system", "goog
 export function opsRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B: string) {
   const frame = pageFrame(hub, B);
 
+  const ACCESS_KINDS: [string, string, string][] = [
+    ["", "everything", "전체"], ["admin", "Admin sign-in", "관리자 로그인"], ["claude", "Claude", "Claude"], ["device", "Devices", "기기"], ["dav", "Vault sync", "볼트 동기화"],
+  ];
+  const kindLabel = (t: Tr, k: string) =>
+    ({ admin: t("Admin sign-in", "관리자 로그인"), "claude.authorize": t("Claude connector sign-in", "Claude 커넥터 로그인"), "claude.token": t("Claude token", "Claude 토큰 발급"), claude: t("Claude used tools", "Claude 도구 사용"), device: t("Device sent", "기기 수신"), dav: t("Vault sync", "볼트 동기화") })[k] ?? k;
+  const where = (t: Tr, ip: string) => (inAny(ip, PRIVATE_CIDRS) ? t("home network", "집 네트워크") : inAny(ip, ANTHROPIC_OUTBOUND_CIDRS) ? "Anthropic" : t("internet", "인터넷"));
+
   app.get("/activity", async (c) => {
-    const kind = (KINDS as readonly string[]).includes(c.req.query("who") ?? "") ? c.req.query("who")! : "all";
+    const view = c.req.query("view") === "changes" ? "changes" : "access";
     const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 7));
     const since = new Date(+hub.platform.now() - days * 86_400_000).toISOString();
+    const tz = (await hub.settings.get()).timezone;
+    const tabs = (t: Tr) => (
+      <p class="row">
+        <a class={`btn small ${view === "access" ? "" : "secondary"}`} href={`${B}/activity?view=access`}>{t("Who connected", "접속 기록")}</a>
+        <a class={`btn small ${view === "changes" ? "" : "secondary"}`} href={`${B}/activity?view=changes`}>{t("What changed", "변경 기록")}</a>
+      </p>
+    );
+    if (view === "access") {
+      const kind = ACCESS_KINDS.some((k) => k[0] === c.req.query("kind")) ? c.req.query("kind")! : "";
+      const failed = c.req.query("failed") === "1";
+      const rows = await listAccess(hub.platform.db, { since, kind: kind || undefined, failedOnly: failed });
+      // Names instead of ids: tokens, Claude apps, admins.
+      const names = new Map<string, string>();
+      for (const x of await hub.ingestTokens.list()) names.set(x.id, x.name);
+      for (const x of await hub.oauth.clients()) names.set(x.client_id, x.client_name ?? x.client_id);
+      for (const x of await hub.platform.db.all<{ id: string; username: string }>(`SELECT id, username FROM admins`)) names.set(`admin:${x.id}`, x.username);
+      return frame(c, {
+        title: ["Activity", "활동"],
+        active: "/activity",
+        children: (t) => (
+          <>
+            <h1>{t("Activity", "활동")}</h1>
+            {tabs(t)}
+            <p class="muted">{t("Who reached this server and from which address. Repeated access by the same caller from the same address is listed once an hour. Kept for 90 days.", "누가 어느 주소에서 이 서버에 접속했는지예요. 같은 곳에서 같은 주소로 반복된 접속은 한 시간에 한 번만 남겨요. 90일 동안 보관해요.")}</p>
+            <form method="get" action={`${B}/activity`} class="row">
+              <input type="hidden" name="view" value="access" />
+              <select name="kind" style="flex:1;min-width:8rem;margin:0" aria-label={t("Kind", "종류")}>{ACCESS_KINDS.map(([k, en, ko]) => <option value={k} selected={k === kind}>{t(en, ko)}</option>)}</select>
+              <input name="days" type="number" min="1" max="90" value={String(days)} style="width:5rem;margin:0" aria-label={t("Last days", "최근 며칠")} />
+              <label class="check" style="margin:0"><input type="checkbox" name="failed" value="1" checked={failed} /><span>{t("Failed only", "실패만")}</span></label>
+              <button class="secondary">{t("Show", "보기")}</button>
+            </form>
+            <div class="card" style="margin-top:1rem">
+              {rows.length ? (
+                <ul class="list">
+                  {rows.map((r) => (
+                    <li>
+                      <span class={`dot ${r.ok ? "ok" : "err"}`} />
+                      <span style="flex:1">
+                        <b>{kindLabel(t, r.kind)}</b>{r.who ? ` · ${names.get(r.who) ?? r.who}` : ""}{!r.ok ? <span class="err"> · {t("refused", "거부")}</span> : null}
+                        <span class="hint">{when(r.at, tz)} · <code>{r.ip}</code> {where(t, r.ip)}{r.detail ? ` · ${r.detail}` : ""}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p class="muted">{t("Nothing in this period.", "이 기간에는 없어요.")}</p>}
+            </div>
+          </>
+        ),
+      });
+    }
+    const kind = (KINDS as readonly string[]).includes(c.req.query("who") ?? "") ? c.req.query("who")! : "all";
     const rows = await hub.platform.db.all<{ at: string; actor: string; action: string; target: string | null; detail: string | null }>(
       `SELECT at, actor, action, target, detail FROM audit WHERE at >= ? ${kind === "all" ? "" : "AND (actor = ? OR actor LIKE ?)"} ORDER BY id DESC LIMIT 300`,
       kind === "all" ? [since] : [since, kind, `${kind}:%`],
     );
-    const tz = (await hub.settings.get()).timezone;
     return frame(c, {
       title: ["Activity", "활동"],
       active: "/activity",
       children: (t) => (
         <>
           <h1>{t("Activity", "활동")}</h1>
+          {tabs(t)}
           <p class="muted">{t("Who changed what: sign-ins, vault writes by Claude and devices, settings and connections. Contents and secrets are never logged.", "누가 무엇을 바꿨는지: 로그인, Claude와 기기의 볼트 쓰기, 설정과 연결. 내용과 비밀값은 남기지 않아요.")}</p>
           <form method="get" action={`${B}/activity`} class="row">
+            <input type="hidden" name="view" value="changes" />
             <select name="who" style="flex:1;min-width:8rem;margin:0" aria-label={t("Who", "누가")}>{KINDS.map((k) => <option value={k} selected={k === kind}>{k === "all" ? t("everyone", "전체") : k}</option>)}</select>
-            <input name="days" type="number" min="1" max="90" value={String(days)} style="width:6rem;margin:0" aria-label={t("Last days", "최근 며칠")} />
+            <input name="days" type="number" min="1" max="90" value={String(days)} style="width:5rem;margin:0" aria-label={t("Last days", "최근 며칠")} />
             <button class="secondary">{t("Show", "보기")}</button>
           </form>
           <div class="card" style="margin-top:1rem">

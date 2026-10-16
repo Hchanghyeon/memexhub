@@ -14,6 +14,7 @@ import { pick } from "../core/i18n.js";
 import { recipeRoutes } from "./recipes.js";
 import { wizardNext, wizardRoutes } from "./wizard.js";
 import { opsRoutes } from "./ops.js";
+import { recordAccess } from "../core/access.js";
 import { ago, back, Check, langOf, pageFrame, tr, when, type Tr } from "./ui.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
@@ -151,6 +152,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   app.post("/login", async (c) => {
     const f = await c.req.parseBody();
     const id = await hub.admin.login(String(f.username ?? ""), String(f.password ?? ""), String(f.totp ?? "") || undefined, `${c.get("ip")}|${f.username}`);
+    await recordAccess(hub.platform.db, { kind: "admin", ip: c.get("ip"), ok: !!id, who: id ? `admin:${id}` : undefined, detail: id ? undefined : `sign-in failed: ${String(f.username ?? "").slice(0, 40)}` }, { now: hub.platform.now() });
     if (!id) return c.text("login failed", 401);
     if (!inAny(c.get("ip"), PRIVATE_CIDRS) && !(await hub.admin.hasTotp(id)) && !(await hub.admin.enrolWindowOpen(id)))
       return c.text("Two-factor sign-in is required from outside your private network. Sign in from your network and turn it on first.", 403);

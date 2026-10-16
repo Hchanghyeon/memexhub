@@ -7,6 +7,7 @@ import { inAny } from "../core/ip.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
 import { langOf } from "../admin/ui.js";
+import { recordAccess } from "../core/access.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -106,6 +107,7 @@ export function mcpApp(hub: Hub) {
       return oauthErr(c, e);
     }
     const adminId = await hub.admin.login(String(form.username ?? ""), String(form.password ?? ""), String(form.totp ?? "") || undefined, `${c.get("ip")}|${form.username}`);
+    await recordAccess(hub.platform.db, { kind: "claude.authorize", ip: c.get("ip"), ok: !!adminId, who: v.clientName, detail: adminId ? String(form.decision ?? "") : `sign-in failed: ${String(form.username ?? "").slice(0, 40)}` }, { now: hub.platform.now() });
     if (!adminId) return c.html(consentPage({ v, query: String(form.query), error: "Login failed", needTotp: true, lang: await langOf(hub, c) }), 401);
     const target = new URL(v.redirect);
     if (form.decision !== "allow") {
@@ -120,8 +122,11 @@ export function mcpApp(hub: Hub) {
   app.post("/token", rateLimit(30, (c) => c.get("ip")), async (c) => {
     try {
       const form = Object.fromEntries(Object.entries(await c.req.parseBody()).map(([k, v]) => [k, String(v)]));
-      return c.json(await hub.oauth.token(form));
+      const out = await hub.oauth.token(form);
+      await recordAccess(hub.platform.db, { kind: "claude.token", ip: c.get("ip"), ok: true, who: form.client_id }, { now: hub.platform.now(), windowMinutes: 60 });
+      return c.json(out);
     } catch (e) {
+      await recordAccess(hub.platform.db, { kind: "claude.token", ip: c.get("ip"), ok: false, detail: (e as Error).message }, { now: hub.platform.now(), windowMinutes: 10 });
       return oauthErr(c, e);
     }
   });
@@ -138,6 +143,7 @@ export function mcpApp(hub: Hub) {
     if (!(await hub.admin.hasAdmin())) return c.json({ error: "setup_required" }, 503);
     const auth = c.req.header("authorization") ?? "";
     const who = auth.toLowerCase().startsWith("bearer ") ? await hub.oauth.verifyAccess(auth.slice(7).trim()) : null;
+    await recordAccess(hub.platform.db, { kind: "claude", ip: c.get("ip"), ok: !!who, who: who?.clientId }, { now: hub.platform.now(), windowMinutes: who ? 60 : 10 });
     if (!who) {
       c.header("WWW-Authenticate", `Bearer resource_metadata="${hub.env.PUBLIC_URL}/.well-known/oauth-protected-resource"`);
       return c.json({ error: "unauthorized" }, 401);

@@ -4,6 +4,7 @@ import { StorageError } from "../storage/types.js";
 import type { RawEntry } from "../storage/files.js";
 import { audit } from "../core/audit.js";
 import { rateLimit } from "./common.js";
+import { recordAccess } from "../core/access.js";
 
 /**
  * Built-in WebDAV (class 1) at /dav/ for syncing a vault the server holds itself (Remotely Save, other DAV clients).
@@ -81,6 +82,7 @@ export function davRoutes(app: Hono<any>, hub: Hub) {
       }
     }
     const tok = token ? await hub.ingestTokens.verify(token.trim(), "dav") : null;
+    await recordAccess(hub.platform.db, { kind: "dav", ip: c.get("ip"), ok: !!tok, who: tok?.id }, { now: hub.platform.now(), windowMinutes: tok ? 60 : 10 });
     if (!tok) {
       c.header("www-authenticate", 'Basic realm="memexhub vault", charset="UTF-8"');
       return c.text("unauthorized", 401);

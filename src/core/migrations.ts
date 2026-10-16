@@ -66,6 +66,14 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE TABLE notion_rows (kind TEXT NOT NULL, key TEXT NOT NULL, page_id TEXT NOT NULL, hash TEXT NOT NULL, PRIMARY KEY (kind, key))`,
     ],
   },
+  {
+    id: 5,
+    sql: [
+      // Access log: who reached the server from which IP (sign-ins, Claude, devices). See core/access.ts.
+      `CREATE TABLE access_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, kind TEXT NOT NULL, who TEXT, ip TEXT NOT NULL, ok INTEGER NOT NULL, detail TEXT)`,
+      `CREATE INDEX access_log_at ON access_log (at)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {
