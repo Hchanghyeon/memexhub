@@ -2,7 +2,7 @@
 // the built admin app (npm run build:web) under /admin. Every request is treated as coming from the home network.
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hub } from "../src/hub.js";
@@ -19,7 +19,12 @@ export const E2E_PASSWORD = "a-long-test-password";
 const port = Number(process.env.E2E_PORT ?? 8799);
 
 const env = loadEnv({ MEMEXHUB_SECRET: "e".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-e2e-")) });
-const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-e2ev-"))), ...PORTABLE_PROVIDERS]);
+// A small sample vault: a folder, a wiki link, a table, a task list, a callout.
+const vaultDir = mkdtempSync(join(tmpdir(), "mx-e2ev-"));
+mkdirSync(join(vaultDir, "Projects"));
+writeFileSync(join(vaultDir, "Projects", "Garden plan.md"), "---\nstatus: active\n---\n# Garden plan\n\nSee [[Seeds]] and [[Missing note]].\n\n- [x] dig\n- [ ] plant\n\n| Bed | Plant |\n|---|---|\n| A | Tomato |\n\n> [!tip] Water\n> In the morning.\n");
+writeFileSync(join(vaultDir, "Seeds.md"), "# Seeds\n\nSample seed list.\n");
+const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
 const log = console.log;
 console.log = () => {};
 await hub.init();

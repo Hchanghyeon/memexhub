@@ -27,7 +27,7 @@ beforeAll(async () => {
 describe("admin web app under /admin", () => {
   it("serves index.html for app paths with a CSP that allows only its own scripts", async () => {
     const a = adminClient(hub, { assets: nodeAdminAssets(dir) });
-    for (const p of ["/admin/", "/admin/vault", "/admin/recipes"]) {
+    for (const p of ["/admin/", "/admin/vault", "/admin/recipes", "/admin/notes/Projects/Garden%20plan.md", "/admin/notes/a..b.md"]) {
       const r = await a.app.request(`http://10.0.0.2${p}`);
       expect(r.status, p).toBe(200);
       expect(await r.text()).toContain("<div id=root>");

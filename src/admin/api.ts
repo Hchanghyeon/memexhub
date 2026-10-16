@@ -202,6 +202,34 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   });
 
   // ---- vault & wiki ----
+  // ---- reading the vault (read-only viewer) ----
+  const MAX_FILES = 20_000;
+  const needVault = () => {
+    if (!hub.vault) throw new Fail("vault_unavailable", undefined, 409);
+    return hub.vault;
+  };
+  api.get("/vault/files", async (c) => {
+    const all = (await needVault().list()).sort((a, b) => a.path.localeCompare(b.path));
+    return c.json({ files: all.slice(0, MAX_FILES).map((f) => ({ path: f.path, size: f.size, mtime: f.mtime })), truncated: all.length > MAX_FILES });
+  });
+  api.get("/vault/note", async (c) => {
+    const path = z.string().min(1).max(1000).safeParse(c.req.query("path"));
+    // Hidden folders (.obsidian, .trash …) stay hidden here, as in the file list.
+    if (!path.success || path.data.split("/").some((seg) => seg.startsWith("."))) throw new Fail("invalid_input");
+    try {
+      const n = await needVault().read(path.data);
+      return c.json({ path: n.path, text: n.text });
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      throw new Fail(code === "not_found" ? "not_found" : "invalid_input", (e as Error).message.slice(0, 160), code === "not_found" ? 404 : 400);
+    }
+  });
+  api.get("/vault/search", async (c) => {
+    const q = z.string().min(1).max(200).safeParse(c.req.query("q"));
+    if (!q.success) throw new Fail("invalid_input");
+    return c.json({ hits: await needVault().search(q.data, { limit: 50 }) });
+  });
+
   api.get("/vault", async (c) => {
     const s = await hub.settings.get();
     const storage = await hub.connections.list("storage");

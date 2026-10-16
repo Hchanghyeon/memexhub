@@ -73,6 +73,7 @@ The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/`
 | Screen | What it is for |
 |---|---|
 | Overview | *Getting started* checklist (required / recommended / optional), status cards, *Needs attention* |
+| Notes | read-only vault viewer: folder tree, full-text search, notes rendered with react-markdown + GFM, `[[wiki links]]` followed inside the viewer, callouts and frontmatter shown; raw HTML never rendered, web images shown as links |
 | Vault | where notes live (current choice preselected), wiki layout, Obsidian sync |
 | Claude app | how to add the connector (copy button), signed-in apps, tools |
 | Devices | device tokens (scopes as checkboxes, shown once with a copy button), where to send |

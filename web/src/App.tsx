@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNo
 import { get, post, setCsrf, whenSignedOut, type Session } from "./api";
 import { LangContext, makeT, pickLang, useT } from "./i18n";
 import { Link, navigate, useRoute } from "./router";
-import { Activity as ActivityIcon, Archive, Bot, Cable, FolderOpen, Inbox, Languages, LayoutDashboard, LogOut, Menu, Puzzle, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
+import { Activity as ActivityIcon, Archive, BookOpen, Bot, Cable, FolderOpen, Inbox, Languages, LayoutDashboard, LogOut, Menu, Puzzle, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
 import { Toasts, Skeleton } from "./ui/kit";
 import { Brand } from "./ui/brand";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const Security = lazy(() => import("./pages/Security").then((m) => ({ default: m
 const Activity = lazy(() => import("./pages/Activity").then((m) => ({ default: m.Activity })));
 const Backups = lazy(() => import("./pages/Backups").then((m) => ({ default: m.Backups })));
 const Start = lazy(() => import("./pages/Start").then((m) => ({ default: m.Start })));
+const Notes = lazy(() => import("./pages/Notes").then((m) => ({ default: m.Notes })));
 
 export function App() {
   const [session, setSession] = useState<Session>();
@@ -69,6 +70,7 @@ export function App() {
 
 const NAV: { group?: [string, string]; path: string; label: [string, string]; icon: LucideIcon }[] = [
   { path: "/", label: ["Overview", "개요"], icon: LayoutDashboard },
+  { path: "/notes", label: ["Notes", "노트"], icon: BookOpen },
   { group: ["Set up", "설정"], path: "/vault", label: ["Vault", "볼트"], icon: FolderOpen },
   { path: "/claude", label: ["Claude app", "Claude 앱"], icon: Bot },
   { path: "/devices", label: ["Devices", "기기"], icon: Smartphone },
@@ -89,7 +91,7 @@ function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; p
         {NAV.map((n) => (
           <div key={n.path} className="contents">
             {n.group && <div className="text-muted-foreground px-2.5 pt-5 pb-1 text-xs font-medium">{t(...n.group)}</div>}
-            <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm no-underline transition-colors [&_svg]:size-4", path === n.path && "bg-accent text-foreground font-medium")}>
+            <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm no-underline transition-colors [&_svg]:size-4", (path === n.path || (n.path !== "/" && path.startsWith(`${n.path}/`))) && "bg-accent text-foreground font-medium")}>
               <n.icon />{t(...n.label)}
             </Link>
           </div>
@@ -127,10 +129,10 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
       case "/security": return <Security />;
       case "/activity": return <Activity />;
       case "/backups": return <Backups />;
-      default: return <Overview />;
+      default: return path === "/notes" || path.startsWith("/notes/") ? <Notes route={path} /> : <Overview />;
     }
   })();
-  const current = NAV.find((n) => n.path === path);
+  const current = NAV.find((n) => n.path === path || (n.path !== "/" && path.startsWith(`${n.path}/`)));
   return (
     <div className="bg-background min-h-svh md:grid md:grid-cols-[240px_1fr]">
       <aside className="bg-sidebar sticky top-0 hidden h-svh overflow-y-auto border-r md:block">

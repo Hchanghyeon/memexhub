@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const USER = "owner";
 const PASSWORD = "a-long-test-password";
 const PAGES: [string, RegExp][] = [
-  ["/", /개요/], ["/vault", /볼트/], ["/claude", /Claude에서 memexhub 쓰기/], ["/devices", /기기/], ["/connections", /연결/],
+  ["/", /개요/], ["/notes", /노트/], ["/vault", /볼트/], ["/claude", /Claude에서 memexhub 쓰기/], ["/devices", /기기/], ["/connections", /연결/],
   ["/features", /기능/], ["/recipes", /레시피·대기함/], ["/activity", /활동/], ["/security", /보안/], ["/backups", /백업/],
 ];
 
@@ -47,7 +47,7 @@ test("moving between screens with the sidebar keeps working", async ({ page, isM
   const errors = watchErrors(page);
   await signIn(page);
   const nav = page.getByRole("navigation");
-  for (const name of ["볼트", "Claude 앱", "기기", "연결", "기능", "레시피·대기함", "활동", "보안", "백업", "개요"]) {
+  for (const name of ["노트", "볼트", "Claude 앱", "기기", "연결", "기능", "레시피·대기함", "활동", "보안", "백업", "개요"]) {
     await nav.getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 }), name).toBeVisible();
   }
@@ -89,4 +89,26 @@ test("on a phone the menu slides in and closes after choosing a screen", async (
   await menu.getByRole("link", { name: "보안" }).click();
   await expect(menu).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1, name: "보안" })).toBeVisible();
+});
+
+test("notes: browse folders, read a note, follow a wiki link, search", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/notes");
+  await page.getByRole("button", { name: "Projects" }).click();
+  await page.getByRole("button", { name: "Garden plan" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Garden plan" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Tomato" })).toBeVisible();
+  await expect(page.getByText("💡 Water")).toBeVisible();
+  await expect(page.getByText("status")).toBeVisible();
+  await page.getByRole("link", { name: "Seeds" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Seeds" })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/notes\/Seeds\.md$/);
+  await page.reload(); // a note address opens directly too
+  await expect(page.getByRole("heading", { level: 1, name: "Seeds" })).toBeVisible();
+  await page.goto("/admin/notes");
+  await page.getByPlaceholder("모든 노트에서 찾기").fill("seed list");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("노트 1개")).toBeVisible();
+  expect(errors).toEqual([]);
 });

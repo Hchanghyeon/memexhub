@@ -41,8 +41,10 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   // The web app: hashed files are cached for a year, every other path gets index.html (client-side routing).
   app.get("/*", async (c) => {
     const rel = decodeURIComponent(new URL(c.req.url).pathname).slice(B.length).replace(/^\/+/, "");
-    if (rel.includes("..") || rel.includes("\\") || rel.length > 200) return c.text("not found", 404);
-    const asFile = /\.[a-z0-9]{1,6}$/i.test(rel);
+    if (rel.split("/").includes("..") || rel.includes("\\") || rel.length > 2000) return c.text("not found", 404);
+    // Files are the hashed bundles under assets/ and a few top-level files; every other path is a screen
+    // (screens can end in ".md": /admin/notes/<folder>/<note>.md).
+    const asFile = (rel.startsWith("assets/") || !rel.includes("/")) && /\.[a-z0-9]{1,6}$/i.test(rel);
     const f = opts.assets ? await opts.assets.file(asFile ? rel : "index.html") : null;
     if (!f) return asFile ? c.text("not found", 404) : c.text("The admin web app is not built. Run: npm run build:web", 503);
     if (asFile && rel.startsWith("assets/")) c.header("Cache-Control", "public, max-age=31536000, immutable");
