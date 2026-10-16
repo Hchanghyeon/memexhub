@@ -15,6 +15,7 @@ import { recipeRoutes } from "./recipes.js";
 import { wizardNext, wizardRoutes } from "./wizard.js";
 import { opsRoutes } from "./ops.js";
 import { recordAccess } from "../core/access.js";
+import { assetRoutes, type AdminAssets } from "./assets.js";
 import { audit } from "../core/audit.js";
 import { ago, back, Check, langOf, pageFrame, tr, when, type Tr } from "./ui.js";
 
@@ -81,7 +82,7 @@ const scopeName = (t: Tr, s: string) => {
 };
 
 /** Admin surface. Private networks only unless explicitly opened (and then TOTP is required). */
-export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string; base?: string }) {
+export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: string; base?: string; assets?: AdminAssets }) {
   /** Mount prefix ("" on its own port, "/admin" in LISTEN=single). Every link, form and redirect uses it. */
   const B = (opts.base ?? "").replace(/\/+$/, "");
   const R = B || "/"; // the overview
@@ -90,6 +91,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
   const frame = pageFrame(hub, B);
   const T = async (c: Context) => tr(await langOf(hub, c));
   app.use("*", securityHeaders);
+  assetRoutes(app, opts.assets, B);
 
   app.use("*", async (c, next) => {
     const s = await hub.settings.get();
@@ -236,6 +238,20 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     for (const m of hub.moduleStatus.filter((m) => m.enabled && m.error)) attention.push({ text: `${t(MODULE_NAMES[m.id]?.[0] ?? m.id, MODULE_NAMES[m.id]?.[1] ?? m.id)}: ${m.error}`, fix: "/features" });
     if (inbox) attention.push({ text: t(`${inbox} message(s) could not be read and wait in the inbox.`, `읽지 못한 메시지 ${inbox}개가 대기함에 있어요.`), fix: "/ledger/recipes" });
     for (const x of (await checksFor(c, t)).filter((x) => !x.ok)) attention.push({ text: x.text, fix: x.fix, high: x.level === "high" });
+    const totpOn = await hub.admin.hasTotp(c.get("adminId"));
+    const claudeOn = clients.some((x) => x.last_token_at);
+    const backupOk = lastBackup === undefined ? null : !!lastBackup && +now - +lastBackup < 2 * 86_400_000;
+    const steps: { level: "required" | "recommended" | "optional"; done: boolean; title: [string, string]; how: [string, string]; href: string }[] = [
+      { level: "required", done: !!hub.vault, title: ["Connect a vault", "볼트 연결"], how: ["Where your notes live — a folder on this server is enough.", "노트를 둘 곳이에요. 이 서버의 폴더면 충분해요."], href: "/vault" },
+      { level: "required", done: claudeOn, title: ["Add memexhub to the Claude app", "Claude 앱에 memexhub 추가"], how: ["Claude app → Settings → Connectors → add the address shown on the Claude screen.", "Claude 앱 → 설정 → 커넥터에 Claude 화면의 주소를 추가하세요."], href: "/claude" },
+      { level: "recommended", done: totpOn, title: ["Turn on two-factor sign-in", "2단계 인증 켜기"], how: ["Protects this page; needed to open it from outside.", "이 화면을 지켜요. 밖에서 열려면 꼭 필요해요."], href: "/security" },
+      { level: "recommended", done: s.mcp.enforceAllow, title: ["Let only Anthropic call memexhub", "Anthropic만 접속 허용"], how: ["One button. A stolen token then cannot be used elsewhere.", "버튼 하나예요. 토큰이 새도 다른 곳에서는 못 써요."], href: "/security" },
+      ...(backupOk === null ? [] : [{ level: "recommended" as const, done: backupOk, title: ["Daily backup", "매일 백업"] as [string, string], how: ["Made automatically; download one now and then.", "자동으로 만들어요. 가끔 하나 내려받아 두세요."] as [string, string], href: "/backups" }]),
+      { level: "optional", done: tokens.length > 0, title: ["Send records from your phone", "폰에서 기록 보내기"], how: ["Card messages, Apple Pay, health, location — create a device token.", "카드 문자, Apple Pay, 건강, 위치 — 기기 토큰을 만드세요."], href: "/devices" },
+      { level: "optional", done: conns.some((x) => x.enabled && x.name), title: ["Connect mail, location or tasks", "메일·위치·할 일 연결"], how: ["Only what you want Claude to see.", "Claude가 볼 것만 연결하세요."], href: "/connections" },
+    ];
+    const required = steps.filter((x) => x.level === "required");
+    const LEVEL: Record<string, [string, string]> = { required: ["Required", "필수"], recommended: ["Recommended", "추천"], optional: ["Optional", "선택"] };
     const Stat = (p: { href: string; k: string; v: string; s?: string; ok?: boolean }) => (
       <a class="card stat" href={`${B}${p.href}`}>
         <div class="k">{p.k}</div>
@@ -251,6 +267,22 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           <h1>{t("Overview", "개요")}</h1>
           {!s.onboarded && (
             <div class="card"><p><b>{t("Finish setting up", "설정 마치기")}</b> — {t("time zone, vault, wiki layout and the Claude connector, one step at a time.", "시간대, 볼트, 위키 구조, Claude 커넥터를 한 단계씩.")}</p><a class="btn" href={`${B}/start`}>{t("Continue setup", "설정 계속하기")}</a></div>
+          )}
+          {steps.some((x) => !x.done && x.level !== "optional") && (
+            <div class="card">
+              <h2>{t("Getting started", "시작하기")} <span class="muted">· {t(`required ${required.filter((x) => x.done).length} of ${required.length} done`, `필수 ${required.length}개 중 ${required.filter((x) => x.done).length}개 완료`)}</span></h2>
+              <ul class="list">
+                {steps.map((x) => (
+                  <li>
+                    <span class={`dot ${x.done ? "ok" : x.level === "required" ? "err" : ""}`} />
+                    <span style="flex:1">
+                      <span class="tag">{t(...LEVEL[x.level]!)}</span> {x.done ? <s class="muted">{t(...x.title)}</s> : <b>{t(...x.title)}</b>}
+                      {!x.done && <span class="hint">{t(...x.how)} <a href={`${B}${x.href}`}>{t("Go", "하러 가기")} →</a></span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <div class="grid">
             <Stat href="/vault" k={t("Vault", "볼트")} ok={!!hub.vault} v={hub.vault ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} s={hub.vault ? (s.wiki.preset ?? t("custom layout", "직접 정한 구조")) : t("Connect one first", "먼저 연결하세요")} />
@@ -617,13 +649,14 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           <h1>{t("Features", "기능")}</h1>
           <div class="card">
             <h2>{t("What memexhub does", "memexhub가 하는 일")}</h2>
+            <p class="muted">{t("Basic ones are always on. Turn on only the optional ones you need; each shows its settings below.", "기본은 항상 켜져 있어요. 선택 기능은 필요한 것만 켜세요. 켜면 아래에 설정이 나와요.")}</p>
             <form method="post" action={`${B}/modules`}>
               <Csrf c={c} />
               {hub.moduleStatus.map((m) => {
                 const n = MODULE_NAMES[m.id] ?? [m.id, m.id, "", ""];
                 return (
                   <Check name="on" value={m.id} checked={m.enabled} disabled={m.id === "vault" || m.id === "hub"}>
-                    <b>{t(n[0], n[1])}</b> <span class="muted">— {t(n[2], n[3])}</span>
+                    <b>{t(n[0], n[1])}</b> <span class="tag">{["vault", "wiki", "hub"].includes(m.id) ? t("Basic", "기본") : t("Optional", "선택")}</span><span class="hint">{t(n[2], n[3])}</span>
                     {m.error ? <span class="hint err">{m.error}</span> : null}
                   </Check>
                 );
@@ -790,11 +823,16 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       active: "/claude",
       children: (t) => (
         <>
-          <h1>Claude</h1>
+          <h1>{t("Use memexhub in Claude", "Claude에서 memexhub 쓰기")}</h1>
+          <p class="muted">{t("Add memexhub to the Claude app as a connector once. Then Claude can read and write your notes and see payments, location and health when you ask.", "Claude 앱에 memexhub를 커넥터로 한 번 추가하세요. 그러면 물어볼 때 Claude가 노트를 읽고 쓰고, 결제·위치·건강 기록도 볼 수 있어요.")}</p>
           <div class="card">
-            <h2>{t("Connect the Claude app", "Claude 앱 연결")}</h2>
-            <p>{t("In the Claude app: Settings → Connectors → Add custom connector → paste this address, then sign in with your admin account.", "Claude 앱: 설정 → 커넥터 → 사용자 지정 커넥터 추가 → 이 주소를 붙여 넣고 관리자 계정으로 로그인하세요.")}</p>
-            <pre>{hub.env.PUBLIC_URL}/mcp</pre>
+            <h2>{t("How to add it", "추가하는 방법")} <span class="tag">{t("Required", "필수")}</span></h2>
+            <ol>
+              <li>{t("Open the Claude app (or claude.ai) → Settings → Connectors.", "Claude 앱(또는 claude.ai) → 설정 → 커넥터를 여세요.")}</li>
+              <li>{t("Add custom connector, name it e.g. memexhub, and paste this address:", "사용자 지정 커넥터 추가 → 이름은 예를 들어 memexhub, 주소는 이것을 붙여 넣으세요:")}<pre>{hub.env.PUBLIC_URL}/mcp</pre></li>
+              <li>{t("A memexhub sign-in page opens: sign in with this admin account and press Allow.", "memexhub 로그인 화면이 열리면 이 관리자 계정으로 로그인하고 허용을 누르세요.")}</li>
+              <li>{t("Try it: ask Claude “what did I spend today?” or “summarise my week”.", "써 보기: Claude에게 “오늘 얼마 썼어?”나 “이번 주 정리해 줘”라고 물어보세요.")}</li>
+            </ol>
           </div>
           <div class="card">
             <h2>{t("Signed-in apps", "로그인한 앱")}</h2>

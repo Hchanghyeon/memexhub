@@ -24,6 +24,7 @@ COPY --from=build --chown=root:root /app/node_modules ./node_modules
 COPY --from=build --chown=root:root /app/dist ./dist
 COPY --from=build --chown=root:root /app/recipes ./recipes
 COPY --chown=root:root package.json ./
+COPY --chown=root:root assets ./assets
 # The app code is owned by root and read-only for the app user; only /data and /vaults are writable.
 RUN mkdir -p /data /vaults && chown node:node /data /vaults && chmod 700 /data
 USER node

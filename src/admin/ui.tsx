@@ -22,7 +22,7 @@ export const PAGES = [
   ["/connections", "Connections", "연결"],
   ["/features", "Features", "기능"],
   ["/ledger/recipes", "Recipes & inbox", "레시피·대기함"],
-  ["/claude", "Claude", "Claude"],
+  ["/claude", "Claude app", "Claude 앱"],
   ["/devices", "Devices", "기기"],
   ["/security", "Security", "보안"],
   ["/activity", "Activity", "활동"],

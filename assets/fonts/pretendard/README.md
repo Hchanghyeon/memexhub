@@ -1,0 +1,1 @@
+Pretendard 1.3.9 (https://github.com/orioncactus/pretendard), variable, dynamic subset — SIL Open Font License 1.1 (LICENSE.txt). Served to the admin UI by the Node entry; __BASE__ in the CSS is replaced with the asset path.
