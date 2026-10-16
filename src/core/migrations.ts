@@ -81,6 +81,14 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE TABLE admin_trusted (id_hash TEXT PRIMARY KEY, admin_id TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL)`,
     ],
   },
+  {
+    id: 7,
+    sql: [
+      // Map background pictures fetched for the admin map (base64, kept 30 days). See providers/maptiles.
+      `CREATE TABLE map_tiles (key TEXT PRIMARY KEY, type TEXT NOT NULL, data TEXT NOT NULL, at TEXT NOT NULL)`,
+      `CREATE INDEX map_tiles_at ON map_tiles (at)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

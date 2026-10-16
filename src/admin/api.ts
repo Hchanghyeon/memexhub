@@ -328,6 +328,25 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({ ok: true });
   });
 
+  // ---- map (admin only: coordinates never reach tools or the vault) ----
+  const locationAdmin = () => {
+    const m = hub.moduleAdmin.get("location") as import("../modules/location/index.js").LocationAdmin | undefined;
+    if (!m) throw new Fail("module_off", "location", 409);
+    return m;
+  };
+  api.get("/location/day", async (c) => {
+    const d = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(c.req.query("date"));
+    if (!d.success) throw new Fail("invalid_input");
+    return c.json(await locationAdmin().day(d.data));
+  });
+  api.get("/map/tile/:z/:x/:y", async (c) => {
+    const [zz, x, y] = [c.req.param("z"), c.req.param("x"), c.req.param("y")].map((v) => (/^\d{1,7}$/.test(v) ? Number(v) : NaN)) as [number, number, number];
+    if (!(zz >= 0 && zz <= 19) || !(x < 2 ** zz) || !(y < 2 ** zz)) throw new Fail("invalid_input");
+    const t = await locationAdmin().tile(zz, x, y);
+    if (!t) return c.body(null, 404);
+    return c.body(t.bytes as unknown as ArrayBuffer, 200, { "content-type": t.type, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
+  });
+
   // ---- connections ----
   const findDef = (key: string) => {
     const [kind, id] = key.split(":");

@@ -5,6 +5,23 @@ import { addDays, dayBounds, localDate, nowIn, zonedIso } from "../../core/time.
 import type { Geocoder, LocationProvider } from "../../providers/location/types.js";
 import { areaAt, cleanPoints, pathKm, stays, stripLot } from "../../providers/location/stays.js";
 import { placeResolver } from "./places.js";
+import type { MapTiles } from "../../providers/maptiles/osm.js";
+
+/** What the admin Map screen asks for (never reached by tools: coordinates stay out of Claude and the vault). */
+export interface LocationAdmin {
+  day(date: string): Promise<LocationDay>;
+  tile(z: number, x: number, y: number): Promise<{ bytes: Uint8Array<ArrayBuffer>; type: string } | undefined>;
+}
+export interface LocationDay {
+  date: string;
+  connected: boolean;
+  tiles: { attribution: string } | null;
+  km: number;
+  /** [lat, lon, unix seconds], thinned to at most MAX_PATH points. */
+  path: [number, number, number][];
+  stays: { start: number; end: number; minutes: number; lat: number; lon: number; name: string; named: boolean }[];
+}
+const MAX_PATH = 3000;
 
 const OwnTracks = z
   .object({ _type: z.string().max(20), lat: z.number().min(-90).max(90).optional(), lon: z.number().min(-180).max(180).optional(), tst: z.number().int().optional(), acc: z.number().min(0).max(100_000).optional(), tid: z.string().max(4).optional() })
@@ -46,7 +63,33 @@ export default defineModule({
     const tz = () => settings.timezone;
     const hhmm = (t: number) => new Intl.DateTimeFormat("en-GB", { timeZone: tz(), hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t * 1000));
 
+    const admin: LocationAdmin = {
+      async day(date) {
+        const { loc } = await get();
+        const tiles = await provider<MapTiles>("maptiles").catch(() => undefined);
+        const base = { date, connected: !!loc, tiles: tiles ? { attribution: tiles.attribution } : null, km: 0, path: [], stays: [] };
+        if (!loc) return base;
+        const [from, to] = dayBounds(tz(), date);
+        const pts = cleanPoints(await loc.points(from, to));
+        if (!pts.length) return base;
+        const areas = await places.areas();
+        const out: LocationDay["stays"] = [];
+        for (const x of stays(pts, s().stay)) {
+          const a = areaAt(areas, x.lat, x.lon);
+          out.push({ start: x.start, end: x.end, minutes: Math.round((x.end - x.start) / 60), lat: x.lat, lon: x.lon, name: a ? a.name : (await places.nameAt!(x.lat, x.lon)) || "", named: !!a });
+        }
+        const step = Math.ceil(pts.length / MAX_PATH);
+        const path = pts.filter((_, i) => i % step === 0 || i === pts.length - 1).map((p) => [p.lat, p.lon, p.t] as [number, number, number]);
+        return { ...base, km: Math.round(pathKm(pts) * 10) / 10, path, stays: out };
+      },
+      async tile(z, x, y) {
+        const tiles = await provider<MapTiles>("maptiles").catch(() => undefined);
+        return tiles ? tiles.tile(z, x, y) : undefined;
+      },
+    };
+
     return {
+      admin,
       summary: {
         async day(date) {
           const { loc } = await get();

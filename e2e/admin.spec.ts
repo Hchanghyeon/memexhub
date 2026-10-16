@@ -4,7 +4,7 @@ const USER = "owner";
 const PASSWORD = "a-long-test-password";
 const PAGES: [string, RegExp][] = [
   ["/", /개요/], ["/notes", /노트/], ["/vault", /볼트/], ["/claude", /Claude에서 memexhub 쓰기/], ["/devices", /기기/], ["/connections", /연결/],
-  ["/features", /기능/], ["/recipes", /레시피·대기함/], ["/activity", /활동/], ["/security", /보안/], ["/backups", /백업/],
+  ["/features", /기능/], ["/recipes", /레시피·대기함/], ["/activity", /활동/], ["/security", /보안/], ["/backups", /백업/], ["/map", /지도/],
 ];
 
 /** Fails the test on any uncaught page error or console error. */
@@ -127,5 +127,20 @@ test("notes: pictures show in place, PDFs open by link", async ({ page }) => {
   await page.goto("/admin/notes");
   await page.getByRole("button", { name: "files" }).click();
   await expect(page.getByRole("link", { name: "pixel.png" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("map: a day's route and stays", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/map");
+  await page.getByLabel("날짜").fill("2026-01-15");
+  await expect(page.getByRole("heading", { name: "머문 곳" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "map" })).toBeVisible();
+  await expect(page.locator(".leaflet-overlay-pane path").first()).toBeAttached();
+  await expect(page.getByRole("button", { name: "지도 바탕 켜기" })).toBeVisible();
+  await page.getByRole("button", { name: "지도에서 보기" }).first().click();
+  await page.getByRole("button", { name: "전날" }).click();
+  await expect(page.getByText("이날은 위치 기록이 없어요.")).toBeVisible();
   expect(errors).toEqual([]);
 });

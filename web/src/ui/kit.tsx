@@ -300,6 +300,10 @@ export const Input = (p: { label: ReactNode; hint?: ReactNode; value: string; on
     {(id) => <UIInput id={id} className={cn(p.mono && "font-mono text-[0.8125rem]", p.narrow && "max-w-40")} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
+/** A compact date picker for page actions (label is for screen readers only). */
+export const DateInput = (p: { label: string; value: string; onChange: (v: string) => void; max?: string }) => (
+  <UIInput type="date" aria-label={p.label} value={p.value} max={p.max} onChange={(e) => e.target.value && p.onChange(e.target.value)} className="h-8 w-auto" />
+);
 export const TextArea = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; mono?: boolean }) => (
   <Field label={p.label} hint={p.hint}>
     {(id) => <Textarea id={id} className={cn(p.mono && "font-mono text-[0.8125rem]")} rows={p.rows ?? 4} value={p.value} placeholder={p.placeholder} onChange={(e) => p.onChange(e.target.value)} />}

@@ -43,6 +43,12 @@ const s = await hub.settings.get();
 await hub.settings.set("vault", { ...s.vault, connection: "vault" });
 await hub.settings.set("wiki", { ...s.wiki, preset: "llm-wiki" });
 await hub.settings.set("onboarded", true);
+// A morning on 2026-01-15 (UTC 03:00–05:00): one stay, a walk, another stay. No map background: no outside calls.
+const M0 = Date.parse("2026-01-15T03:00:00Z") / 1000;
+for (let i = 0; i < 120; i++) {
+  const lat = i < 40 ? 37.5 : i < 70 ? 37.5 + (i - 40) * 0.0004 : 37.512;
+  await hub.platform.db.run(`INSERT INTO location_points (t, lat, lon, acc, device) VALUES (?, ?, ?, ?, ?)`, [M0 + i * 60, lat, 127.0, 10, "e2e"]);
+}
 await hub.settings.set("timezone", "Asia/Seoul");
 await hub.reload();
 await hub.ingestTokens.create("Sample phone", ["ledger"], "e2e");

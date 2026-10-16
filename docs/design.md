@@ -49,6 +49,7 @@ Pages are built **only** from the parts in `web/src/ui/kit.tsx`. A page never se
 | `Choice` | pick one of a few options shown at once (radio cards with a hint) |
 | `Check` | a checkbox with a label and optional hint |
 | `Segmented` | pick one of 2–4 short options (language, view) |
+| `DateInput` | a compact date picker in page actions (label read by screen readers only) |
 | `Status`, `Badge`, `Callout` | state with a dot; small labels; info / warning / error notes |
 | `Steps`, `KeyValue`, `Copy`, `More`, `Sub`, `Hint`, `Empty` | numbered how-to; label → value pairs; copyable value; hidden advanced settings; a group heading inside a card; small help text; empty state |
 
