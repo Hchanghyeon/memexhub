@@ -59,6 +59,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, reminders |
 | calendar | `calendars · events(from, to)` | CalDAV ✅ · iCloud ✅ · Google ✅ | — |
 | weather | `place · days(from, to)` | Open-Meteo ✅ | — |
+| home | `states · logbook(from, to, entity?)` (read-only) | Home Assistant ✅ | — |
 
 ## Modules
 
@@ -74,6 +75,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | tasks | `task_*` | — | — | ✅ ([tasks](tasks.md)) |
 | calendar | `calendar_list` `calendar_events` | — | — | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | — | — | ✅ |
+| home | `home_states` `home_day` | — | — | ✅ ([home](home.md)) |
 
 ## Ledger: message recipes ✅
 

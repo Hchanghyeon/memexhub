@@ -26,6 +26,7 @@ const MOD: Record<string, [string, string, string, string]> = {
   tasks: ["Tasks", "할 일", "Google Tasks for Claude.", "Claude가 Google Tasks를 써요."],
   notion: ["Notion", "Notion", "Copy records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."],
   calendar: ["Calendar", "캘린더", "Your events in summaries; Claude can look up any day.", "일정을 요약에 넣고, Claude가 어느 날이든 찾아봐요."],
+  home: ["Home", "집", "Home Assistant states and the day's logbook (read-only).", "홈 어시스턴트 상태와 그날 기록 (읽기 전용)."],
   weather: ["Weather", "날씨", "The day's weather in summaries and the journal.", "그날 날씨를 요약과 일지에 넣어요."],
 };
 const BASIC = ["vault", "wiki", "hub"];

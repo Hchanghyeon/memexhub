@@ -59,6 +59,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, 미리 알림 |
 | calendar | `calendars · events` | 인터페이스만 | google, CalDAV |
 | weather | `place · days(from, to)` | Open-Meteo ✅ | — |
+| home | `states · logbook(from, to, entity?)` (read-only) | Home Assistant ✅ | — |
 
 ## 모듈
 
@@ -74,6 +75,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |
 | calendar | `calendar_list` `calendar_events` | — | — | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | — | — | ✅ |
+| home | `home_states` `home_day` | — | — | ✅ ([home](home.md)) |
 
 ## 결제: 메시지 레시피 ✅
 

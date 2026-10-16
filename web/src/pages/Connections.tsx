@@ -16,6 +16,7 @@ const KIND: Record<string, [string, string, string, string]> = {
   tasks: ["Tasks", "할 일", "Claude can read and add tasks.", "Claude가 할 일을 보고 추가해요."],
   notion: ["Notion", "Notion", "Copy records into Notion.", "기록을 Notion으로 복사해요."],
   calendar: ["Calendar", "캘린더", "Read your events (read-only).", "일정을 읽어요 (읽기 전용)."],
+  home: ["Home", "집", "Smart-home states and history (read-only).", "스마트홈 상태와 기록 (읽기 전용)."],
   weather: ["Weather", "날씨", "The day's weather at a place you choose.", "고른 장소의 그날 날씨."],
 };
 

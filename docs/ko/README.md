@@ -13,7 +13,7 @@
 - [Claude 연동](claude-integration.md) — 커넥터, OAuth, `day_summary` / `week_summary`
 - [위키 엔진](wiki-engine.md) — 역할, 프리셋, 점검, 원본, 목차, 로그
 - [결제](ledger.md) — 결제·돈 노트 · [메시지 레시피](recipes.md) — 코드 없이 문자·메일·알림 해석
-- [메일](mail.md) · [위치](location.md) · [건강](health.md) · [할 일](tasks.md) · [캘린더](calendar.md) · [Notion](notion.md)
+- [메일](mail.md) · [위치](location.md) · [건강](health.md) · [할 일](tasks.md) · [캘린더](calendar.md) · [집](home.md) · [Notion](notion.md)
 
 ## 운영
 - [설정과 저장소](configuration-and-storage.md) — 환경 변수, 볼트 저장소, 내장 WebDAV, 백업
