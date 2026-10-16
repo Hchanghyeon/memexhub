@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { post } from "../api";
 import { useT } from "../i18n";
+import { Brand } from "../ui/brand";
 import { Button, Copy, Input, useAction } from "../ui/kit";
 
 const Frame = ({ children }: { children: React.ReactNode }) => (
-  <div className="center"><div className="card"><div className="brand"><span className="brand-mark">m</span>memexhub</div>{children}</div></div>
+  <div className="bg-muted/40 grid min-h-svh place-items-center px-4 py-8">
+    <div className="w-full max-w-sm">
+      <div className="mb-6 flex items-center justify-center gap-2.5 text-lg font-bold"><Brand />memexhub</div>
+      <div className="bg-card rounded-xl border p-6 shadow-sm">{children}</div>
+    </div>
+  </div>
 );
 
 export function Login({ onDone, error }: { onDone: () => void; error?: string }) {

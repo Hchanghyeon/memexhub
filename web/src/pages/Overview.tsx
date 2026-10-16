@@ -1,5 +1,7 @@
 import { useT, ago } from "../i18n";
 import { Link } from "../router";
+import { ArrowRight, CircleCheck } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge, Card, Dot, Loading, Page, useData } from "../ui/kit";
 import { checkText, type Check } from "../checks";
 
@@ -45,10 +47,10 @@ export function Overview() {
     ...o.checks.filter((c) => !c.ok && (!showSteps || c.level === "high")).map((c) => ({ text: checkText(t, c).text, to: checkText(t, c).fix ?? "/security", high: c.level === "high" })),
   ];
   const Stat = (p: { to: string; k: string; v: string; s?: string; tone?: "ok" | "err" }) => (
-    <Link to={p.to} className="card stat">
-      <div className="k">{p.k}</div>
-      <div className="v">{p.tone && <Dot tone={p.tone} />}{p.v}</div>
-      {p.s && <div className="s">{p.s}</div>}
+    <Link to={p.to} className="stat">
+      <div className="text-muted-foreground text-xs font-medium">{p.k}</div>
+      <div className="mt-1.5 flex items-center text-base font-semibold">{p.tone && <Dot tone={p.tone} />}{p.v}</div>
+      {p.s && <div className="text-muted-foreground mt-0.5 truncate text-xs">{p.s}</div>}
     </Link>
   );
   return (
@@ -64,13 +66,13 @@ export function Overview() {
                   <span className="title">{t(...s.title)}</span> <Badge tone={s.level}>{LEVEL[s.level]}</Badge>
                   {!s.done && <span className="meta">{t(...s.how)}</span>}
                 </div>
-                {!s.done && <Link to={s.to} className="btn secondary sm">{t("Set up", "설정하기")}</Link>}
+                {!s.done && <Link to={s.to} className={buttonVariants({ variant: "outline", size: "sm" })}>{t("Set up", "설정하기")}</Link>}
               </li>
             ))}
           </ul>
         </Card>
       )}
-      <div className="grid">
+      <div className="tiles">
         <Stat to="/vault" k={t("Vault", "볼트")} tone={o.vault.connected ? "ok" : "err"} v={o.vault.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} s={o.vault.preset ?? undefined} />
         <Stat to="/claude" k="Claude" tone={o.claude.used ? "ok" : undefined} v={o.claude.used ? ago(t, o.claude.last, tz) : t("Not connected", "연결 안 됨")} s={t(`${o.claude.apps} app(s)`, `앱 ${o.claude.apps}개`)} />
         {o.payments && <Stat to="/recipes" k={t("Payments", "결제")} v={ago(t, o.payments.last, tz)} s={o.payments.inbox ? t(`${o.payments.inbox} in the inbox`, `대기함 ${o.payments.inbox}개`) : t("Inbox empty", "대기함 비어 있음")} tone={o.payments.inbox ? "err" : undefined} />}
@@ -83,10 +85,10 @@ export function Overview() {
         {attention.length ? (
           <ul className="list">
             {attention.map((a, i) => (
-              <li key={i}><Dot tone={a.high ? "err" : "warn"} /><span className="grow">{a.text}</span><Link to={a.to} className="btn ghost sm">{t("Open", "열기")} →</Link></li>
+              <li key={i}><Dot tone={a.high ? "err" : "warn"} /><span className="grow">{a.text}</span><Link to={a.to} className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Open", "열기")} <ArrowRight /></Link></li>
             ))}
           </ul>
-        ) : <p className="ok" style={{ margin: 0 }}>✓ {t("All good.", "모두 괜찮아요.")}</p>}
+        ) : <p className="ok flex items-center gap-2"><CircleCheck className="size-4" /> {t("All good.", "모두 괜찮아요.")}</p>}
       </Card>
       <p className="muted">{t("Time zone", "시간대")} {tz}</p>
     </Page>

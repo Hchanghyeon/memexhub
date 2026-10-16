@@ -1,3 +1,5 @@
+import { ArrowRight } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { useState } from "react";
 import { post } from "../api";
 import { useT } from "../i18n";
@@ -67,7 +69,7 @@ function Ledger({ f, reload }: { f: F; reload: () => void }) {
     mailSources: s.mailSources.split("\n").map((l) => /^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/.exec(l)).filter(Boolean).map((m) => ({ connection: m![1]!, folder: m![2]! })),
   }), t("Payments saved.", "결제 설정을 저장했어요."), reload);
   return (
-    <Card id="ledger" title={t("Payments", "결제")} aside={<Link to="/recipes" className="btn ghost sm">{t("Recipes & inbox", "레시피·대기함")} →</Link>}>
+    <Card id="ledger" title={t("Payments", "결제")} aside={<Link to="/recipes" className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Recipes & inbox", "레시피·대기함")} <ArrowRight /></Link>}>
       <Input label={t("Payments note", "결제 노트")} hint={t("{year} becomes the year.", "{year}는 연도로 바뀌어요.")} value={s.paymentsNote} onChange={(v) => setS({ ...s, paymentsNote: v })} mono />
       <Input label={t("Money summary note", "돈 요약 노트")} value={s.moneyNote} onChange={(v) => setS({ ...s, moneyNote: v })} mono />
       <details className="more">

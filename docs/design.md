@@ -18,7 +18,7 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 - **Clean and quiet.** Lots of white space, one column, max width ~720 px.
 - **Few colors.** Neutral grays for everything; **one accent** for the primary action; red only for errors and destructive actions; green only for "connected / ok". No gradients, no decorative color.
 - **One font stack** (system UI), two weights, three sizes (title, body, small).
-- **Simple components**: plain buttons (primary / secondary / danger), cards with a 1 px border, simple tables. No icons unless they add meaning.
+- **Simple components**: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind CSS v4) copied into `web/src/components/ui/`; pages use the small wrappers in `web/src/ui/kit.tsx`. Neutral theme, light and dark follow the device. Icons (lucide) only in navigation and where they add meaning.
 - **Consistent wording**: *Connect*, *Test connection*, *Save*, *Revoke*, *Create token* — the same verb for the same action everywhere.
 
 ## Copy checklist
@@ -30,7 +30,7 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 
 ## Screens
 
-The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/` and served by the server under `/admin` — by the Node entry from disk, on Cloudflare Workers from static assets. It talks to the JSON API at `/admin/api` (`src/admin/api.ts`): session cookie (HttpOnly, SameSite=Strict), CSRF token in the `X-CSRF` header, private network only unless opened with two-factor. The CSP allows only the app's own scripts, styles and fonts.
+The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/` and served by the server under `/admin` — by the Node entry from disk, on Cloudflare Workers from static assets. It talks to the JSON API at `/admin/api` (`src/admin/api.ts`): session cookie (HttpOnly, SameSite=Strict), CSRF token in the `X-CSRF` header, private network only unless opened with two-factor. The CSP allows only the app's own scripts, styles and fonts (inline styles are allowed for Radix positioning).
 
 | Screen | What it is for |
 |---|---|

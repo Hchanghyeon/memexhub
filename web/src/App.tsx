@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { get, post, setCsrf, whenSignedOut, type Session } from "./api";
 import { LangContext, makeT, pickLang, useT } from "./i18n";
 import { Link, navigate, useRoute } from "./router";
+import { Activity as ActivityIcon, Archive, Bot, Cable, FolderOpen, Inbox, Languages, LayoutDashboard, LogOut, Menu, Puzzle, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
 import { Toasts, Skeleton } from "./ui/kit";
+import { Brand } from "./ui/brand";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Login, Setup, Enrol } from "./pages/Auth";
 import { Overview } from "./pages/Overview";
 import { Vault } from "./pages/Vault";
@@ -45,7 +50,7 @@ export function App() {
     <LangContext.Provider value={ctx}>
       <Toasts>
         {!session ? (
-          <div className="center"><div className="card"><Skeleton /></div></div>
+          <div className="grid min-h-svh place-items-center px-4"><div className="w-full max-w-sm"><Skeleton /></div></div>
         ) : session.setupNeeded ? (
           <Setup onDone={refresh} />
         ) : !session.signedIn ? (
@@ -60,26 +65,51 @@ export function App() {
   );
 }
 
-const NAV: { group?: [string, string]; path: string; label: [string, string] }[] = [
-  { path: "/", label: ["Overview", "개요"] },
-  { group: ["Set up", "설정"], path: "/vault", label: ["Vault", "볼트"] },
-  { path: "/claude", label: ["Claude app", "Claude 앱"] },
-  { path: "/devices", label: ["Devices", "기기"] },
-  { path: "/connections", label: ["Connections", "연결"] },
-  { path: "/features", label: ["Features", "기능"] },
-  { group: ["Records", "기록"], path: "/recipes", label: ["Recipes & inbox", "레시피·대기함"] },
-  { path: "/activity", label: ["Activity", "활동"] },
-  { group: ["Safety", "안전"], path: "/security", label: ["Security", "보안"] },
-  { path: "/backups", label: ["Backups", "백업"] },
+const NAV: { group?: [string, string]; path: string; label: [string, string]; icon: LucideIcon }[] = [
+  { path: "/", label: ["Overview", "개요"], icon: LayoutDashboard },
+  { group: ["Set up", "설정"], path: "/vault", label: ["Vault", "볼트"], icon: FolderOpen },
+  { path: "/claude", label: ["Claude app", "Claude 앱"], icon: Bot },
+  { path: "/devices", label: ["Devices", "기기"], icon: Smartphone },
+  { path: "/connections", label: ["Connections", "연결"], icon: Cable },
+  { path: "/features", label: ["Features", "기능"], icon: Puzzle },
+  { group: ["Records", "기록"], path: "/recipes", label: ["Recipes & inbox", "레시피·대기함"], icon: Inbox },
+  { path: "/activity", label: ["Activity", "활동"], icon: ActivityIcon },
+  { group: ["Safety", "안전"], path: "/security", label: ["Security", "보안"], icon: ShieldCheck },
+  { path: "/backups", label: ["Backups", "백업"], icon: Archive },
 ];
 
-function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
+function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; path: string; onSignOut: () => void; onNavigate?: () => void }) {
   const { t, lang, setLanguage } = useT();
+  return (
+    <div className="flex h-full flex-col gap-1 px-3 py-4">
+      <div className="flex items-center gap-2.5 px-2 pb-4 text-[1.05rem] font-bold"><Brand />memexhub</div>
+      <nav className="flex flex-col gap-0.5" aria-label={t("Sections", "메뉴")}>
+        {NAV.map((n) => (
+          <div key={n.path} className="contents">
+            {n.group && <div className="text-muted-foreground px-2.5 pt-4 pb-1.5 text-xs font-medium">{t(...n.group)}</div>}
+            <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm no-underline transition-colors [&_svg]:size-4", path === n.path && "bg-accent text-foreground font-semibold")}>
+              <n.icon />{t(...n.label)}
+            </Link>
+          </div>
+        ))}
+      </nav>
+      <div className="mt-auto flex flex-col gap-0.5 border-t pt-3">
+        <div className="text-muted-foreground truncate px-2.5 pb-1 text-xs">{session.username}</div>
+        <Button variant="ghost" size="sm" className="text-muted-foreground justify-start" onClick={() => setLanguage(lang === "ko" ? "en" : "ko")}><Languages />{lang === "ko" ? "English" : "한국어"}</Button>
+        <Button variant="ghost" size="sm" className="text-muted-foreground justify-start" onClick={async () => { await post("/logout").catch(() => {}); onSignOut(); }}><LogOut />{t("Sign out", "로그아웃")}</Button>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
+  const { t } = useT();
   const path = useRoute();
   const [menu, setMenu] = useState(false);
   useEffect(() => {
     if (!session.onboarded && path === "/") navigate("/start", true);
   }, [session.onboarded, path]);
+  useEffect(() => window.scrollTo(0, 0), [path]);
   const page: ReactNode = (() => {
     switch (path) {
       case "/": return <Overview />;
@@ -98,27 +128,20 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
   })();
   const current = NAV.find((n) => n.path === path);
   return (
-    <div className={`shell ${menu ? "menu" : ""}`}>
-      <aside className="side" onClick={(e) => (e.target as HTMLElement).closest("a") && setMenu(false)}>
-        <div className="brand"><span className="brand-mark">m</span>memexhub</div>
-        <nav className="nav" aria-label={t("Sections", "메뉴")}>
-          {NAV.map((n) => (
-            <div key={n.path}>
-              {n.group && <div className="nav-group">{t(...n.group)}</div>}
-              <Link to={n.path}>{t(...n.label)}</Link>
-            </div>
-          ))}
-        </nav>
-        <div className="side-foot">
-          <span>{session.username}</span>
-          <button type="button" onClick={() => setLanguage(lang === "ko" ? "en" : "ko")}>{lang === "ko" ? "English" : "한국어"}</button>
-          <button type="button" onClick={async () => { await post("/logout").catch(() => {}); onSignOut(); }}>{t("Sign out", "로그아웃")}</button>
-        </div>
+    <div className="bg-muted/40 min-h-svh md:grid md:grid-cols-[240px_1fr]">
+      <aside className="bg-sidebar sticky top-0 hidden h-svh overflow-y-auto border-r md:block">
+        <Sidebar session={session} path={path} onSignOut={onSignOut} />
       </aside>
-      <main onClick={() => menu && setMenu(false)}>
-        <div className="topbar">
-          <button type="button" className="icon-btn" aria-label={t("Menu", "메뉴")} onClick={(e) => { e.stopPropagation(); setMenu(true); }}>☰</button>
-          <strong>{current ? t(...current.label) : "memexhub"}</strong>
+      <Sheet open={menu} onOpenChange={setMenu}>
+        <SheetContent side="left" className="w-72 p-0" aria-describedby={undefined}>
+          <SheetTitle className="sr-only">{t("Menu", "메뉴")}</SheetTitle>
+          <Sidebar session={session} path={path} onSignOut={onSignOut} onNavigate={() => setMenu(false)} />
+        </SheetContent>
+      </Sheet>
+      <main className="min-w-0">
+        <div className="bg-background/85 sticky top-0 z-20 flex items-center gap-2 border-b px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur md:hidden">
+          <Button variant="ghost" size="icon" aria-label={t("Menu", "메뉴")} onClick={() => setMenu(true)}><Menu /></Button>
+          <strong className="text-[0.95rem]">{current ? t(...current.label) : "memexhub"}</strong>
         </div>
         {page}
       </main>

@@ -59,7 +59,7 @@ function InboxItem({ i, reload, onDraft }: { i: R["inbox"][number]; reload: () =
       {open && (
         <div style={{ marginTop: "0.6rem" }}>
           <pre style={{ maxHeight: "12rem" }}>{i.text}</pre>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))" }}>
+          <div className="tiles" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))" }}>
             <Input label={t("Merchant", "가맹점")} value={f.merchant} onChange={(v) => setF({ ...f, merchant: v })} />
             <Input label={t("Amount", "금액")} value={f.amount} onChange={(v) => setF({ ...f, amount: v })} placeholder="₩12,500" />
             <Input label={t("Card", "카드")} value={f.card} onChange={(v) => setF({ ...f, card: v })} />
@@ -93,7 +93,7 @@ function Try({ onDraft }: { onDraft: (j: string) => void }) {
       {r && (
         <div className="callout" style={{ marginTop: "0.8rem" }}>
           <b>{r.kind === "ignore" ? t(`Ignored by recipe ${r.recipeId}.`, `레시피 ${r.recipeId}가 무시해요.`) : r.confident ? t(`Would be recorded — ${r.step === "recipe" ? `recipe ${r.recipeId}` : "general reader"}.`, `기록돼요 — ${r.step === "recipe" ? `레시피 ${r.recipeId}` : "공통 해석기"}.`) : t(`Would wait in the inbox — ${r.reason ?? ""}.`, `대기함으로 가요 — ${r.reason ?? ""}.`)}</b>
-          {r.payment && <table className="table" style={{ marginTop: "0.5rem" }}><tbody>{Object.entries(r.payment).filter(([, v]) => v).map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}</tbody></table>}
+          {r.payment && <table className="kv" style={{ marginTop: "0.5rem" }}><tbody>{Object.entries(r.payment).filter(([, v]) => v).map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}</tbody></table>}
         </div>
       )}
     </Card>

@@ -1,6 +1,21 @@
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { Check, Copy as CopyIcon, Loader2 } from "lucide-react";
 import { ApiError, get } from "../api";
 import { useT, type T } from "../i18n";
+import { cn } from "@/lib/utils";
+import { Button as UIButton } from "@/components/ui/button";
+import { Card as UICard, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge as UIBadge } from "@/components/ui/badge";
+import { Input as UIInput } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton as UISkeleton } from "@/components/ui/skeleton";
+import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Dialog as UIDialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Toaster } from "@/components/ui/sonner";
 
 // ---------- data ----------
 /** Load an API path; reload() after a change. */
@@ -44,34 +59,19 @@ export function errorText(t: T, e: unknown): string {
 }
 
 // ---------- toasts ----------
-type Toast = { id: number; kind: "ok" | "err"; text: string };
-const ToastCtx = createContext<(kind: "ok" | "err", text: string) => void>(() => {});
 export function Toasts({ children }: { children: ReactNode }) {
-  const [list, setList] = useState<Toast[]>([]);
-  const push = useCallback((kind: "ok" | "err", text: string) => {
-    const id = Date.now() + Math.random();
-    setList((l) => [...l.slice(-2), { id, kind, text }]);
-    setTimeout(() => setList((l) => l.filter((x) => x.id !== id)), kind === "err" ? 7000 : 3200);
-  }, []);
   return (
-    <ToastCtx.Provider value={push}>
+    <>
       {children}
-      <div className="toasts" role="status" aria-live="polite">
-        {list.map((x) => (
-          <div key={x.id} className={`toast ${x.kind}`} onClick={() => setList((l) => l.filter((y) => y.id !== x.id))}>
-            <span className="toast-icon">{x.kind === "ok" ? "✓" : "!"}</span>
-            {x.text}
-          </div>
-        ))}
-      </div>
-    </ToastCtx.Provider>
+      <Toaster />
+    </>
   );
 }
-export const useToast = () => useContext(ToastCtx);
+export const useToast = () => useCallback((kind: "ok" | "err", text: string) => (kind === "ok" ? toast.success(text) : toast.error(text, { duration: 7000 })), []);
 
 /** Run a change: busy state, a toast with the result, then onDone. */
 export function useAction() {
-  const toast = useToast();
+  const push = useToast();
   const { t } = useT();
   const [busy, setBusy] = useState(false);
   const run = useCallback(
@@ -79,55 +79,57 @@ export function useAction() {
       setBusy(true);
       try {
         const r = await fn();
-        if (ok) toast("ok", typeof ok === "function" ? ok(r) : ok);
+        if (ok) push("ok", typeof ok === "function" ? ok(r) : ok);
         onDone?.(r);
         return r;
       } catch (e) {
-        toast("err", errorText(t, e));
+        push("err", errorText(t, e));
         return undefined;
       } finally {
         setBusy(false);
       }
     },
-    [toast, t],
+    [push, t],
   );
   return { busy, run };
 }
 
 // ---------- layout pieces ----------
 export const Page = (p: { title: string; sub?: ReactNode; actions?: ReactNode; children: ReactNode }) => (
-  <div className="page">
-    <header className="page-head">
-      <div>
-        <h1>{p.title}</h1>
-        {p.sub && <p className="muted">{p.sub}</p>}
+  <div className="mx-auto w-full max-w-4xl px-4 pt-6 pb-20 sm:px-6 md:pt-10">
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight md:text-[1.7rem]">{p.title}</h1>
+        {p.sub && <p className="text-muted-foreground text-sm">{p.sub}</p>}
       </div>
-      {p.actions && <div className="row">{p.actions}</div>}
+      {p.actions && <div className="flex flex-wrap items-center gap-2">{p.actions}</div>}
     </header>
-    {p.children}
+    <div className="flex flex-col gap-4">{p.children}</div>
   </div>
 );
 
 export const Card = (p: { title?: ReactNode; badge?: ReactNode; sub?: ReactNode; id?: string; children?: ReactNode; className?: string; aside?: ReactNode }) => (
-  <section className={`card ${p.className ?? ""}`} id={p.id}>
+  <UICard id={p.id} className={cn("gap-4 py-5", p.className)}>
     {(p.title || p.aside) && (
-      <div className="card-head">
-        <div>
-          {p.title && <h2>{p.title} {p.badge}</h2>}
-          {p.sub && <p className="muted">{p.sub}</p>}
-        </div>
-        {p.aside}
-      </div>
+      <CardHeader className="px-5">
+        {p.title && <CardTitle className="flex flex-wrap items-center gap-2 text-base">{p.title} {p.badge}</CardTitle>}
+        {p.sub && <CardDescription>{p.sub}</CardDescription>}
+        {p.aside && <CardAction>{p.aside}</CardAction>}
+      </CardHeader>
     )}
-    {p.children}
-  </section>
+    {p.children !== undefined && <CardContent className="px-5">{p.children}</CardContent>}
+  </UICard>
 );
 
-export const Badge = (p: { tone?: "required" | "recommended" | "optional" | "basic" | "neutral"; children: ReactNode }) => <span className={`badge ${p.tone ?? "neutral"}`}>{p.children}</span>;
-export const Dot = (p: { tone: "ok" | "err" | "idle" | "warn" }) => <span className={`dot ${p.tone}`} aria-hidden />;
+const BADGE = { required: "destructive", recommended: "info", optional: "outline", basic: "secondary", neutral: "outline" } as const;
+export const Badge = (p: { tone?: keyof typeof BADGE; children: ReactNode }) => <UIBadge variant={BADGE[p.tone ?? "neutral"]}>{p.children}</UIBadge>;
+
+const DOT = { ok: "bg-success", err: "bg-destructive", warn: "bg-warning", idle: "bg-muted-foreground/40" };
+export const Dot = (p: { tone: keyof typeof DOT }) => <span className={cn("mr-2 inline-block size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />;
+
 export const Skeleton = (p: { lines?: number }) => (
-  <div className="skeleton" aria-busy>
-    {Array.from({ length: p.lines ?? 3 }, (_, i) => <span key={i} style={{ width: `${90 - i * 15}%` }} />)}
+  <div className="space-y-3" aria-busy>
+    {Array.from({ length: p.lines ?? 3 }, (_, i) => <UISkeleton key={i} className="h-4" style={{ width: `${90 - i * 15}%` }} />)}
   </div>
 );
 export function Loading({ error, reload }: { error?: unknown; reload?: () => void }) {
@@ -135,19 +137,20 @@ export function Loading({ error, reload }: { error?: unknown; reload?: () => voi
   if (!error) return <Card><Skeleton lines={4} /></Card>;
   return (
     <Card>
-      <p className="err">{errorText(t, error)}</p>
+      <p className="text-destructive mb-3 text-sm">{errorText(t, error)}</p>
       {reload && <Button kind="secondary" onClick={reload}>{t("Try again", "다시 시도")}</Button>}
     </Card>
   );
 }
 
 // ---------- controls ----------
-export function Button(p: { kind?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm"; busy?: boolean; disabled?: boolean; type?: "button" | "submit"; onClick?: () => void; children: ReactNode; title?: string }) {
+const KIND = { primary: "default", secondary: "outline", danger: "destructive", ghost: "ghost" } as const;
+export function Button(p: { kind?: keyof typeof KIND; size?: "sm"; busy?: boolean; disabled?: boolean; type?: "button" | "submit"; onClick?: () => void; children: ReactNode; title?: string; className?: string }) {
   return (
-    <button type={p.type ?? "button"} className={`btn ${p.kind ?? "primary"} ${p.size ?? ""}`} disabled={p.disabled || p.busy} onClick={p.onClick} title={p.title} aria-busy={p.busy}>
-      {p.busy && <span className="spinner" aria-hidden />}
+    <UIButton type={p.type ?? "button"} variant={KIND[p.kind ?? "primary"]} size={p.size === "sm" ? "sm" : "default"} disabled={p.disabled || p.busy} onClick={p.onClick} title={p.title} aria-busy={p.busy} className={p.className}>
+      {p.busy && <Loader2 className="animate-spin" aria-hidden />}
       {p.children}
-    </button>
+    </UIButton>
   );
 }
 
@@ -155,7 +158,7 @@ export function Field(p: { label: ReactNode; hint?: ReactNode; children: (id: st
   const id = useId();
   return (
     <div className="field">
-      <label htmlFor={id}>{p.label}</label>
+      <Label htmlFor={id}>{p.label}</Label>
       {p.children(id)}
       {p.hint && <p className="hint">{p.hint}</p>}
     </div>
@@ -163,20 +166,24 @@ export function Field(p: { label: ReactNode; hint?: ReactNode; children: (id: st
 }
 export const Input = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string; inputMode?: "numeric" | "text"; required?: boolean; mono?: boolean }) => (
   <Field label={p.label} hint={p.hint}>
-    {(id) => <input id={id} className={p.mono ? "mono" : undefined} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
+    {(id) => <UIInput id={id} className={p.mono ? "font-mono" : undefined} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
 export const TextArea = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; mono?: boolean }) => (
   <Field label={p.label} hint={p.hint}>
-    {(id) => <textarea id={id} className={p.mono ? "mono" : undefined} rows={p.rows ?? 4} value={p.value} placeholder={p.placeholder} onChange={(e) => p.onChange(e.target.value)} />}
+    {(id) => <Textarea id={id} className={p.mono ? "font-mono text-xs" : undefined} rows={p.rows ?? 4} value={p.value} placeholder={p.placeholder} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
+const NONE = "__none__"; // Radix Select does not allow an empty value
 export const Select = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) => (
   <Field label={p.label} hint={p.hint}>
     {(id) => (
-      <select id={id} value={p.value} onChange={(e) => p.onChange(e.target.value)}>
-        {p.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <UISelect value={p.value === "" ? NONE : p.value} onValueChange={(v) => p.onChange(v === NONE ? "" : v)}>
+        <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {p.options.map((o) => <SelectItem key={o.value} value={o.value === "" ? NONE : o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </UISelect>
     )}
   </Field>
 );
@@ -184,24 +191,20 @@ export const Select = (p: { label: ReactNode; hint?: ReactNode; value: string; o
 export function Toggle(p: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode; hint?: ReactNode; disabled?: boolean; badge?: ReactNode }) {
   const id = useId();
   return (
-    <div className={`toggle ${p.disabled ? "disabled" : ""}`}>
-      <div className="toggle-text">
-        <label htmlFor={id}>{p.label} {p.badge}</label>
-        {p.hint && <p className="hint">{p.hint}</p>}
+    <div className={cn("flex items-center justify-between gap-4 border-t py-3.5 first:border-t-0 first:pt-0 last:pb-0", p.disabled && "opacity-60")}>
+      <div className="space-y-1">
+        <Label htmlFor={id} className="flex flex-wrap items-center gap-2 text-[0.95rem] font-semibold">{p.label} {p.badge}</Label>
+        {p.hint && <p className="text-muted-foreground text-sm">{p.hint}</p>}
       </div>
-      <button id={id} type="button" role="switch" aria-checked={p.checked} className="switch" disabled={p.disabled} onClick={() => p.onChange(!p.checked)}>
-        <span />
-      </button>
+      <Switch id={id} checked={p.checked} disabled={p.disabled} onCheckedChange={p.onChange} />
     </div>
   );
 }
 export function Segmented<V extends string>(p: { value: V; onChange: (v: V) => void; options: { value: V; label: string }[]; label?: string }) {
   return (
-    <div className="segmented" role="radiogroup" aria-label={p.label}>
-      {p.options.map((o) => (
-        <button key={o.value} type="button" role="radio" aria-checked={p.value === o.value} onClick={() => p.onChange(o.value)}>{o.label}</button>
-      ))}
-    </div>
+    <ToggleGroup type="single" value={p.value} onValueChange={(v) => v && p.onChange(v as V)} aria-label={p.label} className="flex-wrap">
+      {p.options.map((o) => <ToggleGroupItem key={o.value} value={o.value}>{o.label}</ToggleGroupItem>)}
+    </ToggleGroup>
   );
 }
 
@@ -209,41 +212,29 @@ export function Copy({ text, label }: { text: string; label?: string }) {
   const { t } = useT();
   const [done, setDone] = useState(false);
   return (
-    <div className="copy">
-      <code>{text}</code>
-      <Button kind="secondary" size="sm" onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-        } catch {
-          const r = document.createRange();
-          r.selectNodeContents(document.activeElement?.parentElement?.querySelector("code") ?? document.body);
-        }
+    <div className="bg-muted my-2 flex items-center gap-2 rounded-lg py-1.5 pr-1.5 pl-3">
+      <code className="flex-1 bg-transparent p-0 text-[0.82rem] break-all">{text}</code>
+      <UIButton variant="outline" size="sm" className="bg-background shrink-0" onClick={async () => {
+        try { await navigator.clipboard.writeText(text); } catch { /* insecure context: the text stays selectable */ }
         setDone(true);
         setTimeout(() => setDone(false), 1500);
-      }}>{done ? t("Copied", "복사됨") : label ?? t("Copy", "복사")}</Button>
+      }}>{done ? <Check /> : <CopyIcon />}{done ? t("Copied", "복사됨") : label ?? t("Copy", "복사")}</UIButton>
     </div>
   );
 }
 
-/** A modal dialog (native <dialog>). */
-export function Dialog(p: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (p.open && !d.open) d.showModal();
-    if (!p.open && d.open) d.close();
-  }, [p.open]);
+/** A modal dialog. */
+export function Dialog(p: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; children: ReactNode }) {
   return (
-    <dialog ref={ref} className="dialog" onClose={p.onClose} onClick={(e) => e.target === ref.current && p.onClose()}>
-      <div className="dialog-body">
-        <div className="card-head">
-          <h2>{p.title}</h2>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={p.onClose}>✕</button>
-        </div>
-        {p.open && p.children}
-      </div>
-    </dialog>
+    <UIDialog open={p.open} onOpenChange={(o) => !o && p.onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{p.title}</DialogTitle>
+          {p.sub ? <DialogDescription>{p.sub}</DialogDescription> : <DialogDescription className="sr-only">{p.title}</DialogDescription>}
+        </DialogHeader>
+        {p.children}
+      </DialogContent>
+    </UIDialog>
   );
 }
 
@@ -253,4 +244,4 @@ export function useConfirm() {
   return (text: string) => window.confirm(text || t("Are you sure?", "정말 할까요?"));
 }
 
-export const Empty = (p: { children: ReactNode }) => <p className="empty">{p.children}</p>;
+export const Empty = (p: { children: ReactNode }) => <p className="text-muted-foreground py-6 text-center text-sm">{p.children}</p>;

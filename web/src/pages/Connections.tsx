@@ -50,12 +50,12 @@ export function Connections() {
         ) : <Empty>{t("Nothing connected yet.", "아직 연결한 것이 없어요.")}</Empty>}
       </Card>
       <Card title={t("Add a connection", "연결 추가")}>
-        <div className="grid" style={{ marginBottom: 0 }}>
+        <div className="tiles" style={{ marginBottom: 0 }}>
           {data.addable.map((a) => (
-            <button key={a.key} type="button" className="card stat" style={{ textAlign: "left", font: "inherit", cursor: "pointer", color: "inherit" }} onClick={() => setAdding(a.key)}>
-              <div className="k">{kind(a.kind)}</div>
-              <div className="v">{lang === "ko" ? a.title.ko : a.title.en}</div>
-              <div className="s">{KIND[a.kind] ? t(KIND[a.kind]![2], KIND[a.kind]![3]) : ""}</div>
+            <button key={a.key} type="button" className="stat text-left" onClick={() => setAdding(a.key)}>
+              <div className="text-muted-foreground text-xs font-medium">{kind(a.kind)}</div>
+              <div className="mt-1 text-[0.95rem] font-semibold">{lang === "ko" ? a.title.ko : a.title.en}</div>
+              <div className="text-muted-foreground mt-0.5 text-xs">{KIND[a.kind] ? t(KIND[a.kind]![2], KIND[a.kind]![3]) : ""}</div>
             </button>
           ))}
         </div>

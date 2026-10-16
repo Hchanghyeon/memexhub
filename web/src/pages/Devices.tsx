@@ -28,7 +28,7 @@ export function Devices() {
   return (
     <Page title={t("Devices", "기기")} sub={t("Phones and apps that send records (payments, health, location) use a device token. A token can only send, never read.", "기록(결제, 건강, 위치)을 보내는 폰과 앱은 기기 토큰을 써요. 토큰은 보내기만 하고 읽지는 못해요.")}>
       {fresh && (
-        <Card title={t("Your new token", "새 토큰")} className="fresh">
+        <Card title={t("Your new token", "새 토큰")} className="border-primary/40">
           <p className="callout warn">{t("Copy it now — it will not be shown again.", "지금 복사하세요. 다시 보여주지 않아요.")}</p>
           <Copy text={fresh} />
           <Button kind="secondary" size="sm" onClick={() => setFresh(undefined)}>{t("Done", "다 했어요")}</Button>
@@ -60,7 +60,7 @@ export function Devices() {
         </form>
       </Card>
       <Card title={t("Where to send", "보내는 주소")} sub={t("Put the token in the X-Ingest-Token header, or use it as the password of a sign-in (any username).", "토큰은 X-Ingest-Token 헤더에 넣거나, 로그인 비밀번호로 쓰세요(아이디는 아무거나).")}>
-        <table className="table"><tbody>
+        <table className="kv"><tbody>
           <tr><th>{t("Card message, notification", "카드 문자, 알림")}</th><td><code>{data.publicUrl}/ingest/message</code></td></tr>
           <tr><th>{t("Wallet payment", "지갑 결제")}</th><td><code>{data.publicUrl}/ingest/transaction</code></td></tr>
           <tr><th>{t("Health day", "건강 기록")}</th><td><code>{data.publicUrl}/ingest/health</code></td></tr>
