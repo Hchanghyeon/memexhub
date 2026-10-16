@@ -6,6 +6,7 @@ import { OAuthError } from "../auth/oauth.js";
 import { inAny } from "../core/ip.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
+import { langOf } from "../admin/ui.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -89,7 +90,7 @@ export function mcpApp(hub: Hub) {
   app.get("/authorize", async (c) => {
     try {
       const v = await hub.oauth.validateAuthorize(c.req.query());
-      return c.html(consentPage({ v, query: c.req.url.split("?")[1] ?? "", needTotp: false }));
+      return c.html(consentPage({ v, query: c.req.url.split("?")[1] ?? "", needTotp: false, lang: await langOf(hub, c) }));
     } catch (e) {
       return oauthErr(c, e);
     }
@@ -105,7 +106,7 @@ export function mcpApp(hub: Hub) {
       return oauthErr(c, e);
     }
     const adminId = await hub.admin.login(String(form.username ?? ""), String(form.password ?? ""), String(form.totp ?? "") || undefined, `${c.get("ip")}|${form.username}`);
-    if (!adminId) return c.html(consentPage({ v, query: String(form.query), error: "Login failed", needTotp: true }), 401);
+    if (!adminId) return c.html(consentPage({ v, query: String(form.query), error: "Login failed", needTotp: true, lang: await langOf(hub, c) }), 401);
     const target = new URL(v.redirect);
     if (form.decision !== "allow") {
       target.searchParams.set("error", "access_denied");

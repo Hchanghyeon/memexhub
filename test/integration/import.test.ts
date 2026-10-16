@@ -71,6 +71,6 @@ describe("import from a previous setup", () => {
     expect(msg(await form({ name: "again", token: legacy, scopes: "ledger" })).err).toMatch(/already known/);
     expect(JSON.stringify(await hub.platform.db.all(`SELECT * FROM ingest_tokens`))).not.toContain(legacy);
     await hub.settings.set("dav", { enabled: true, maxFileMb: 50 });
-    expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).toContain("Vault sync (WebDAV) is on for 1 device(s).");
+    expect(await (await app.request(`${BASE}/security`, { headers: { cookie } })).text()).toContain("Vault sync (WebDAV) is on for 1 device(s).");
   });
 });

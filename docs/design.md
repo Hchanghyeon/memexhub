@@ -27,3 +27,21 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 - No jargon where a plain word works ("sign in" not "authenticate").
 - Errors: what happened + what to do ("Wrong setup code. Copy it from the server log and try again.").
 - No exclamation marks, no blame.
+
+## Screens
+
+The signed-in admin UI has one screen per task, reached from tabs that scroll sideways on a phone:
+
+| Tab | What it is for |
+|---|---|
+| Overview | status at a glance (vault, Claude, payments, location, health, devices, backup) and a "needs attention" list with links |
+| Vault | where notes live (the current choice is preselected), Obsidian sync, wiki layout and checks |
+| Connections | outside services with their state, test / turn off, add |
+| Features | switch features on, settings per feature |
+| Recipes & inbox | messages the engine could not read, recipes |
+| Claude | connector address, signed-in apps, tools |
+| Devices | device tokens (scopes as checkboxes), where to send |
+| Security | checks, two-factor, who may call `/mcp`, sign out |
+| Activity · Backups | audit log; backups, restore and import |
+
+Every save returns to its screen with a one-line result. The UI follows the browser language (Korean or English) and can be switched in the header; light and dark follow the device.

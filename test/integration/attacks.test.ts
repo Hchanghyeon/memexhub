@@ -152,21 +152,21 @@ describe("anomaly signals and an internet-facing admin", () => {
   });
 
   it("refuses sign-in from the internet without two-factor even when the admin UI is opened", async () => {
-    await hub.settings.set("admin", { allowPublic: true });
+    await hub.settings.set("admin", { allowPublic: true, language: "auto" });
     await hub.platform.db.run(`UPDATE admins SET created_at = ?`, [new Date(Date.now() - 2 * 86_400_000).toISOString()]); // the enrolment window is over
     const pub = new Hono().use("*", (c: any, n: any) => (c.set("ip", "203.0.113.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
     const r = await pub.request("https://admin.example.com/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=owner&password=a-long-test-password" });
     expect(r.status).toBe(403);
     expect(await r.text()).toMatch(/Two-factor sign-in is required/);
     expect(r.headers.get("set-cookie")).toBeNull();
-    await hub.settings.set("admin", { allowPublic: false });
+    await hub.settings.set("admin", { allowPublic: false, language: "auto" });
   });
 });
 
 describe("two-factor enrolment", () => {
   it("is two-step; right after setup an off-network owner can only enrol, then gets full access", async () => {
     const { totp } = await import("../../src/core/crypto.js");
-    await hub.settings.set("admin", { allowPublic: true });
+    await hub.settings.set("admin", { allowPublic: true, language: "auto" });
     const id = await hub.admin.createAdmin("fresh", "another-long-password", "t");
     const pub = new Hono().use("*", (c: any, n: any) => (c.set("ip", "203.0.113.9"), n())).route("/", adminApp(hub, { vaultRoots: [], builtinVault: "" }));
     const login = await pub.request("https://admin.example.com/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=fresh&password=another-long-password" });
@@ -186,7 +186,7 @@ describe("two-factor enrolment", () => {
     expect((await post("/totp/confirm", { code: await totp(secret, Date.now()) })).status).toBe(302);
     expect(await hub.admin.hasTotp(id)).toBe(true);
     expect((await get("/")).status).toBe(200);
-    await hub.settings.set("admin", { allowPublic: false });
+    await hub.settings.set("admin", { allowPublic: false, language: "auto" });
   });
 
   it("accepts a setup code from the environment", async () => {

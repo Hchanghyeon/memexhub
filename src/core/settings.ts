@@ -74,8 +74,8 @@ export const SettingsSchema = z.object({
   /** First-run wizard finished (or skipped). */
   onboarded: z.boolean().default(false),
   admin: z
-    .object({ allowPublic: z.boolean().default(false) })
-    .default({ allowPublic: false }),
+    .object({ allowPublic: z.boolean().default(false), language: z.enum(["auto", "en", "ko"]).default("auto") })
+    .default({ allowPublic: false, language: "auto" }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

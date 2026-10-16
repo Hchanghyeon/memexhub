@@ -83,6 +83,6 @@ describe("backups", () => {
     const page = await (await app.request(`${BASE}/activity?who=admin&days=30`, { headers: { cookie } })).text();
     expect(page).toContain("backup.restore");
     expect(page).toContain("backup.download");
-    expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).toContain("A backup was made in the last two days.");
+    expect(await (await app.request(`${BASE}/security`, { headers: { cookie } })).text()).toContain("A backup was made in the last two days.");
   });
 });

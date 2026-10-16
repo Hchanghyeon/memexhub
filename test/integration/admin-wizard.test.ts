@@ -47,7 +47,7 @@ describe("first-run wizard", () => {
     expect((await hub.settings.get()).timezone).toBe("Asia/Seoul");
     expect((await form("/vault", { provider: "builtin", next: "3" })).headers.get("location")).toBe("/start?step=3");
     expect(hub.vault).toBeDefined();
-    expect((await form("/wiki/preset", { preset: "para-ko", next: "https://evil.example.com" })).headers.get("location")).toBe("/#wiki");
+    expect((await form("/wiki/preset", { preset: "para-ko", next: "https://evil.example.com" })).headers.get("location")).toBe("/vault?ok=Layout+%22para-ko%22+applied.");
     expect((await form("/wiki/preset", { preset: "llm-wiki", next: "4" })).headers.get("location")).toBe("/start?step=4");
     expect(await (await app.request(`${BASE}/start?step=4`, { headers: { cookie } })).text()).toContain("https://hub.example.com/mcp");
     expect(await (await app.request(`${BASE}/`, { headers: { cookie } })).text()).toContain("Continue setup");
@@ -63,7 +63,7 @@ describe("vault form", () => {
     expect(vaultChoice({ provider: "webdav", config: { url: "https://dav.example.com/v", username: "me" } })).toMatchObject({ provider: "webdav", url: "https://dav.example.com/v", username: "me" });
     expect(vaultChoice(undefined)).toEqual({});
     await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: { path: "/vaults/notes" } }, "t");
-    const html = await (await app.request(`${BASE}/`, { headers: { cookie } })).text();
+    const html = await (await app.request(`${BASE}/vault`, { headers: { cookie } })).text();
     expect(html).toMatch(/<option value="folder" selected="">/);
     expect(html).not.toMatch(/<option value="builtin" selected="">/);
     expect(html).toContain('value="/vaults/notes"');
@@ -73,7 +73,7 @@ describe("vault form", () => {
 describe("security checks", () => {
   const base = SettingsSchema.parse({});
   it("flags an open admin without two-factor as high and lists the rest plainly", () => {
-    const bad = securityChecks({ totp: false, s: { ...base, admin: { allowPublic: true } }, vault: false, davTokens: 0, publicUrl: "http://localhost:8787" });
+    const bad = securityChecks({ totp: false, s: { ...base, admin: { allowPublic: true, language: "auto" } }, vault: false, davTokens: 0, publicUrl: "http://localhost:8787" });
     expect(bad.filter((x) => x.level === "high").map((x) => x.text)).toEqual([
       "The admin UI is open to the internet without two-factor — turn two-factor on now.",
       "PUBLIC_URL uses http — use https outside local testing.",

@@ -44,7 +44,7 @@ describe("Cloudflare Workers entry", () => {
   });
 
   it("records a payment from a device into the R2 vault and runs jobs on the cron trigger", async () => {
-    const csrf = await csrfOf("/admin/");
+    const csrf = await csrfOf("/admin/features");
     const on = new URLSearchParams({ csrf });
     for (const m of ["wiki", "ledger"]) on.append("on", m);
     await req("/admin/modules", { method: "POST", body: on.toString(), headers: { "content-type": "application/x-www-form-urlencoded" } });

@@ -1,7 +1,7 @@
 /** @jsxImportSource hono/jsx */
 import type { Context, Hono } from "hono";
 import type { Hub } from "../hub.js";
-import { Layout } from "./layout.js";
+import { pageFrame, when } from "./ui.js";
 import { exportBackup, importBackup } from "../core/backup.js";
 import { audit } from "../core/audit.js";
 import { importLedgerLines } from "../modules/ledger/import.js";
@@ -12,7 +12,7 @@ const KINDS = ["all", "admin", "mcp", "dav", "ledger", "health", "system", "goog
 
 /** Activity log and backups. */
 export function opsRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B: string) {
-  const R = B || "/";
+  const frame = pageFrame(hub, B);
 
   app.get("/activity", async (c) => {
     const kind = (KINDS as readonly string[]).includes(c.req.query("who") ?? "") ? c.req.query("who")! : "all";
@@ -22,59 +22,75 @@ export function opsRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B: string) {
       `SELECT at, actor, action, target, detail FROM audit WHERE at >= ? ${kind === "all" ? "" : "AND (actor = ? OR actor LIKE ?)"} ORDER BY id DESC LIMIT 300`,
       kind === "all" ? [since] : [since, kind, `${kind}:%`],
     );
-    return c.html(
-      <Layout title="Activity — memexhub">
-        <p><a href={R}>← Back</a></p>
-        <h1>Activity</h1>
-        <p class="muted">Who changed what: sign-ins, vault writes by Claude and devices, settings and connections. Contents and secrets are never logged.</p>
-        <form method="get" action={`${B}/activity`}>
-          <label>Who<select name="who">{KINDS.map((k) => <option value={k} selected={k === kind}>{k}</option>)}</select></label>
-          <label>Last days<input name="days" type="number" min="1" max="90" value={String(days)} /></label>
-          <button class="secondary">Show</button>
-        </form>
-        <table>
-          <tr><th>When</th><th>Who</th><th>What</th><th>Target</th></tr>
-          {rows.map((r) => (
-            <tr><td>{r.at.slice(0, 16).replace("T", " ")}</td><td>{r.actor}</td><td>{r.action}</td><td>{r.target ?? ""}{r.detail ? <span class="muted"> {r.detail.slice(0, 80)}</span> : null}</td></tr>
-          ))}
-        </table>
-        {!rows.length && <p class="muted">Nothing in this period.</p>}
-      </Layout>,
-    );
+    const tz = (await hub.settings.get()).timezone;
+    return frame(c, {
+      title: ["Activity", "활동"],
+      active: "/activity",
+      children: (t) => (
+        <>
+          <h1>{t("Activity", "활동")}</h1>
+          <p class="muted">{t("Who changed what: sign-ins, vault writes by Claude and devices, settings and connections. Contents and secrets are never logged.", "누가 무엇을 바꿨는지: 로그인, Claude와 기기의 볼트 쓰기, 설정과 연결. 내용과 비밀값은 남기지 않아요.")}</p>
+          <form method="get" action={`${B}/activity`} class="row">
+            <select name="who" style="flex:1;min-width:8rem;margin:0" aria-label={t("Who", "누가")}>{KINDS.map((k) => <option value={k} selected={k === kind}>{k === "all" ? t("everyone", "전체") : k}</option>)}</select>
+            <input name="days" type="number" min="1" max="90" value={String(days)} style="width:6rem;margin:0" aria-label={t("Last days", "최근 며칠")} />
+            <button class="secondary">{t("Show", "보기")}</button>
+          </form>
+          <div class="card" style="margin-top:1rem">
+            {rows.length ? (
+              <ul class="list">
+                {rows.map((r) => (
+                  <li style="display:block">
+                    <span class="muted">{when(r.at, tz)} · {r.actor.length > 24 ? `${r.actor.slice(0, 24)}…` : r.actor}</span><br />
+                    <b>{r.action}</b> {r.target ?? ""}{r.detail ? <span class="muted"> {r.detail.slice(0, 80)}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : <p class="muted">{t("Nothing in this period.", "이 기간에는 없어요.")}</p>}
+          </div>
+        </>
+      ),
+    });
   });
 
   app.get("/import", async (c) => {
-    const msg = { ok: c.req.query("ok"), err: c.req.query("err") };
-    return c.html(
-      <Layout title="Import — memexhub">
-        <p><a href={R}>← Back</a></p>
-        <h1>Import from a previous setup</h1>
-        {msg.ok && <p class="ok">{msg.ok}</p>}
-        {msg.err && <p class="err">{msg.err}</p>}
-        <p class="muted">Importing the same file twice adds nothing. Notes are redrawn once at the end. See docs/migrating.md.</p>
-        <h2>Payments</h2>
-        <form method="post" action={`${B}/import/ledger`} enctype="multipart/form-data">
-          <Csrf c={c} />
-          <label>JSON Lines — one record per line with <code>time</code>, <code>merchant</code>, <code>amount</code>, <code>card</code> …<input type="file" name="file" accept=".jsonl,.json,.txt" required /></label>
-          <button>Import payments</button>
-        </form>
-        <h2>Health</h2>
-        <form method="post" action={`${B}/import/health`} enctype="multipart/form-data">
-          <Csrf c={c} />
-          <label>JSON — <code>{'{"2026-10-14": {"metrics": {...}, "sleep": {...}, "workouts": [...]}}'}</code><input type="file" name="file" accept=".json" required /></label>
-          <button class="secondary">Import health</button>
-        </form>
-        <h2>Keep an existing device token</h2>
-        <p class="muted">Your automations keep their token and only change the address. The token is stored hashed, like new ones.</p>
-        <form method="post" action={`${B}/import/token`}>
-          <Csrf c={c} />
-          <label>Name<input name="name" required maxlength={40} /></label>
-          <label>Existing token (at least 24 characters)<input name="token" type="password" required minlength={24} autocomplete="off" /></label>
-          <label>Scopes (comma separated)<input name="scopes" value="ledger,health" /></label>
-          <button class="secondary">Keep this token</button>
-        </form>
-      </Layout>,
-    );
+    return frame(c, {
+      title: ["Import", "가져오기"],
+      active: "/backups",
+      children: (t) => (
+        <>
+          <p><a href={`${B}/backups`}>← {t("Backups", "백업")}</a></p>
+          <h1>{t("Import from a previous setup", "예전 설정에서 가져오기")}</h1>
+          <p class="muted">{t("Importing the same file twice adds nothing. Notes are redrawn once at the end. See docs/migrating.md.", "같은 파일을 두 번 가져와도 늘어나지 않아요. 노트는 끝에 한 번 다시 그려요. docs/migrating.md 참고.")}</p>
+          <div class="card">
+            <h2>{t("Payments", "결제")}</h2>
+            <form method="post" action={`${B}/import/ledger`} enctype="multipart/form-data">
+              <Csrf c={c} />
+              <label>{t("JSON Lines — one record per line with time, merchant, amount, card …", "JSON Lines — 한 줄에 기록 하나 (time, merchant, amount, card …)")}<input type="file" name="file" accept=".jsonl,.json,.txt" required /></label>
+              <button>{t("Import payments", "결제 가져오기")}</button>
+            </form>
+          </div>
+          <div class="card">
+            <h2>{t("Health", "건강")}</h2>
+            <form method="post" action={`${B}/import/health`} enctype="multipart/form-data">
+              <Csrf c={c} />
+              <label>JSON — <code>{'{"2026-10-14": {"metrics": {...}, "sleep": {...}, "workouts": [...]}}'}</code><input type="file" name="file" accept=".json" required /></label>
+              <button class="secondary">{t("Import health", "건강 가져오기")}</button>
+            </form>
+          </div>
+          <div class="card">
+            <h2>{t("Keep an existing device token", "쓰던 기기 토큰 유지")}</h2>
+            <p class="muted">{t("Your automations keep their token and only change the address. The token is stored hashed, like new ones.", "자동화는 토큰을 그대로 두고 주소만 바꾸면 돼요. 토큰은 새 토큰처럼 해시로 저장해요.")}</p>
+            <form method="post" action={`${B}/import/token`}>
+              <Csrf c={c} />
+              <label>{t("Name", "이름")}<input name="name" required maxlength={40} /></label>
+              <label>{t("Existing token (at least 24 characters)", "쓰던 토큰 (24자 이상)")}<input name="token" type="password" required minlength={24} autocomplete="off" /></label>
+              <label>{t("Scopes (comma separated)", "권한 (쉼표로 구분)")}<input name="scopes" value="ledger,health" /></label>
+              <button class="secondary">{t("Keep this token", "이 토큰 유지")}</button>
+            </form>
+          </div>
+        </>
+      ),
+    });
   });
   const done = (c: Context, k: "ok" | "err", m: string) => c.redirect(`${B}/import?${k}=${encodeURIComponent(m)}`);
   const upload = async (c: Context, max: number) => {
@@ -113,31 +129,44 @@ export function opsRoutes(app: Hono<any>, hub: Hub, Csrf: Csrf, B: string) {
 
   app.get("/backups", async (c) => {
     const list = (await hub.platform.backups?.list()) ?? [];
-    const msg = { ok: c.req.query("ok"), err: c.req.query("err") };
-    return c.html(
-      <Layout title="Backups — memexhub">
-        <p><a href={R}>← Back</a></p>
-        <h1>Backups</h1>
-        {msg.ok && <p class="ok">{msg.ok}</p>}
-        {msg.err && <p class="err">{msg.err}</p>}
-        <p>A backup holds settings, connections (secrets stay encrypted), tokens, records, the inbox and the activity log — encrypted with your <code>MEMEXHUB_SECRET</code>. Your vault notes are not in it; back the vault up with your sync or storage.</p>
-        <form method="post" action={`${B}/backups/download`}><Csrf c={c} /><button>Download a backup now</button></form>
-        <h2>Automatic daily copies</h2>
-        {hub.platform.backups ? (
-          list.length ? (
-            <table><tr><th>File</th><th>Size</th></tr>{list.map((b) => <tr><td>{b.name}</td><td>{Math.ceil(b.size / 1024)} KB</td></tr>)}</table>
-          ) : <p class="muted">The first copy is made within an hour. The newest 14 are kept in DATA_DIR/backups.</p>
-        ) : <p class="muted">Not available on this runtime — download backups instead.</p>}
-        <h2>Restore</h2>
-        <p class="err">Restoring replaces all current settings, connections, tokens and records with the backup's. It cannot be undone.</p>
-        <form method="post" action={`${B}/backups/restore`} enctype="multipart/form-data">
-          <Csrf c={c} />
-          <label>Backup file (.mxb)<input type="file" name="file" accept=".mxb" required /></label>
-          <label>Type RESTORE to confirm<input name="confirm" required autocomplete="off" /></label>
-          <button class="danger">Restore</button>
-        </form>
-      </Layout>,
-    );
+    return frame(c, {
+      title: ["Backups", "백업"],
+      active: "/backups",
+      children: (t) => (
+        <>
+          <h1>{t("Backups", "백업")}</h1>
+          <div class="card">
+            <p>{t("A backup holds settings, connections (secrets stay encrypted), tokens, records, the inbox and the activity log — encrypted with your MEMEXHUB_SECRET. Vault notes are not in it; back the vault up with your sync or storage.", "백업에는 설정, 연결(비밀값은 암호화된 채), 토큰, 기록, 대기함, 활동 기록이 들어가고 MEMEXHUB_SECRET으로 암호화돼요. 볼트 노트는 들어가지 않아요. 볼트는 동기화나 저장소로 백업하세요.")}</p>
+            <form method="post" action={`${B}/backups/download`}><Csrf c={c} /><button>{t("Download a backup now", "지금 백업 내려받기")}</button></form>
+          </div>
+          <div class="card">
+            <h2>{t("Automatic daily copies", "매일 자동 백업")}</h2>
+            {hub.platform.backups ? (
+              list.length ? (
+                <ul class="list">{list.map((b) => <li><span style="flex:1">{b.name}</span><span class="muted">{Math.ceil(b.size / 1024)} KB</span></li>)}</ul>
+              ) : <p class="muted">{t("The first copy is made within an hour. The newest 14 are kept in DATA_DIR/backups.", "첫 백업은 한 시간 안에 만들어져요. 최근 14개를 DATA_DIR/backups에 남겨요.")}</p>
+            ) : <p class="muted">{t("Not available on this runtime — download backups instead.", "이 실행 환경에서는 안 돼요. 내려받기를 쓰세요.")}</p>}
+          </div>
+          <div class="card">
+            <h2>{t("Move from another setup", "다른 설정에서 옮기기")}</h2>
+            <p><a href={`${B}/import`}>{t("Import payments, health or a device token", "결제·건강·기기 토큰 가져오기")} →</a></p>
+          </div>
+          <div class="card">
+            <h2>{t("Restore", "복원")}</h2>
+            <p class="err">{t("Restoring replaces all current settings, connections, tokens and records with the backup's. It cannot be undone.", "복원하면 지금의 설정, 연결, 토큰, 기록이 모두 백업 내용으로 바뀌어요. 되돌릴 수 없어요.")}</p>
+            <details>
+              <summary>{t("Restore from a file", "파일에서 복원")}</summary>
+              <form method="post" action={`${B}/backups/restore`} enctype="multipart/form-data">
+                <Csrf c={c} />
+                <label>{t("Backup file (.mxb)", "백업 파일 (.mxb)")}<input type="file" name="file" accept=".mxb" required /></label>
+                <label>{t("Type RESTORE to confirm", "확인하려면 RESTORE 입력")}<input name="confirm" required autocomplete="off" /></label>
+                <button class="danger">{t("Restore", "복원")}</button>
+              </form>
+            </details>
+          </div>
+        </>
+      ),
+    });
   });
 
   app.post("/backups/download", async (c) => {
