@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Check, Copy as CopyIcon, Loader2 } from "lucide-react";
+import { Check as CheckIcon, ChevronRight, CircleAlert, Copy as CopyIcon, Info, Loader2, TriangleAlert } from "lucide-react";
 import { ApiError, get } from "../api";
 import { useT, type T } from "../i18n";
 import { cn } from "@/lib/utils";
 import { Button as UIButton } from "@/components/ui/button";
-import { Card as UICard, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge as UIBadge } from "@/components/ui/badge";
 import { Input as UIInput } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton as UISkeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Link } from "../router";
 import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Dialog as UIDialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -94,38 +96,161 @@ export function useAction() {
   return { busy, run };
 }
 
-// ---------- layout pieces ----------
+// ---------- layout ----------
+// Spacing scale (docs/design.md → Design system): 8 inside a control group, 16 between
+// fields and rows, 24 between sections and as section padding, 32 under the page header.
+
+/** One screen: title, one-line description, optional actions, then sections 24 px apart. */
 export const Page = (p: { title: string; sub?: ReactNode; actions?: ReactNode; children: ReactNode }) => (
-  <div className="mx-auto w-full max-w-4xl px-4 pt-6 pb-20 sm:px-6 md:pt-10">
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight md:text-[1.7rem]">{p.title}</h1>
-        {p.sub && <p className="text-muted-foreground text-sm">{p.sub}</p>}
+  <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-24 sm:px-8 md:pt-12">
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0 space-y-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">{p.title}</h1>
+        {p.sub && <p className="text-muted-foreground max-w-prose">{p.sub}</p>}
       </div>
       {p.actions && <div className="flex flex-wrap items-center gap-2">{p.actions}</div>}
     </header>
-    <div className="flex flex-col gap-4">{p.children}</div>
+    <div className="flex flex-col gap-6">{p.children}</div>
   </div>
 );
 
-export const Card = (p: { title?: ReactNode; badge?: ReactNode; sub?: ReactNode; id?: string; children?: ReactNode; className?: string; aside?: ReactNode }) => (
-  <UICard id={p.id} className={cn("gap-4 py-5", p.className)}>
-    {(p.title || p.aside) && (
-      <CardHeader className="px-5">
-        {p.title && <CardTitle className="flex flex-wrap items-center gap-2 text-base">{p.title} {p.badge}</CardTitle>}
-        {p.sub && <CardDescription>{p.sub}</CardDescription>}
-        {p.aside && <CardAction>{p.aside}</CardAction>}
-      </CardHeader>
-    )}
-    {p.children !== undefined && <CardContent className="px-5">{p.children}</CardContent>}
-  </UICard>
-);
+/**
+ * A titled block of the page. Its body stacks children 20 px apart.
+ * `footer` holds the save button (left-aligned, on a tinted strip); pass `onSubmit` to make it a form.
+ */
+export function Card(p: { title?: ReactNode; badge?: ReactNode; sub?: ReactNode; aside?: ReactNode; footer?: ReactNode; id?: string; className?: string; onSubmit?: () => void; children?: ReactNode }) {
+  const body = (
+    <>
+      {(p.title || p.aside) && (
+        <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
+          <div className="min-w-0 space-y-1">
+            {p.title && <h2 className="flex flex-wrap items-center gap-2 text-base leading-6 font-semibold">{p.title}{p.badge}</h2>}
+            {p.sub && <p className="text-muted-foreground">{p.sub}</p>}
+          </div>
+          {p.aside && <div className="-my-1 flex shrink-0 items-center gap-2">{p.aside}</div>}
+        </div>
+      )}
+      {p.children !== undefined && p.children !== null && p.children !== false && <div className="flex flex-col gap-5 p-5 sm:p-6">{p.children}</div>}
+      {p.footer && <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-b-xl border-t px-5 py-3 sm:px-6">{p.footer}</div>}
+    </>
+  );
+  const cls = cn("bg-card text-card-foreground scroll-mt-6 rounded-xl border", p.className);
+  return p.onSubmit ? (
+    <form id={p.id} className={cls} onSubmit={(e) => { e.preventDefault(); p.onSubmit!(); }}>{body}</form>
+  ) : (
+    <section id={p.id} className={cls}>{body}</section>
+  );
+}
 
+/** A small heading inside a card, for groups of rows. */
+export const Sub = (p: { children: ReactNode }) => <h3 className="text-muted-foreground -mb-2 text-[0.8125rem] font-medium">{p.children}</h3>;
+
+/** A row of buttons. */
+export const Actions = (p: { children: ReactNode }) => <div className="flex flex-wrap items-center gap-2">{p.children}</div>;
+
+/** Two fields side by side on wider screens. */
+export const Fields = (p: { children: ReactNode }) => <div className="grid gap-5 sm:grid-cols-2">{p.children}</div>;
+
+// ---------- lists ----------
+/** Rows separated by hairlines. Put it straight inside a Card. */
+export const List = (p: { children: ReactNode }) => <ul className="-my-3 divide-y">{p.children}</ul>;
+
+/** One row: status dot, title with badges, a muted meta line, actions on the right, optional details below. */
+export function Item(p: { tone?: keyof typeof DOT; icon?: ReactNode; title: ReactNode; badges?: ReactNode; meta?: ReactNode; actions?: ReactNode; children?: ReactNode; done?: boolean }) {
+  return (
+    <li className="py-3">
+      <div className="flex items-start gap-3">
+        {p.icon ? <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center [&_svg]:size-[18px]">{p.icon}</span> : p.tone && <span className={cn("mt-2 size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />}
+        <div className="min-w-0 flex-1">
+          <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 font-medium", p.done && "text-muted-foreground line-through")}>{p.title}{p.badges}</div>
+          {p.meta && <div className="text-muted-foreground mt-0.5 text-[0.8125rem] leading-5">{p.meta}</div>}
+        </div>
+        {p.actions && <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 self-center">{p.actions}</div>}
+      </div>
+      {p.children && <div className="mt-4 flex flex-col gap-4 sm:pl-5">{p.children}</div>}
+    </li>
+  );
+}
+
+/** Tiles that link somewhere (overview numbers, things to add). */
+export const Tiles = (p: { children: ReactNode }) => <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{p.children}</div>;
+export function Tile(p: { to?: string; onClick?: () => void; label: ReactNode; value: ReactNode; sub?: ReactNode; tone?: keyof typeof DOT }) {
+  const inner = (
+    <>
+      <div className="text-muted-foreground text-[0.8125rem]">{p.label}</div>
+      <div className="mt-1 flex items-center gap-2 text-[0.9375rem] font-semibold">{p.tone && <span className={cn("size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />}{p.value}</div>
+      {p.sub && <div className="text-muted-foreground mt-0.5 truncate text-[0.8125rem]">{p.sub}</div>}
+    </>
+  );
+  const cls = "bg-card hover:bg-accent/60 block min-w-0 rounded-xl border p-4 text-left text-foreground no-underline transition-colors cursor-pointer";
+  return p.to ? <Link to={p.to} className={cls}>{inner}</Link> : <button type="button" className={cls} onClick={p.onClick}>{inner}</button>;
+}
+
+// ---------- small pieces ----------
 const BADGE = { required: "destructive", recommended: "info", optional: "outline", basic: "secondary", neutral: "outline" } as const;
 export const Badge = (p: { tone?: keyof typeof BADGE; children: ReactNode }) => <UIBadge variant={BADGE[p.tone ?? "neutral"]}>{p.children}</UIBadge>;
 
-const DOT = { ok: "bg-success", err: "bg-destructive", warn: "bg-warning", idle: "bg-muted-foreground/40" };
-export const Dot = (p: { tone: keyof typeof DOT }) => <span className={cn("mr-2 inline-block size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />;
+const DOT = { ok: "bg-success", err: "bg-destructive", warn: "bg-warning", idle: "bg-muted-foreground/35" };
+/** Coloured text with a dot: "● Connected". */
+export const Status = (p: { tone: keyof typeof DOT; children: ReactNode }) => (
+  <span className="inline-flex items-center gap-2 font-medium"><span className={cn("size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />{p.children}</span>
+);
+
+const CALLOUT = {
+  info: ["bg-muted/60 border-transparent", Info],
+  warning: ["border-warning/40 bg-warning/10", TriangleAlert],
+  error: ["border-destructive/40 bg-destructive/5 text-destructive", CircleAlert],
+} as const;
+export function Callout(p: { tone?: keyof typeof CALLOUT; children: ReactNode }) {
+  const [cls, Icon] = CALLOUT[p.tone ?? "info"];
+  return (
+    <div role={p.tone === "error" ? "alert" : undefined} className={cn("flex gap-3 rounded-lg border px-4 py-3", cls)}>
+      <Icon className="mt-1 size-4 shrink-0 opacity-70" aria-hidden />
+      <div className="min-w-0 flex-1 space-y-2">{p.children}</div>
+    </div>
+  );
+}
+
+/** Numbered how-to steps. */
+export const Steps = (p: { children: ReactNode[] }) => (
+  <ol className="flex flex-col gap-4">
+    {p.children.filter(Boolean).map((c, i) => (
+      <li key={i} className="flex gap-3">
+        <span className="bg-primary text-primary-foreground mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold">{i + 1}</span>
+        <div className="min-w-0 flex-1 space-y-2">{c}</div>
+      </li>
+    ))}
+  </ol>
+);
+
+/** Label → value pairs. */
+export const KeyValue = (p: { rows: [ReactNode, ReactNode][] }) => (
+  <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-y-3">
+    {p.rows.map(([k, v], i) => (
+      <div key={i} className="contents">
+        <dt className="text-muted-foreground pt-2 sm:pt-0">{k}</dt>
+        <dd className="min-w-0 break-all">{v}</dd>
+      </div>
+    ))}
+  </dl>
+);
+
+/** Hidden-by-default extra settings. */
+export const More = (p: { summary: ReactNode; children: ReactNode }) => (
+  <details className="group">
+    <summary className="text-muted-foreground hover:text-foreground flex w-fit cursor-pointer list-none items-center gap-1 font-medium select-none [&::-webkit-details-marker]:hidden">
+      <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />{p.summary}
+    </summary>
+    <div className="mt-4 flex flex-col gap-5 border-l pl-5">{p.children}</div>
+  </details>
+);
+
+export const Tags = (p: { children: ReactNode }) => <div className="flex flex-wrap gap-1.5">{p.children}</div>;
+export const Hint = (p: { children: ReactNode }) => <p className="text-muted-foreground text-[0.8125rem] leading-5">{p.children}</p>;
+export const Muted = (p: { children: ReactNode }) => <p className="text-muted-foreground">{p.children}</p>;
+
+/** Kept for older call sites: a status dot before text. */
+export const Dot = (p: { tone: keyof typeof DOT }) => <span className={cn("mr-2 inline-block size-2 shrink-0 rounded-full align-middle", DOT[p.tone])} aria-hidden />;
 
 export const Skeleton = (p: { lines?: number }) => (
   <div className="space-y-3" aria-busy>
@@ -137,11 +262,12 @@ export function Loading({ error, reload }: { error?: unknown; reload?: () => voi
   if (!error) return <Card><Skeleton lines={4} /></Card>;
   return (
     <Card>
-      <p className="text-destructive mb-3 text-sm">{errorText(t, error)}</p>
-      {reload && <Button kind="secondary" onClick={reload}>{t("Try again", "다시 시도")}</Button>}
+      <Callout tone="error">{errorText(t, error)}</Callout>
+      {reload && <Actions><Button kind="secondary" onClick={reload}>{t("Try again", "다시 시도")}</Button></Actions>}
     </Card>
   );
 }
+export const Empty = (p: { children: ReactNode }) => <p className="text-muted-foreground py-4 text-center">{p.children}</p>;
 
 // ---------- controls ----------
 const KIND = { primary: "default", secondary: "outline", danger: "destructive", ghost: "ghost" } as const;
@@ -154,24 +280,25 @@ export function Button(p: { kind?: keyof typeof KIND; size?: "sm"; busy?: boolea
   );
 }
 
-export function Field(p: { label: ReactNode; hint?: ReactNode; children: (id: string) => ReactNode }) {
+/** Label, control, hint — 8 px apart. */
+export function Field(p: { label: ReactNode; hint?: ReactNode; children: ReactNode | ((id: string) => ReactNode) }) {
   const id = useId();
   return (
-    <div className="field">
-      <Label htmlFor={id}>{p.label}</Label>
-      {p.children(id)}
-      {p.hint && <p className="hint">{p.hint}</p>}
+    <div className="grid gap-2">
+      <Label htmlFor={typeof p.children === "function" ? id : undefined}>{p.label}</Label>
+      {typeof p.children === "function" ? p.children(id) : p.children}
+      {p.hint && <Hint>{p.hint}</Hint>}
     </div>
   );
 }
-export const Input = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string; inputMode?: "numeric" | "text"; required?: boolean; mono?: boolean }) => (
+export const Input = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string; inputMode?: "numeric" | "text"; required?: boolean; mono?: boolean; narrow?: boolean }) => (
   <Field label={p.label} hint={p.hint}>
-    {(id) => <UIInput id={id} className={p.mono ? "font-mono" : undefined} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
+    {(id) => <UIInput id={id} className={cn(p.mono && "font-mono text-[0.8125rem]", p.narrow && "max-w-40")} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
 export const TextArea = (p: { label: ReactNode; hint?: ReactNode; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; mono?: boolean }) => (
   <Field label={p.label} hint={p.hint}>
-    {(id) => <Textarea id={id} className={p.mono ? "font-mono text-xs" : undefined} rows={p.rows ?? 4} value={p.value} placeholder={p.placeholder} onChange={(e) => p.onChange(e.target.value)} />}
+    {(id) => <Textarea id={id} className={cn(p.mono && "font-mono text-[0.8125rem]")} rows={p.rows ?? 4} value={p.value} placeholder={p.placeholder} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
 const NONE = "__none__"; // Radix Select does not allow an empty value
@@ -187,19 +314,49 @@ export const Select = (p: { label: ReactNode; hint?: ReactNode; value: string; o
     )}
   </Field>
 );
-/** On/off switch with a title and a one-line explanation. */
+
+/** On/off rows. Several in a row are separated by hairlines. */
 export function Toggle(p: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode; hint?: ReactNode; disabled?: boolean; badge?: ReactNode }) {
   const id = useId();
   return (
-    <div className={cn("flex items-center justify-between gap-4 border-t py-3.5 first:border-t-0 first:pt-0 last:pb-0", p.disabled && "opacity-60")}>
-      <div className="space-y-1">
-        <Label htmlFor={id} className="flex flex-wrap items-center gap-2 text-[0.95rem] font-semibold">{p.label} {p.badge}</Label>
-        {p.hint && <p className="text-muted-foreground text-sm">{p.hint}</p>}
+    <div className={cn("flex items-center justify-between gap-6 border-t pt-5 first:border-t-0 first:pt-0", p.disabled && "opacity-60")}>
+      <div className="min-w-0 space-y-1">
+        <Label htmlFor={id} className="flex flex-wrap items-center gap-2 leading-6">{p.label}{p.badge}</Label>
+        {p.hint && <Hint>{p.hint}</Hint>}
       </div>
       <Switch id={id} checked={p.checked} disabled={p.disabled} onCheckedChange={p.onChange} />
     </div>
   );
 }
+
+/** A few choices shown at once (pick one). */
+export function Choice<V extends string>(p: { value: V; onChange: (v: V) => void; options: { value: V; label: ReactNode; hint?: ReactNode }[]; label?: string }) {
+  return (
+    <RadioGroup value={p.value} onValueChange={(v) => p.onChange(v as V)} aria-label={p.label} className="gap-2">
+      {p.options.map((o) => (
+        <label key={o.value} className={cn("hover:bg-accent/50 flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-colors", p.value === o.value && "border-primary/60 bg-accent/40")}>
+          <RadioGroupItem value={o.value} className="mt-1" />
+          <span className="min-w-0 space-y-0.5"><span className="block font-medium">{o.label}</span>{o.hint && <span className="text-muted-foreground block text-[0.8125rem] leading-5">{o.hint}</span>}</span>
+        </label>
+      ))}
+    </RadioGroup>
+  );
+}
+
+/** A checkbox with a label and an optional hint. */
+export function Check(p: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode; hint?: ReactNode }) {
+  const id = useId();
+  return (
+    <div className="flex items-start gap-3">
+      <Checkbox id={id} checked={p.checked} onCheckedChange={(v) => p.onChange(v === true)} className="mt-1" />
+      <label htmlFor={id} className="min-w-0 cursor-pointer space-y-0.5">
+        <span className="block">{p.label}</span>
+        {p.hint && <span className="text-muted-foreground block text-[0.8125rem] leading-5">{p.hint}</span>}
+      </label>
+    </div>
+  );
+}
+
 export function Segmented<V extends string>(p: { value: V; onChange: (v: V) => void; options: { value: V; label: string }[]; label?: string }) {
   return (
     <ToggleGroup type="single" value={p.value} onValueChange={(v) => v && p.onChange(v as V)} aria-label={p.label} className="flex-wrap">
@@ -212,13 +369,13 @@ export function Copy({ text, label }: { text: string; label?: string }) {
   const { t } = useT();
   const [done, setDone] = useState(false);
   return (
-    <div className="bg-muted my-2 flex items-center gap-2 rounded-lg py-1.5 pr-1.5 pl-3">
-      <code className="flex-1 bg-transparent p-0 text-[0.82rem] break-all">{text}</code>
-      <UIButton variant="outline" size="sm" className="bg-background shrink-0" onClick={async () => {
+    <div className="bg-muted flex items-center gap-2 rounded-lg py-1.5 pr-1.5 pl-3">
+      <code className="flex-1 bg-transparent p-0 break-all">{text}</code>
+      <UIButton type="button" variant="outline" size="sm" className="bg-background shrink-0" onClick={async () => {
         try { await navigator.clipboard.writeText(text); } catch { /* insecure context: the text stays selectable */ }
         setDone(true);
         setTimeout(() => setDone(false), 1500);
-      }}>{done ? <Check /> : <CopyIcon />}{done ? t("Copied", "복사됨") : label ?? t("Copy", "복사")}</UIButton>
+      }}>{done ? <CheckIcon /> : <CopyIcon />}{done ? t("Copied", "복사됨") : label ?? t("Copy", "복사")}</UIButton>
     </div>
   );
 }
@@ -227,7 +384,7 @@ export function Copy({ text, label }: { text: string; label?: string }) {
 export function Dialog(p: { open: boolean; onClose: () => void; title: string; sub?: ReactNode; children: ReactNode }) {
   return (
     <UIDialog open={p.open} onOpenChange={(o) => !o && p.onClose()}>
-      <DialogContent>
+      <DialogContent className="gap-6">
         <DialogHeader>
           <DialogTitle>{p.title}</DialogTitle>
           {p.sub ? <DialogDescription>{p.sub}</DialogDescription> : <DialogDescription className="sr-only">{p.title}</DialogDescription>}
@@ -243,5 +400,3 @@ export function useConfirm() {
   const { t } = useT();
   return (text: string) => window.confirm(text || t("Are you sure?", "정말 할까요?"));
 }
-
-export const Empty = (p: { children: ReactNode }) => <p className="text-muted-foreground py-6 text-center text-sm">{p.children}</p>;

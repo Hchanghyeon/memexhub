@@ -9,17 +9,55 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 3. **Explain in plain words.** Labels say what happens ("Only allow Anthropic's servers to call /mcp"), not how it is implemented. Help text is one sentence.
 4. **Safe by design, not by warning.** Dangerous actions are hidden or need a second step; secrets are shown once with a copy button and a clear "won't be shown again".
 5. **Always confirm results.** After saving: a short success message; after a failed test: what went wrong and how to fix it.
-6. **Fast and light.** A small React app (no UI framework, no router library, ~95 KB gzip) talking to a JSON API; works on a phone and in dark mode.
+6. **Fast and light.** A small React app (shadcn/ui components, no router library) talking to a JSON API; works on a phone and in dark mode.
 7. **Accessible.** Real `<label>`s, keyboard reachable, visible focus, contrast ≥ 4.5:1, never color alone to carry meaning (pair with text or an icon).
 8. **Bilingual.** Every user-facing string exists in English and Korean.
 
 ## Visual style
 
-- **Clean and quiet.** Lots of white space, one column, max width ~720 px.
-- **Few colors.** Neutral grays for everything; **one accent** for the primary action; red only for errors and destructive actions; green only for "connected / ok". No gradients, no decorative color.
-- **One font stack** (system UI), two weights, three sizes (title, body, small).
-- **Simple components**: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind CSS v4) copied into `web/src/components/ui/`; pages use the small wrappers in `web/src/ui/kit.tsx`. Neutral theme, light and dark follow the device. Icons (lucide) only in navigation and where they add meaning.
+- **Clean and quiet.** One column, lots of white space, hairline borders instead of shadows.
+- **Few colors.** Neutral grays for everything; the near-black primary only for the main action; red only for errors and destructive actions; green only for "ok"; amber only for "look at this". No gradients, no decorative color.
+- **Components**: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind CSS v4) copied into `web/src/components/ui/`. Icons (lucide) in navigation and where they add meaning.
 - **Consistent wording**: *Connect*, *Test connection*, *Save*, *Revoke*, *Create token* — the same verb for the same action everywhere.
+
+## Design system
+
+Pages are built **only** from the parts in `web/src/ui/kit.tsx`. A page never sets its own margins, font sizes or colors; if something is missing, add a part to the kit and document it here. (Tailwind classes in a page are fine for one-off layout such as a two-column grid, never for spacing between blocks.)
+
+**Tokens**
+
+| | Value |
+|---|---|
+| Font | Pretendard (bundled), system fallbacks |
+| Type | page title 24/600 · card title 16/600 · body 14/400 (line 24) · label 14/500 · meta and hints 13/400 muted · code 13 mono |
+| Spacing (4 px grid) | 8 label→control, control groups, buttons · 16 rows in a list, fields side by side · 20 blocks inside a card · 24 between cards and card padding · 32 under the page header |
+| Width | content max 768 px; sidebar 240 px; phone padding 16 px |
+| Radius | controls 8 px · cards and tiles 14 px · badges full |
+| Elevation | none on cards (border only); popovers and dialogs only |
+| Color | theme variables in `web/src/styles.css` (`--primary`, `--muted`, `--destructive`, `--success`, `--warning`); light and dark follow the device |
+
+**Parts**
+
+| Part | Use |
+|---|---|
+| `Page` | title, one-line description, optional actions; sections 24 px apart |
+| `Card` | a titled block. `badge` (Required / Recommended / Optional), `aside` (one small button), `footer` (the save button(s), left-aligned on a tinted strip), `onSubmit` to make it a form |
+| `List` + `Item` | rows with a status dot or icon, title + badges, a muted meta line, actions on the right, optional details below |
+| `Tiles` + `Tile` | linked summary numbers, or "add one of these" choices |
+| `Field`, `Input`, `TextArea`, `Select`, `Fields` | label above, hint below; `Fields` puts two side by side |
+| `Toggle` | an on/off setting with a title and a one-line hint; several stack with hairlines |
+| `Choice` | pick one of a few options shown at once (radio cards with a hint) |
+| `Check` | a checkbox with a label and optional hint |
+| `Segmented` | pick one of 2–4 short options (language, view) |
+| `Status`, `Badge`, `Callout` | state with a dot; small labels; info / warning / error notes |
+| `Steps`, `KeyValue`, `Copy`, `More`, `Sub`, `Hint`, `Empty` | numbered how-to; label → value pairs; copyable value; hidden advanced settings; a group heading inside a card; small help text; empty state |
+
+**Rules**
+
+- One primary button per card, in its footer. Secondary actions are `outline`, row actions are `sm`, "turn off" style actions are `ghost`.
+- Required / Recommended / Optional badges sit next to the card title, not in the body.
+- Status is a dot **and** a word; never color alone.
+- Advanced settings go in `More`, collapsed.
 
 ## Copy checklist
 

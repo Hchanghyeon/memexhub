@@ -1,8 +1,9 @@
+import { ArrowRight, CircleCheck, Circle, CircleDot } from "lucide-react";
 import { useT, ago } from "../i18n";
 import { Link } from "../router";
-import { ArrowRight, CircleCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge, Card, Dot, Loading, Page, useData } from "../ui/kit";
+import { Progress } from "@/components/ui/progress";
+import { Badge, Card, Status, Item, List, Loading, Page, Tile, Tiles, useData } from "../ui/kit";
 import { checkText, type Check } from "../checks";
 
 interface O {
@@ -46,51 +47,42 @@ export function Overview() {
     ...(o.payments?.inbox ? [{ text: t(`${o.payments.inbox} message(s) wait in the inbox.`, `읽지 못한 메시지 ${o.payments.inbox}개가 대기함에 있어요.`), to: "/recipes", high: false }] : []),
     ...o.checks.filter((c) => !c.ok && (!showSteps || c.level === "high")).map((c) => ({ text: checkText(t, c).text, to: checkText(t, c).fix ?? "/security", high: c.level === "high" })),
   ];
-  const Stat = (p: { to: string; k: string; v: string; s?: string; tone?: "ok" | "err" }) => (
-    <Link to={p.to} className="stat">
-      <div className="text-muted-foreground text-xs font-medium">{p.k}</div>
-      <div className="mt-1.5 flex items-center text-base font-semibold">{p.tone && <Dot tone={p.tone} />}{p.v}</div>
-      {p.s && <div className="text-muted-foreground mt-0.5 truncate text-xs">{p.s}</div>}
-    </Link>
-  );
+  const open = (to: string, label = t("Open", "열기")) => <Link to={to} className={buttonVariants({ variant: "outline", size: "sm" })}>{label}</Link>;
   return (
-    <Page title={t("Overview", "개요")}>
+    <Page title={t("Overview", "개요")} sub={t(`Time zone ${tz}`, `시간대 ${tz}`)}>
       {showSteps && (
         <Card title={t("Getting started", "시작하기")} sub={t(`${coreDone} of ${core.length} essentials done`, `꼭 할 것 ${core.length}개 중 ${coreDone}개 완료`)}>
-          <div className="progress"><span style={{ width: `${(coreDone / core.length) * 100}%` }} /></div>
-          <ul className="list checklist">
+          <Progress value={(coreDone / core.length) * 100} className="h-1.5" />
+          <List>
             {steps.map((s) => (
-              <li key={s.to + s.title[0]} className={s.done ? "done" : ""}>
-                <Dot tone={s.done ? "ok" : s.level === "required" ? "err" : "idle"} />
-                <div className="grow">
-                  <span className="title">{t(...s.title)}</span> <Badge tone={s.level}>{LEVEL[s.level]}</Badge>
-                  {!s.done && <span className="meta">{t(...s.how)}</span>}
-                </div>
-                {!s.done && <Link to={s.to} className={buttonVariants({ variant: "outline", size: "sm" })}>{t("Set up", "설정하기")}</Link>}
-              </li>
+              <Item key={s.to + s.title[0]} done={s.done}
+                icon={s.done ? <CircleCheck className="text-success" /> : s.level === "required" ? <CircleDot className="text-destructive" /> : <Circle className="text-muted-foreground/60" />}
+                title={t(...s.title)} badges={<Badge tone={s.level}>{LEVEL[s.level]}</Badge>}
+                meta={s.done ? undefined : t(...s.how)}
+                actions={s.done ? undefined : open(s.to, t("Set up", "설정하기"))} />
             ))}
-          </ul>
+          </List>
         </Card>
       )}
-      <div className="tiles">
-        <Stat to="/vault" k={t("Vault", "볼트")} tone={o.vault.connected ? "ok" : "err"} v={o.vault.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} s={o.vault.preset ?? undefined} />
-        <Stat to="/claude" k="Claude" tone={o.claude.used ? "ok" : undefined} v={o.claude.used ? ago(t, o.claude.last, tz) : t("Not connected", "연결 안 됨")} s={t(`${o.claude.apps} app(s)`, `앱 ${o.claude.apps}개`)} />
-        {o.payments && <Stat to="/recipes" k={t("Payments", "결제")} v={ago(t, o.payments.last, tz)} s={o.payments.inbox ? t(`${o.payments.inbox} in the inbox`, `대기함 ${o.payments.inbox}개`) : t("Inbox empty", "대기함 비어 있음")} tone={o.payments.inbox ? "err" : undefined} />}
-        {o.location && <Stat to="/features" k={t("Location", "위치")} tone={recent(o.location.last, 6) ? "ok" : "err"} v={ago(t, o.location.last, tz)} s={o.location.source ?? undefined} />}
-        {o.health && <Stat to="/features" k={t("Health", "건강")} v={ago(t, o.health.last, tz)} />}
-        <Stat to="/devices" k={t("Devices", "기기")} v={ago(t, o.devices.last, tz)} s={t(`${o.devices.tokens} token(s)`, `토큰 ${o.devices.tokens}개`)} />
-        {o.backup && <Stat to="/backups" k={t("Backup", "백업")} tone={recent(o.backup.last, 48) ? "ok" : "err"} v={ago(t, o.backup.last, tz)} />}
-      </div>
+      <Tiles>
+        <Tile to="/vault" label={t("Vault", "볼트")} tone={o.vault.connected ? "ok" : "err"} value={o.vault.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} sub={o.vault.preset ?? undefined} />
+        <Tile to="/claude" label="Claude" tone={o.claude.used ? "ok" : "idle"} value={o.claude.used ? ago(t, o.claude.last, tz) : t("Not connected", "연결 안 됨")} sub={t(`${o.claude.apps} app(s)`, `앱 ${o.claude.apps}개`)} />
+        {o.payments && <Tile to="/recipes" label={t("Payments", "결제")} tone={o.payments.inbox ? "warn" : undefined} value={ago(t, o.payments.last, tz)} sub={o.payments.inbox ? t(`${o.payments.inbox} in the inbox`, `대기함 ${o.payments.inbox}개`) : t("Inbox empty", "대기함 비어 있음")} />}
+        {o.location && <Tile to="/features" label={t("Location", "위치")} tone={recent(o.location.last, 6) ? "ok" : "err"} value={ago(t, o.location.last, tz)} sub={o.location.source ?? undefined} />}
+        {o.health && <Tile to="/features" label={t("Health", "건강")} value={ago(t, o.health.last, tz)} />}
+        <Tile to="/devices" label={t("Devices", "기기")} value={ago(t, o.devices.last, tz)} sub={t(`${o.devices.tokens} token(s)`, `토큰 ${o.devices.tokens}개`)} />
+        {o.backup && <Tile to="/backups" label={t("Backup", "백업")} tone={recent(o.backup.last, 48) ? "ok" : "err"} value={ago(t, o.backup.last, tz)} />}
+      </Tiles>
       <Card title={t("Needs attention", "확인할 것")}>
         {attention.length ? (
-          <ul className="list">
+          <List>
             {attention.map((a, i) => (
-              <li key={i}><Dot tone={a.high ? "err" : "warn"} /><span className="grow">{a.text}</span><Link to={a.to} className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Open", "열기")} <ArrowRight /></Link></li>
+              <Item key={i} tone={a.high ? "err" : "warn"} title={<span className="font-normal">{a.text}</span>}
+                actions={<Link to={a.to} className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Open", "열기")}<ArrowRight /></Link>} />
             ))}
-          </ul>
-        ) : <p className="ok flex items-center gap-2"><CircleCheck className="size-4" /> {t("All good.", "모두 괜찮아요.")}</p>}
+          </List>
+        ) : <Status tone="ok">{t("All good.", "모두 괜찮아요.")}</Status>}
       </Card>
-      <p className="muted">{t("Time zone", "시간대")} {tz}</p>
     </Page>
   );
 }

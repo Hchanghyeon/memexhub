@@ -82,12 +82,12 @@ function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; p
   const { t, lang, setLanguage } = useT();
   return (
     <div className="flex h-full flex-col gap-1 px-3 py-4">
-      <div className="flex items-center gap-2.5 px-2 pb-4 text-[1.05rem] font-bold"><Brand />memexhub</div>
+      <div className="flex h-10 items-center gap-2.5 px-2.5 text-[0.9375rem] font-semibold"><Brand />memexhub</div>
       <nav className="flex flex-col gap-0.5" aria-label={t("Sections", "메뉴")}>
         {NAV.map((n) => (
           <div key={n.path} className="contents">
-            {n.group && <div className="text-muted-foreground px-2.5 pt-4 pb-1.5 text-xs font-medium">{t(...n.group)}</div>}
-            <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm no-underline transition-colors [&_svg]:size-4", path === n.path && "bg-accent text-foreground font-semibold")}>
+            {n.group && <div className="text-muted-foreground px-2.5 pt-5 pb-1 text-xs font-medium">{t(...n.group)}</div>}
+            <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm no-underline transition-colors [&_svg]:size-4", path === n.path && "bg-accent text-foreground font-medium")}>
               <n.icon />{t(...n.label)}
             </Link>
           </div>
@@ -128,7 +128,7 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
   })();
   const current = NAV.find((n) => n.path === path);
   return (
-    <div className="bg-muted/40 min-h-svh md:grid md:grid-cols-[240px_1fr]">
+    <div className="bg-background min-h-svh md:grid md:grid-cols-[240px_1fr]">
       <aside className="bg-sidebar sticky top-0 hidden h-svh overflow-y-auto border-r md:block">
         <Sidebar session={session} path={path} onSignOut={onSignOut} />
       </aside>

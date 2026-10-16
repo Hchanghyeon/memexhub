@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
-import { Badge, Button, Card, Copy, Dot, Empty, Input, Loading, Page, useAction, useConfirm, useData } from "../ui/kit";
+import { Badge, Button, Callout, Card, Check, Copy, Empty, Field, Input, Item, KeyValue, List, Loading, Page, useAction, useConfirm, useData } from "../ui/kit";
 
 interface D { tokens: { id: string; name: string; scopes: string[]; createdAt: string; lastUsed: string | null; revoked: boolean }[]; publicUrl: string }
 const SCOPES: [string, string, string, string, string][] = [
@@ -28,44 +28,40 @@ export function Devices() {
   return (
     <Page title={t("Devices", "기기")} sub={t("Phones and apps that send records (payments, health, location) use a device token. A token can only send, never read.", "기록(결제, 건강, 위치)을 보내는 폰과 앱은 기기 토큰을 써요. 토큰은 보내기만 하고 읽지는 못해요.")}>
       {fresh && (
-        <Card title={t("Your new token", "새 토큰")} className="border-primary/40">
-          <p className="callout warn">{t("Copy it now — it will not be shown again.", "지금 복사하세요. 다시 보여주지 않아요.")}</p>
+        <Card title={t("Your new token", "새 토큰")} className="border-primary/50 ring-primary/10 ring-4" footer={<Button kind="secondary" onClick={() => setFresh(undefined)}>{t("Done", "다 했어요")}</Button>}>
+          <Callout tone="warning"><p>{t("Copy it now — it will not be shown again.", "지금 복사하세요. 다시 보여주지 않아요.")}</p></Callout>
           <Copy text={fresh} />
-          <Button kind="secondary" size="sm" onClick={() => setFresh(undefined)}>{t("Done", "다 했어요")}</Button>
         </Card>
       )}
       <Card title={t("Tokens", "토큰")}>
         {tokens.length ? (
-          <ul className="list">
+          <List>
             {tokens.map((x) => (
-              <li key={x.id}>
-                <Dot tone={x.lastUsed ? "ok" : "idle"} />
-                <div className="grow"><span className="title">{x.name}</span> {x.scopes.map((s) => <Badge key={s}>{scopeName(s)}</Badge>)}<span className="meta">{t(`Last sent ${ago(t, x.lastUsed, "UTC")}`, `마지막 수신 ${ago(t, x.lastUsed, "UTC")}`)}</span></div>
-                <Button kind="secondary" size="sm" disabled={busy} onClick={() => confirm(t(`Revoke “${x.name}”? Devices using it stop working.`, `“${x.name}”을 해제할까요? 이 토큰을 쓰는 기기는 멈춰요.`)) && run(() => post(`/devices/${x.id}/revoke`), t("Revoked.", "해제했어요."), reload)}>{t("Revoke", "해제")}</Button>
-              </li>
+              <Item key={x.id} tone={x.lastUsed ? "ok" : "idle"} title={x.name} badges={x.scopes.map((s) => <Badge key={s}>{scopeName(s)}</Badge>)}
+                meta={t(`Last sent ${ago(t, x.lastUsed, "UTC")}`, `마지막 수신 ${ago(t, x.lastUsed, "UTC")}`)}
+                actions={<Button kind="secondary" size="sm" disabled={busy} onClick={() => confirm(t(`Revoke “${x.name}”? Devices using it stop working.`, `“${x.name}”을 해제할까요? 이 토큰을 쓰는 기기는 멈춰요.`)) && run(() => post(`/devices/${x.id}/revoke`), t("Revoked.", "해제했어요."), reload)}>{t("Revoke", "해제")}</Button>} />
             ))}
-          </ul>
+          </List>
         ) : <Empty>{t("No tokens yet.", "아직 토큰이 없어요.")}</Empty>}
       </Card>
-      <Card title={t("Create a token", "토큰 만들기")}>
-        <form onSubmit={(e) => { e.preventDefault(); void run(() => post<{ token: string }>("/devices", { name, scopes }), t("Token created.", "토큰을 만들었어요."), (r) => { setFresh(r.token); setName(""); reload(); }); }}>
-          <Input label={t("Name", "이름")} hint={t("Which device or app, e.g. iPhone shortcuts.", "어떤 기기·앱인지. 예: 아이폰 단축어")} value={name} onChange={setName} required />
-          <div className="field">
-            <label>{t("May send", "보낼 수 있는 것")}</label>
+      <Card title={t("Create a token", "토큰 만들기")} onSubmit={() => void run(() => post<{ token: string }>("/devices", { name, scopes }), t("Token created.", "토큰을 만들었어요."), (r) => { setFresh(r.token); setName(""); reload(); })}
+        footer={<Button type="submit" busy={busy} disabled={!scopes.length || !name.trim()}>{t("Create token", "토큰 만들기")}</Button>}>
+        <Input label={t("Name", "이름")} hint={t("Which device or app, e.g. iPhone shortcuts.", "어떤 기기·앱인지. 예: 아이폰 단축어")} value={name} onChange={setName} required />
+        <Field label={t("May send", "보낼 수 있는 것")}>
+          <div className="grid gap-3 pt-1 sm:grid-cols-2">
             {SCOPES.map(([id, en, ko, hen, hko]) => (
-              <label key={id} className="check"><input type="checkbox" checked={scopes.includes(id)} onChange={(e) => setScopes(e.target.checked ? [...scopes, id] : scopes.filter((s) => s !== id))} /><span><b>{t(en, ko)}</b> <span className="muted">— {t(hen, hko)}</span></span></label>
+              <Check key={id} checked={scopes.includes(id)} onChange={(on) => setScopes(on ? [...scopes, id] : scopes.filter((s) => s !== id))} label={t(en, ko)} hint={t(hen, hko)} />
             ))}
           </div>
-          <Button type="submit" busy={busy} disabled={!scopes.length || !name.trim()}>{t("Create token", "토큰 만들기")}</Button>
-        </form>
+        </Field>
       </Card>
       <Card title={t("Where to send", "보내는 주소")} sub={t("Put the token in the X-Ingest-Token header, or use it as the password of a sign-in (any username).", "토큰은 X-Ingest-Token 헤더에 넣거나, 로그인 비밀번호로 쓰세요(아이디는 아무거나).")}>
-        <table className="kv"><tbody>
-          <tr><th>{t("Card message, notification", "카드 문자, 알림")}</th><td><code>{data.publicUrl}/ingest/message</code></td></tr>
-          <tr><th>{t("Wallet payment", "지갑 결제")}</th><td><code>{data.publicUrl}/ingest/transaction</code></td></tr>
-          <tr><th>{t("Health day", "건강 기록")}</th><td><code>{data.publicUrl}/ingest/health</code></td></tr>
-          <tr><th>{t("Location (OwnTracks)", "위치 (OwnTracks)")}</th><td><code>{data.publicUrl}/ingest/owntracks</code></td></tr>
-        </tbody></table>
+        <KeyValue rows={[
+          [t("Card message, notification", "카드 문자, 알림"), <code>{data.publicUrl}/ingest/message</code>],
+          [t("Wallet payment", "지갑 결제"), <code>{data.publicUrl}/ingest/transaction</code>],
+          [t("Health day", "건강 기록"), <code>{data.publicUrl}/ingest/health</code>],
+          [t("Location (OwnTracks)", "위치 (OwnTracks)"), <code>{data.publicUrl}/ingest/owntracks</code>],
+        ]} />
       </Card>
     </Page>
   );

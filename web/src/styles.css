@@ -90,71 +90,8 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground antialiased; letter-spacing: -0.01em; word-break: keep-all; overflow-wrap: anywhere; }
-  code { @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em]; }
-}
-
-/* Small shared patterns the pages use; everything else is Tailwind utilities and shadcn components. */
-@layer components {
-  a { @apply text-foreground underline-offset-4; }
-  h3 { @apply text-muted-foreground mt-5 mb-2 text-sm font-semibold; }
-  pre { @apply bg-muted my-2 overflow-x-auto rounded-lg p-3 font-mono text-xs break-all whitespace-pre-wrap; }
-  p + p { @apply mt-2; }
-  .muted { @apply text-muted-foreground text-sm; }
-  .hint { @apply text-muted-foreground mt-1.5 text-[0.82rem] leading-relaxed; }
-  .ok { @apply text-success font-medium; }
-  .err { @apply text-destructive; }
-  .row { @apply flex flex-wrap items-center gap-2; }
-  .stack { @apply flex flex-col gap-3; }
-  .actions { @apply mt-4 flex flex-wrap items-center gap-2; }
-  .field { @apply mb-4 grid gap-2; }
-  .tiles { @apply grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]; }
-  .tags { @apply flex flex-wrap gap-1.5; }
-
-  .list { @apply m-0 list-none p-0; }
-  .list > li { @apply flex flex-wrap items-center gap-3 border-t py-3 first:border-t-0 first:pt-0 last:pb-0; }
-  .list .grow { @apply min-w-48 flex-1; }
-  .list .title { @apply font-semibold; }
-  .list .meta { @apply text-muted-foreground mt-0.5 block text-[0.82rem]; }
-  .checklist > li { @apply items-start; }
-  .checklist > li.done .title { @apply text-muted-foreground line-through; }
-
-  .check { @apply my-2 flex cursor-pointer items-start gap-2.5 text-sm; }
-  .check input { @apply accent-primary mt-0.5 size-4 shrink-0; }
-
-  .steps { @apply m-0 mt-1 list-none p-0; counter-reset: s; }
-  .steps > li { @apply relative pb-4 pl-9 last:pb-0; counter-increment: s; }
-  .steps > li::before { @apply bg-primary text-primary-foreground absolute top-0 left-0 grid size-6 place-items-center rounded-full text-xs font-bold; content: counter(s); }
-
-  .callout { @apply bg-muted mb-1 rounded-lg px-4 py-3 text-sm; }
-  .callout.warn { @apply bg-destructive/10 text-foreground; }
-
-  .kv { @apply w-full border-collapse text-sm; }
-  .kv th, .kv td { @apply border-t px-1 py-2 text-left align-top; }
-  .kv th { @apply text-muted-foreground w-[30%] font-medium; }
-
-  details.more { @apply mt-4; }
-  details.more > summary { @apply text-muted-foreground hover:text-foreground cursor-pointer list-none text-sm font-semibold select-none; }
-  details.more > summary::-webkit-details-marker { display: none; }
-  details.more > summary::before { content: "▸ "; }
-  details.more[open] > summary::before { content: "▾ "; }
-  details.more[open] > summary { @apply mb-3; }
-
-  .progress { @apply bg-muted mb-4 h-1.5 overflow-hidden rounded-full; }
-  .progress > span { @apply bg-success block h-full rounded-full transition-all; }
-}
-
-@layer components {
-  .stat { @apply bg-card text-card-foreground hover:border-foreground/25 block min-w-0 cursor-pointer rounded-xl border p-4 no-underline shadow-xs transition-colors hover:shadow-sm; }
-}
-
-@layer components {
-  /* Bare inputs left in pages get the shadcn input look. */
-  input:not([type="checkbox"]):not([type="radio"]):not([data-slot]) { @apply border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:ring-[3px] md:text-sm; }
-  input[type="file"]:not([data-slot]) { @apply text-muted-foreground file:text-foreground h-auto py-1.5 file:mr-3 file:rounded file:border-0 file:bg-transparent file:text-sm file:font-medium; }
-  input[type="radio"] { @apply accent-primary size-4 shrink-0; }
-}
-
-@layer components {
-  .checklist > li > [aria-hidden]:first-child { @apply mt-2; }
+  /* Body text is 14 px; see docs/design.md → Design system. */
+  body { @apply bg-background text-foreground text-sm leading-6 antialiased; letter-spacing: -0.006em; word-break: keep-all; overflow-wrap: anywhere; }
+  code { @apply bg-muted rounded px-1.5 py-0.5 font-mono text-[0.8125rem]; }
+  a { @apply underline-offset-4; }
 }

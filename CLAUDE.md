@@ -68,5 +68,6 @@ npm run build
 ## UI (details: docs/design.md)
 
 Convenience first: one task per screen, recommended option first, plain words, results always confirmed. Clean and quiet: neutral grays, one accent color for the primary action, red only for errors/destructive, green only for ok. React app over a JSON API, bilingual, accessible.
+Pages use only the parts in `web/src/ui/kit.tsx` (spacing, type and component rules: docs/design.md → Design system); no page-level margins or ad-hoc CSS classes.
 
 Before you commit: `npm run typecheck && npm test`, check `git diff` for anything personal or secret, and run `gitleaks protect --staged` if available.
