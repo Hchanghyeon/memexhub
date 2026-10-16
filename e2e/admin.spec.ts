@@ -166,3 +166,24 @@ test("connections: developer-app services are marked advanced, with the easier p
   await expect(google.getByText("고급")).toBeVisible();
   await expect(google.getByText(/Claude 앱의 Google Calendar 커넥터가 더 쉬워요/)).toBeVisible();
 });
+test("devices: one QR sets up OwnTracks with a fresh location token", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/devices");
+  await page.getByRole("button", { name: "설정 QR 만들기" }).click();
+  await expect(page.getByRole("img", { name: "OwnTracks 설정 QR 코드" })).toBeVisible();
+  const href = await page.getByRole("link", { name: "OwnTracks에서 열기" }).getAttribute("href");
+  expect(href).toMatch(/^owntracks:\/\/\/config\?inline=/);
+  const conf = JSON.parse(Buffer.from(decodeURIComponent(href!.split("inline=")[1]!), "base64").toString("utf8"));
+  expect(conf).toMatchObject({ _type: "configuration", mode: 3, auth: true });
+  expect(conf.url).toMatch(/\/ingest\/owntracks$/);
+  // The token in the QR really sends location (HTTP Basic, as OwnTracks does).
+  const r = await page.request.post(conf.url.replace(/^https?:\/\/[^/]+/, ""), {
+    headers: { authorization: `Basic ${Buffer.from(`${conf.username}:${conf.password}`).toString("base64")}`, "content-type": "application/json" },
+    data: { _type: "location", lat: 37.5, lon: 127, tst: Math.floor(Date.now() / 1000) },
+  });
+  expect(r.status()).toBe(200);
+  await page.getByRole("button", { name: "토큰 만들기" }).first().click();
+  await expect(page.getByText("/ingest/message")).toBeVisible();
+  expect(errors).toEqual([]);
+});

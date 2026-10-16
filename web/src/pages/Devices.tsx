@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
-import { Badge, Button, Callout, Card, Check, Copy, Empty, Field, Input, Item, KeyValue, List, Loading, Page, useAction, useConfirm, useData } from "../ui/kit";
+import { Badge, Button, Callout, Card, Check, Copy, Empty, Field, Hint, Input, Item, KeyValue, List, Loading, Page, QrCode, Steps, Sub, useAction, useConfirm, useData } from "../ui/kit";
 
 interface D { tokens: { id: string; name: string; scopes: string[]; createdAt: string; lastUsed: string | null; revoked: boolean }[]; publicUrl: string }
 const SCOPES: [string, string, string, string, string][] = [
@@ -33,6 +33,7 @@ export function Devices() {
           <Copy text={fresh} />
         </Card>
       )}
+      <PhoneSetup publicUrl={data.publicUrl} onCreated={reload} />
       <Card title={t("Tokens", "토큰")}>
         {tokens.length ? (
           <List>
@@ -64,5 +65,71 @@ export function Devices() {
         ]} />
       </Card>
     </Page>
+  );
+}
+
+/** OwnTracks reads its whole configuration from this link (or the same link as a QR code). */
+export function owntracksLink(publicUrl: string, token: string) {
+  const conf = {
+    _type: "configuration",
+    mode: 3, // HTTP
+    url: `${publicUrl}/ingest/owntracks`,
+    auth: true,
+    username: "memexhub",
+    password: token,
+    tid: "me",
+    monitoring: 2, // "Move": a point every ~100 m while moving, for a route on the Map screen
+    locatorDisplacement: 100,
+  };
+  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(conf))));
+  return `owntracks:///config?inline=${encodeURIComponent(b64)}`;
+}
+
+/** The two phone setups most people want, each a token plus one scan or one copy. */
+function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const [loc, setLoc] = useState<string>();
+  const [card, setCard] = useState<string>();
+  const make = (name: string, scopes: string[], set: (v: string) => void) =>
+    run(() => post<{ token: string }>("/devices", { name, scopes }), undefined, (r) => { set(r.token); onCreated(); });
+  return (
+    <Card title={t("Set up your phone", "폰 설정")} sub={t("Each setup makes its own token. Do it on this screen, then pick up your phone.", "설정마다 토큰을 하나씩 만들어요. 이 화면을 띄워 두고 폰을 들어 주세요.")}>
+      <Sub>{t("Location — OwnTracks app", "위치 — OwnTracks 앱")}</Sub>
+        {!loc ? (
+          <>
+            <Hint>{t("Where you go, for summaries and the Map screen. One scan sets up the app.", "다녀온 곳을 요약과 지도 화면에 써요. QR 한 번이면 앱 설정이 끝나요.")}</Hint>
+            <div><Button busy={busy} onClick={() => void make("OwnTracks", ["location"], setLoc)}>{t("Make the setup QR", "설정 QR 만들기")}</Button></div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <QrCode text={owntracksLink(publicUrl, loc)} label={t("OwnTracks setup QR code", "OwnTracks 설정 QR 코드")} />
+            <Steps>
+              {[
+                <p key="1">{t("Install OwnTracks (App Store / Google Play).", "OwnTracks를 설치하세요 (App Store / Google Play).")}</p>,
+                <p key="2">{t("Scan this QR with the phone camera and open it in OwnTracks. On the phone itself, tap the link below instead.", "폰 카메라로 이 QR을 찍고 OwnTracks로 여세요. 폰에서 이 화면을 보고 있다면 아래 링크를 누르세요.")}</p>,
+                <p key="3">{t("Allow location “Always”. The first points arrive within minutes.", "위치 권한을 “항상”으로 허용하세요. 몇 분 안에 첫 기록이 들어와요.")}</p>,
+                <a key="4" href={owntracksLink(publicUrl, loc)} className="text-sm font-medium underline">{t("Open in OwnTracks", "OwnTracks에서 열기")}</a>,
+              ]}
+            </Steps>
+          </div>
+        )}
+      <Sub>{t("Card payments — iPhone Shortcuts", "카드 결제 — 아이폰 단축어")}</Sub>
+        {!card ? (
+          <>
+            <Hint>{t("Card company texts become payments. A Shortcuts automation forwards each message.", "카드사 문자가 결제 기록이 돼요. 단축어 자동화가 문자를 하나씩 보내요.")}</Hint>
+            <div><Button kind="secondary" busy={busy} onClick={() => void make("Card messages", ["ledger"], setCard)}>{t("Make the token", "토큰 만들기")}</Button></div>
+          </>
+        ) : (
+          <Steps>
+            {[
+              <p key="1">{t("Shortcuts → Automation → New → Message → “Message contains” 승인 (your card company's sender) → Run immediately.", "단축어 → 자동화 → 새로 만들기 → 메시지 → “메시지에 포함” 승인 (카드사 발신번호) → 즉시 실행.")}</p>,
+              <div key="2" className="space-y-2"><p>{t("Add “Get contents of URL”: method POST, this address:", "“URL의 콘텐츠 가져오기”를 추가하고 방법 POST, 주소는:")}</p><Copy text={`${publicUrl}/ingest/message`} /></div>,
+              <div key="3" className="space-y-2"><p>{t("Header X-Ingest-Token with this token (shown once):", "헤더 X-Ingest-Token 에 이 토큰 (한 번만 보여요):")}</p><Copy text={card} /></div>,
+              <p key="4">{t("Body JSON: text = Shortcut Input. Messages it cannot read wait in Recipes & inbox.", "본문 JSON: text = 단축어 입력. 못 읽은 문자는 레시피·대기함에서 기다려요.")}</p>,
+            ]}
+          </Steps>
+        )}
+    </Card>
   );
 }

@@ -9,6 +9,7 @@ import { Hub } from "../src/hub.js";
 import { MODULES } from "../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../src/platform/node.js";
 import { loadEnv } from "../src/core/config.js";
+import { ingestApp } from "../src/http/ingest.js";
 import { adminApp } from "../src/admin/app.js";
 import { nodeAdminAssets } from "../src/platform/node-assets.js";
 import { PORTABLE_PROVIDERS } from "../src/providers/registry.js";
@@ -55,6 +56,7 @@ await hub.ingestTokens.create("Sample phone", ["ledger"], "e2e");
 
 const app = new Hono()
   .use("*", (c: any, next: () => Promise<void>) => (c.set("ip", "10.0.0.9"), next()))
+  .route("/", ingestApp(hub))
   .route("/admin", adminApp(hub, { vaultRoots: ["/vaults"], builtinVault: "", base: "/admin", assets: nodeAdminAssets() }));
 serve({ fetch: app.fetch, port });
 console.log(`e2e server on ${port}`);

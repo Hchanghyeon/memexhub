@@ -4,6 +4,7 @@ import { Check as CheckIcon, ChevronRight, CircleAlert, Copy as CopyIcon, Info, 
 import { ApiError, get } from "../api";
 import { useT, type T } from "../i18n";
 import { cn } from "@/lib/utils";
+import { encode as qrEncode } from "uqr";
 import { Button as UIButton } from "@/components/ui/button";
 import { Badge as UIBadge } from "@/components/ui/badge";
 import { Input as UIInput } from "@/components/ui/input";
@@ -300,6 +301,17 @@ export const Input = (p: { label: ReactNode; hint?: ReactNode; value: string; on
     {(id) => <UIInput id={id} className={cn(p.mono && "font-mono text-[0.8125rem]", p.narrow && "max-w-40")} type={p.type ?? "text"} value={p.value} placeholder={p.placeholder} autoComplete={p.autoComplete} inputMode={p.inputMode} required={p.required} onChange={(e) => p.onChange(e.target.value)} />}
   </Field>
 );
+/** A QR code for a phone camera (drawn as SVG, black on white so every scanner reads it). */
+export function QrCode({ text, label, size = 200 }: { text: string; label: string; size?: number }) {
+  const { data } = qrEncode(text, { ecc: "M", border: 2 });
+  const n = data.length;
+  const path = data.flatMap((row, y) => row.map((on, x) => (on ? `M${x} ${y}h1v1h-1z` : ""))).join("");
+  return (
+    <svg role="img" aria-label={label} viewBox={`0 0 ${n} ${n}`} width={size} height={size} shapeRendering="crispEdges" className="rounded-md border bg-white">
+      <path d={path} fill="#000" />
+    </svg>
+  );
+}
 /** A compact date picker for page actions (label is for screen readers only). */
 export const DateInput = (p: { label: string; value: string; onChange: (v: string) => void; max?: string }) => (
   <UIInput type="date" aria-label={p.label} value={p.value} max={p.max} onChange={(e) => e.target.value && p.onChange(e.target.value)} className="h-8 w-auto" />
