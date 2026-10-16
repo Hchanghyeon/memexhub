@@ -39,7 +39,9 @@ export function MapPage() {
           {date !== today() && <Button kind="ghost" size="sm" onClick={() => setDate(today())}>{t("Today", "오늘")}</Button>}
         </Actions>
       }>
-      {!day ? <Loading error={error} reload={reload} /> : !day.connected ? (
+      {error?.code === "module_off" ? (
+        <Card><Callout tone="warning"><p>{t("Location is turned off.", "위치 기능이 꺼져 있어요.")} <Link to="/features">{t("Turn it on in Features", "기능에서 켜기")}</Link></p></Callout></Card>
+      ) : !day ? <Loading error={error} reload={reload} /> : !day.connected ? (
         <Card><Callout tone="warning"><p>{t("No location source is connected yet.", "아직 위치 연결이 없어요.")} <Link to="/connections">{t("Connections", "연결")}</Link></p></Callout></Card>
       ) : (
         <>
@@ -94,8 +96,9 @@ function RouteMap({ day, focus }: { day: Day; focus?: number }) {
     );
     const first = day.path[0]!;
     L.circleMarker([first[0], first[1]], { radius: 5, color: "#16a34a", fillColor: "#16a34a", fillOpacity: 1 }).bindTooltip("start").addTo(m);
-    m.fitBounds(line.getBounds(), { padding: [24, 24], maxZoom: 16 });
+    m.fitBounds(line.getBounds(), { padding: [24, 24], maxZoom: 16, animate: false });
     return () => {
+      m.stop(); // an unfinished zoom animation on a removed map throws
       m.remove();
       map.current = undefined;
     };
@@ -103,7 +106,7 @@ function RouteMap({ day, focus }: { day: Day; focus?: number }) {
   useEffect(() => {
     const s = focus === undefined ? undefined : day.stays[focus];
     if (s && map.current) {
-      map.current.setView([s.lat, s.lon], 17);
+      map.current.setView([s.lat, s.lon], 17, { animate: false });
       el.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [focus, day]);

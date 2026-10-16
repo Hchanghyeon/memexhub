@@ -183,7 +183,7 @@ test("devices: one QR sets up OwnTracks with a fresh location token", async ({ p
     data: { _type: "location", lat: 37.5, lon: 127, tst: Math.floor(Date.now() / 1000) },
   });
   expect(r.status()).toBe(200);
-  await page.getByRole("button", { name: "토큰 만들기" }).first().click();
-  await expect(page.getByText("/ingest/message")).toBeVisible();
+  await page.getByRole("button", { name: "단축어용 토큰 만들기" }).click();
+  await expect(page.getByText(/\/ingest\/message$/).first()).toBeVisible();
   expect(errors).toEqual([]);
 });

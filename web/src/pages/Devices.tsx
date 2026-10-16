@@ -118,7 +118,7 @@ function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: ()
         {!card ? (
           <>
             <Hint>{t("Card company texts become payments. A Shortcuts automation forwards each message.", "카드사 문자가 결제 기록이 돼요. 단축어 자동화가 문자를 하나씩 보내요.")}</Hint>
-            <div><Button kind="secondary" busy={busy} onClick={() => void make("Card messages", ["ledger"], setCard)}>{t("Make the token", "토큰 만들기")}</Button></div>
+            <div><Button kind="secondary" busy={busy} onClick={() => void make("Card messages", ["ledger"], setCard)}>{t("Make a token for Shortcuts", "단축어용 토큰 만들기")}</Button></div>
           </>
         ) : (
           <Steps>
