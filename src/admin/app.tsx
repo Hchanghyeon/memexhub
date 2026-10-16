@@ -237,7 +237,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
     for (const x of conns.filter((x) => x.enabled && x.status === "error")) attention.push({ text: t(`Connection "${x.name}" failed: ${x.last_error ?? ""}`, `연결 "${x.name}" 오류: ${x.last_error ?? ""}`), fix: "/connections" });
     for (const m of hub.moduleStatus.filter((m) => m.enabled && m.error)) attention.push({ text: `${t(MODULE_NAMES[m.id]?.[0] ?? m.id, MODULE_NAMES[m.id]?.[1] ?? m.id)}: ${m.error}`, fix: "/features" });
     if (inbox) attention.push({ text: t(`${inbox} message(s) could not be read and wait in the inbox.`, `읽지 못한 메시지 ${inbox}개가 대기함에 있어요.`), fix: "/ledger/recipes" });
-    for (const x of (await checksFor(c, t)).filter((x) => !x.ok)) attention.push({ text: x.text, fix: x.fix, high: x.level === "high" });
+    const secIssues = (await checksFor(c, t)).filter((x) => !x.ok);
     const totpOn = await hub.admin.hasTotp(c.get("adminId"));
     const claudeOn = clients.some((x) => x.last_token_at);
     const backupOk = lastBackup === undefined ? null : !!lastBackup && +now - +lastBackup < 2 * 86_400_000;
@@ -251,6 +251,9 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
       { level: "optional", done: conns.some((x) => x.enabled && x.name), title: ["Connect mail, location or tasks", "메일·위치·할 일 연결"], how: ["Only what you want Claude to see.", "Claude가 볼 것만 연결하세요."], href: "/connections" },
     ];
     const required = steps.filter((x) => x.level === "required");
+    const showSteps = steps.some((x) => !x.done && x.level !== "optional");
+    // While the checklist is shown it already covers the security basics; list only the serious ones here.
+    for (const x of secIssues.filter((x) => !showSteps || x.level === "high")) attention.push({ text: x.text, fix: x.fix, high: x.level === "high" });
     const LEVEL: Record<string, [string, string]> = { required: ["Required", "필수"], recommended: ["Recommended", "추천"], optional: ["Optional", "선택"] };
     const Stat = (p: { href: string; k: string; v: string; s?: string; ok?: boolean }) => (
       <a class="card stat" href={`${B}${p.href}`}>
@@ -268,7 +271,7 @@ export function adminApp(hub: Hub, opts: { vaultRoots: string[]; builtinVault: s
           {!s.onboarded && (
             <div class="card"><p><b>{t("Finish setting up", "설정 마치기")}</b> — {t("time zone, vault, wiki layout and the Claude connector, one step at a time.", "시간대, 볼트, 위키 구조, Claude 커넥터를 한 단계씩.")}</p><a class="btn" href={`${B}/start`}>{t("Continue setup", "설정 계속하기")}</a></div>
           )}
-          {steps.some((x) => !x.done && x.level !== "optional") && (
+          {showSteps && (
             <div class="card">
               <h2>{t("Getting started", "시작하기")} <span class="muted">· {t(`required ${required.filter((x) => x.done).length} of ${required.length} done`, `필수 ${required.length}개 중 ${required.filter((x) => x.done).length}개 완료`)}</span></h2>
               <ul class="list">

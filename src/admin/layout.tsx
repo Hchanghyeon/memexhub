@@ -80,7 +80,8 @@ export function Layout(p: { title: string; children: Child; lang?: "en" | "ko"; 
         <meta name="theme-color" content="#2457c5" />
         <title>{p.title}</title>
         {fontHref && <link rel="stylesheet" href={fontHref} />}
-        <style>{css}</style>
+        {/* Raw: JSX would escape the quotes in font names and drop the whole rule. The CSS is a constant. */}
+        <style dangerouslySetInnerHTML={{ __html: css }} />
       </head>
       <body>
         {p.nav}

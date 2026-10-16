@@ -14,7 +14,8 @@ export async function recordAccess(
   o: { now?: Date; windowMinutes?: number } = {},
 ) {
   const now = o.now ?? new Date();
-  const ip = (a.ip || "unknown").slice(0, 64);
+  // IPv4 seen through an IPv6 socket ("::ffff:203.0.113.5") is stored as plain IPv4.
+  const ip = (a.ip || "unknown").replace(/^::ffff:(?=\d+\.)/i, "").slice(0, 64);
   const window = o.windowMinutes ?? 0;
   if (window > 0) {
     const since = new Date(+now - window * 60_000).toISOString();

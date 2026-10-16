@@ -35,6 +35,7 @@ describe("admin web font", () => {
     const login = await app.request("http://10.0.0.2/admin/setup");
     expect(await login.text()).toContain('<link rel="stylesheet" href="/admin/assets/pretendard.css"/>');
     expect(login.headers.get("content-security-policy")).toContain("font-src 'self'");
+    expect(await (await app.request("http://10.0.0.2/admin/setup")).text()).toContain('"Pretendard Variable"'); // quotes in the CSS are not escaped
     setFontHref(undefined);
   });
 });
