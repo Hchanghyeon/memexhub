@@ -52,7 +52,9 @@ describe("receipt mails", () => {
     add("102", "NHN KCP - 샘플몰의 결제 안내", "결제일시 | 2026년 10월 14일 20시 05분 |\n구매상점명 | 샘플몰 |\n주문상품명 | 샘플 양말 |\n결제금액 | 9,900원 |\n카드종류 | 삼성카드 |\n할부기간 | 일시불 |");
     add("103", "샘플몰 주문 확인", "주문하신 상품 합계 15,000원 입니다");
     add("104", "뉴스레터", "이번 주 소식");
-    expect(await tool("payments_from_mail").run({}, { actor: "t" })).toBe("read 4 new mails: 1 recorded · 1 items attached · 1 to the inbox · 0 ignored · 1 not payments");
+    add("105", "(광고) 가을 세일 최대 50%", "지금 구매하면 19,900원");
+    add("106", "이번 주 할인 소식", "샘플 셔츠 29,000원 → 19,000원 · 지금 주문하세요\n수신거부");
+    expect(await tool("payments_from_mail").run({}, { actor: "t" })).toBe("read 6 new mails: 1 recorded · 1 items attached · 1 to the inbox · 0 ignored · 3 not payments");
     const pay = (await hub.vault!.read("ledger/payments/2026.md")).text;
     expect(pay).toContain("샘플 텀블러");
     expect(pay).toMatch(/샘플몰.*₩9,900/);

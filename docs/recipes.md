@@ -9,6 +9,7 @@ Every card company, bank and shop writes its messages differently. One parser fi
 - most messages are understood by a **generic parser** (amount, time, merchant, approval / cancellation),
 - what differs per sender is a small **recipe**, a JSON block stored **as a note in your vault**,
 - anything the engine cannot read goes to an **inbox**, where Claude decides and can **propose a recipe**, so the next message of that kind is parsed exactly.
+- Receipt mails no recipe knows go to the inbox only when they look like a payment: the subject (or, for non-bulk mail, the body) mentions a payment, order or receipt. Advertising marked “(광고)” and newsletters with an unsubscribe line are skipped.
 
 This follows the rule "the engine computes, Claude judges".
 

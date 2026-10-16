@@ -54,3 +54,17 @@ describe("Ledger.record", () => {
     await expect(l.record({ merchant: "x".repeat(201) })).rejects.toThrow();
   });
 });
+
+describe("which unrecognised mails reach the inbox", () => {
+  it("keeps payment-looking mail and drops ads and newsletters", async () => {
+    const { looksLikePayment } = await import("../../src/modules/ledger/mail-job.js");
+    expect(looksLikePayment("샘플몰 주문 확인", "합계 15,000원")).toBe(true);
+    expect(looksLikePayment("Your receipt from Sample", "Total $12.00\nUnsubscribe")).toBe(true);
+    expect(looksLikePayment("알림", "카드 결제 15,000원 승인")).toBe(true);
+    expect(looksLikePayment("(광고) 결제 혜택 안내", "15,000원 할인")).toBe(false);
+    expect(looksLikePayment("[광고] 세일", "구매 시 15,000원")).toBe(false);
+    expect(looksLikePayment("이번 주 소식", "지금 구매하면 9,900원\n수신거부")).toBe(false);
+    expect(looksLikePayment("이번 주 소식", "신상 9,900원")).toBe(false);
+    expect(looksLikePayment(undefined, "")).toBe(false);
+  });
+});

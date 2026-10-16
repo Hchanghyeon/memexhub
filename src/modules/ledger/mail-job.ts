@@ -32,9 +32,27 @@ const mailTime = (s: string, tz: string) => {
   return m ? zonedIso(tz, +m[1]!, +m[2]!, +m[3]!, +m[4]!, +m[5]!) : "";
 };
 
+const AD = /^\s*[\[(（]\s*(광고|AD)\s*[\])）]/i;
+const PAYMENT_WORDS = /결제|승인|영수증|주문|구매|청구|납부|이용\s*내역|입금|출금|receipt|payment|order|invoice|charged|paid|purchase|billing/i;
+const BULK = /수신\s*거부|구독\s*취소|unsubscribe/i;
+
+/**
+ * Whether an unrecognised mail with an amount is worth a person's look. Advertising (subject marked
+ * "(광고)", required by Korean law) never is. Otherwise the subject must say it is about a payment, or the body
+ * must, unless the mail is bulk mail (has an unsubscribe line) — newsletters mention prices all the time.
+ */
+export function looksLikePayment(subject: string | undefined, text: string): boolean {
+  const subj = subject ?? "";
+  if (AD.test(subj)) return false;
+  if (PAYMENT_WORDS.test(subj)) return true;
+  const body = text.slice(0, 4000);
+  return PAYMENT_WORDS.test(body) && !BULK.test(text);
+}
+
 /**
  * Receipt mails → messages → recipes. Only mails a recipe recognises are recorded; anything else that
- * looks like a payment goes to the inbox (the generic parser is not trusted on mail). Each mail is read once.
+ * looks like a payment goes to the inbox (the generic parser is not trusted on mail; see looksLikePayment).
+ * Each mail is read once.
  */
 export async function syncReceiptMails(d: MailSyncDeps, opts: { since?: string; until?: string } = {}) {
   const tz = d.tz();
@@ -70,7 +88,7 @@ export async function syncReceiptMails(d: MailSyncDeps, opts: { since?: string; 
           const res = r.kind === "item" ? await d.ledger.attachOrRecord(input) : await d.ledger.record(input);
           if (res.kind === "item") counts.attached++;
           else counts.recorded++;
-        } else if (r.payment?.amount) {
+        } else if (r.payment?.amount && (r.step === "recipe" || looksLikePayment(mail.subject, mail.text))) {
           const data: PendingMessage = { message: { ...m, time: mailTime(mail.date, tz) }, guess: r.payment, step: r.step };
           await d.inbox.add("ledger", "mail", r.step === "recipe" ? `recipe ${r.recipeId}: ${r.reason ?? "incomplete"}` : "no recipe for this mail", data);
           counts.pending++;
