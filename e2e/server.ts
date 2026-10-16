@@ -12,7 +12,6 @@ import { loadEnv } from "../src/core/config.js";
 import { adminApp } from "../src/admin/app.js";
 import { nodeAdminAssets } from "../src/platform/node-assets.js";
 import { PORTABLE_PROVIDERS } from "../src/providers/registry.js";
-import { owntracksProvider } from "../src/providers/location/owntracks.js";
 import { testFs } from "../test/helpers.js";
 
 export const E2E_USER = "owner";
@@ -20,13 +19,15 @@ export const E2E_PASSWORD = "a-long-test-password";
 const port = Number(process.env.E2E_PORT ?? 8799);
 
 const env = loadEnv({ MEMEXHUB_SECRET: "e".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-e2e-")) });
-const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-e2ev-"))), ...PORTABLE_PROVIDERS, owntracksProvider]);
+const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-e2ev-"))), ...PORTABLE_PROVIDERS]);
 const log = console.log;
 console.log = () => {};
 await hub.init();
 console.log = log;
 await hub.admin.createAdmin(E2E_USER, E2E_PASSWORD, "e2e");
 await hub.connections.upsert({ kind: "storage", provider: "fs", name: "vault", config: {} }, "e2e");
+await hub.connections.upsert({ kind: "location", provider: "owntracks", name: "phone", config: {} }, "e2e");
+await hub.connections.upsert({ kind: "weather", provider: "open-meteo", name: "home", config: { place: "Sample City", latitude: 37.5, longitude: 127 } }, "e2e");
 await hub.settings.set("modules", Object.fromEntries(["vault", "wiki", "hub", "ledger", "location", "health"].map((m) => [m, { enabled: true }])));
 const s = await hub.settings.get();
 await hub.settings.set("vault", { ...s.vault, connection: "vault" });

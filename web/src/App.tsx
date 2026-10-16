@@ -96,7 +96,7 @@ function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; p
         ))}
       </nav>
       <div className="mt-auto flex flex-col gap-0.5 border-t pt-3">
-        <div className="text-muted-foreground truncate px-2.5 pb-1 text-xs">{session.username}</div>
+        <div className="text-muted-foreground px-2.5 pb-1 text-xs break-all">{session.username}</div>
         <Button variant="ghost" size="sm" className="text-muted-foreground justify-start" onClick={() => setLanguage(lang === "ko" ? "en" : "ko")}><Languages />{lang === "ko" ? "English" : "한국어"}</Button>
         <Button variant="ghost" size="sm" className="text-muted-foreground justify-start" onClick={async () => { await post("/logout").catch(() => {}); onSignOut(); }}><LogOut />{t("Sign out", "로그아웃")}</Button>
       </div>

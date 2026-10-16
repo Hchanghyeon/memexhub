@@ -286,9 +286,10 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const rows = await db.all<{ id: string; status: string | null; last_ok_at: string | null; last_error: string | null }>(`SELECT id, status, last_ok_at, last_error FROM connections`);
     const items = (await hub.connections.list()).filter((x) => x.kind !== "storage").map((x) => {
       const st = rows.find((r) => r.id === x.id);
-      return { id: x.id, kind: x.kind, name: x.name, provider: x.provider, enabled: x.enabled, status: st?.status ?? null, lastOkAt: st?.last_ok_at ?? null, lastError: st?.last_error ?? null, email: hub.signIns.has(x.provider) ? ((x.config.email ?? x.config.account ?? null) as string | null) : null, signIn: hub.signIns.get(x.provider)?.spec.title ?? null };
+      const def = hub.providers.find((p) => p.kind === x.kind && p.id === x.provider);
+      return { id: x.id, kind: x.kind, name: x.name, provider: x.provider, providerTitle: def?.title ?? { en: x.provider, ko: x.provider }, enabled: x.enabled, status: st?.status ?? null, lastOkAt: st?.last_ok_at ?? null, lastError: st?.last_error ?? null, email: hub.signIns.has(x.provider) ? ((x.config.email ?? x.config.account ?? null) as string | null) : null, signIn: hub.signIns.get(x.provider)?.spec.title ?? null };
     });
-    const addable = hub.providers.filter((p) => p.kind !== "storage" && p.runtimes.includes(hub.platform.name)).map((p) => ({ key: `${p.kind}:${p.id}`, kind: p.kind, title: p.title }));
+    const addable = [...new Map(hub.providers.filter((p) => p.kind !== "storage" && p.runtimes.includes(hub.platform.name)).map((p) => [`${p.kind}:${p.id}`, { key: `${p.kind}:${p.id}`, kind: p.kind, title: p.title }])).values()];
     return c.json({ items, addable });
   });
   api.get("/connections/form", async (c) => {

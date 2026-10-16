@@ -161,11 +161,14 @@ export function Item(p: { tone?: keyof typeof DOT; icon?: ReactNode; title: Reac
     <li className="py-3">
       <div className="flex items-start gap-3">
         {p.icon ? <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center [&_svg]:size-[18px]">{p.icon}</span> : p.tone && <span className={cn("mt-2 size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />}
-        <div className="min-w-0 flex-1">
-          <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 font-medium", p.done && "text-muted-foreground line-through")}>{p.title}{p.badges}</div>
-          {p.meta && <div className="text-muted-foreground mt-0.5 text-[0.8125rem] leading-5">{p.meta}</div>}
+        {/* On a phone the actions go under the text so the title keeps the full width. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 font-medium", p.done && "text-muted-foreground line-through")}>{p.title}{p.badges}</div>
+            {p.meta && <div className="text-muted-foreground mt-0.5 text-[0.8125rem] leading-5">{p.meta}</div>}
+          </div>
+          {p.actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{p.actions}</div>}
         </div>
-        {p.actions && <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 self-center">{p.actions}</div>}
       </div>
       {p.children && <div className="mt-4 flex flex-col gap-4 sm:pl-5">{p.children}</div>}
     </li>
@@ -179,7 +182,7 @@ export function Tile(p: { to?: string; onClick?: () => void; label: ReactNode; v
     <>
       <div className="text-muted-foreground text-[0.8125rem]">{p.label}</div>
       <div className="mt-1 flex items-center gap-2 text-[0.9375rem] font-semibold">{p.tone && <span className={cn("size-2 shrink-0 rounded-full", DOT[p.tone])} aria-hidden />}{p.value}</div>
-      {p.sub && <div className="text-muted-foreground mt-0.5 truncate text-[0.8125rem]">{p.sub}</div>}
+      {p.sub && <div className="text-muted-foreground mt-0.5 text-[0.8125rem] leading-5">{p.sub}</div>}
     </>
   );
   const cls = "bg-card hover:bg-accent/60 block min-w-0 rounded-xl border p-4 text-left text-foreground no-underline transition-colors cursor-pointer";
