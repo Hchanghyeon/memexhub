@@ -43,6 +43,11 @@ describe("wiki write gate", () => {
     expect(d.text).toContain("status: deprecated");
   });
 
+  it("lets sub-index pages (type: index / area / moc) list pages without a source or status", async () => {
+    const t = "---\ntitle: Wiki - basics\ntype: area\n---\n- [[Seeds]] — seeds\n";
+    expect(await gateWikiWrite(v, L, "wiki/Wiki - basics.md", t)).toEqual({ text: t, notes: [] });
+  });
+
   it("sets a frontmatter key without touching the rest", () => {
     const t = "---\ntitle: A\ntags: [x]\n---\nbody\n";
     expect(setFrontmatter(t, "status", "draft")).toBe("---\ntitle: A\ntags: [x]\nstatus: draft\n---\nbody\n");

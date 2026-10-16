@@ -73,7 +73,7 @@
 
 판단(원본이 무슨 뜻인지, 무엇을 고칠지)은 Claude가 하고, 정답이 하나인 것은 코드가 검사해요.
 
-- **쓰기 검사** (원본 폴더가 있으면 켜짐, 볼트 → 위키 구조): Claude가 `write_note`·`append_note` 로 쓰는 위키 페이지는 프론트매터와 **실제로 있는** 원본 링크가 하나 이상 있어야 저장돼요(없으면 거부). 없는 노트로 가는 링크는 결과에 알려 줘요.
+- **쓰기 검사** (원본 폴더가 있으면 켜짐, 볼트 → 위키 구조): Claude가 `write_note`·`append_note` 로 쓰는 위키 페이지는 프론트매터와 **실제로 있는** 원본 링크가 하나 이상 있어야 저장돼요(없으면 거부). 없는 노트로 가는 링크는 결과에 알려 줘요. 하위 목차 페이지(`type: index`·`area`·`moc`)는 프론트매터만 있으면 돼요.
 - **페이지 상태**: Claude가 쓴 페이지는 `status: draft` 로 저장돼요. 관리 화면 **노트**에서 읽고 *확인했어요*(`stable` + `reviewed: 날짜`) 또는 *옛 정보로 표시*(`deprecated`)를 눌러요. Claude는 stable 로 못 바꾸고 deprecated 로만 바꿀 수 있어요. Claude가 다시 고치면 draft 로 돌아가요.
 - **Claude의 순서** (`wiki_layout` 에도 나와요): `wiki_pending` → `wiki_save_source` → 페이지 쓰기 → `wiki_check` 통과할 때까지 → 인용한 원본 다시 읽기 → `wiki_index`·`wiki_log`. 원본끼리 어긋나면 두 출처를 다 적은 `> [!warning] 상충` 블록으로, 규칙 노트의 신뢰 순서를 따라요.
 

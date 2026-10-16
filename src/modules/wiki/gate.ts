@@ -40,6 +40,7 @@ function resolver(paths: string[]) {
  * - the page needs frontmatter;
  * - it must cite at least one existing source note (when the vault has a sources folder) — fail closed;
  * - it is marked `status: draft` (only the owner, in the admin UI, makes it stable; Claude may deprecate).
+ * Pages typed `index`, `area` or `moc` (sub-indexes) only need frontmatter.
  * Broken links do not block (pages are often written in a row) but are reported back.
  */
 export async function gateWikiWrite(vault: SafeVault, layout: Layout, path: string, text: string): Promise<{ text: string; notes: string[] }> {
@@ -47,6 +48,8 @@ export async function gateWikiWrite(vault: SafeVault, layout: Layout, path: stri
   if (!layout.isWikiPage(p)) return { text, notes: [] };
   const fm = parseFrontmatter(text);
   if (!fm.present) throw new StorageError("invalid", `wiki page ${p} needs frontmatter (---) with title, sources and dates — see wiki_layout`);
+  // Hub pages that only list other pages (sub-indexes, maps of content) cite no source and carry no status.
+  if (["index", "area", "moc"].includes(String(fm.data.type ?? "").toLowerCase())) return { text, notes: [] };
   const n = parseNote(text);
   const resolve = resolver((await vault.list()).map((f) => f.path));
   const targets = n.links.map((l) => ({ t: l.target, to: resolve(l.target) }));

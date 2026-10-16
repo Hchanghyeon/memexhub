@@ -73,7 +73,7 @@ Links resolve like Obsidian: exact path → path relative to the linking note �
 
 The judgement (what a source means, what to change) stays with Claude; everything that has one right answer is checked in code.
 
-- **Write check** (on when a sources folder exists; Vault → Wiki layout): every wiki page Claude writes with `write_note` / `append_note` must have frontmatter and link at least one **existing** source note, or it is not saved (fail closed). Links to missing notes are reported back.
+- **Write check** (on when a sources folder exists; Vault → Wiki layout): every wiki page Claude writes with `write_note` / `append_note` must have frontmatter and link at least one **existing** source note, or it is not saved (fail closed). Links to missing notes are reported back. Sub-index pages (`type: index`, `area` or `moc`) only need frontmatter.
 - **Page status**: what Claude writes is saved as `status: draft`. The owner reads it in the admin **Notes** screen and presses *I checked it* (`stable`, plus `reviewed: date`) or *Outdated* (`deprecated`). Claude cannot make a page stable; it may deprecate one. Any later change by Claude makes it a draft again.
 - **Loop for Claude** (also in `wiki_layout`): `wiki_pending` → `wiki_save_source` → write pages → `wiki_check` until PASS → re-read the cited sources → `wiki_index` / `wiki_log`. Disagreeing sources go into a `> [!warning] Conflict` callout with both sources, following the trust order in your rule notes.
 
