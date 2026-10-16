@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronRight, FileImage, FileText, Folder, Search, X } from "lucide-react";
-import { fileUrl, get } from "../api";
+import { fileUrl, get, post } from "../api";
 import { useT, when } from "../i18n";
 import { navigate } from "../router";
 import { cn } from "@/lib/utils";
 import { Input as UIInput } from "@/components/ui/input";
-import { Button, Callout, Card, Empty, Loading, Skeleton, errorText, useData } from "../ui/kit";
+import { Actions, Button, Callout, Card, Empty, Loading, Skeleton, Status, errorText, useAction, useData } from "../ui/kit";
 import { Markdown, prepare, type VaultFile } from "../ui/markdown";
 
 interface F { path: string; size: number; mtime: string }
@@ -184,7 +184,7 @@ function TreeView(p: { tree: Tree; prefix: string; open: Set<string>; setOpen: (
 
 function Note({ path, resolve, file, files }: { path: string; resolve: (t: string) => string | undefined; file: (t: string) => VaultFile | undefined; files: F[] }) {
   const { t } = useT();
-  const { data, error } = useData<{ path: string; text: string }>(`/vault/note?path=${encodeURIComponent(path)}`);
+  const { data, error, reload } = useData<{ path: string; text: string }>(`/vault/note?path=${encodeURIComponent(path)}`);
   const info = files.find((f) => f.path === path);
   const folders = path.split("/").slice(0, -1);
   return (
@@ -195,6 +195,7 @@ function Note({ path, resolve, file, files }: { path: string; resolve: (t: strin
         <h1 className="text-2xl font-semibold tracking-tight break-words">{nameOf(path)}</h1>
         {info && <p className="text-muted-foreground text-[0.8125rem]">{t(`Changed ${when(info.mtime, tz)}`, `${when(info.mtime, tz)} 수정`)}</p>}
         {data && <Meta text={data.text} />}
+        {data && <Review path={path} text={data.text} onDone={reload} />}
       </header>
       {error ? <Card><Callout tone="error"><p>{errorText(t, error)}</p></Callout></Card> : !data ? <Skeleton lines={8} /> : (
         <Markdown text={withoutTitle(data.text, nameOf(path))} exists={(x) => !!resolve(x)} open={(x) => { const p = resolve(x); if (p) openNote(p); }} file={file} />
@@ -221,5 +222,32 @@ function Meta({ text }: { text: string }) {
         <div key={k} className="flex gap-1.5"><dt className="text-muted-foreground">{k}</dt><dd className="break-all">{v}</dd></div>
       ))}
     </dl>
+  );
+}
+
+/** A page Claude wrote stays a draft until the owner has read it and confirms it. */
+function Review({ path, text, onDone }: { path: string; text: string; onDone: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const status = prepare(text).meta.find(([k]) => k === "status")?.[1];
+  if (!status || !["draft", "stable", "deprecated"].includes(status)) return null;
+  const set = (s: string, msg: string) => run(() => post("/vault/status", { path, status: s }), msg, onDone);
+  return (
+    <div className="pt-2">
+      {status === "draft" ? (
+        <Callout tone="warning">
+          <p>{t("Written by Claude and not checked yet. Compare it with its sources, then confirm it.", "Claude가 쓰고 아직 확인하지 않은 페이지예요. 원본과 비교해 보고 확인해 주세요.")}</p>
+          <Actions>
+            <Button size="sm" busy={busy} onClick={() => void set("stable", t("Marked as checked.", "확인됨으로 바꿨어요."))}>{t("I checked it", "확인했어요")}</Button>
+            <Button size="sm" kind="ghost" disabled={busy} onClick={() => void set("deprecated", t("Marked as outdated.", "옛 정보로 표시했어요."))}>{t("Outdated", "옛 정보로 표시")}</Button>
+          </Actions>
+        </Callout>
+      ) : (
+        <Actions>
+          <Status tone={status === "stable" ? "ok" : "idle"}>{status === "stable" ? t("Checked", "확인됨") : t("Outdated", "옛 정보")}</Status>
+          <Button size="sm" kind="ghost" disabled={busy} onClick={() => void set("draft", t("Back to draft.", "다시 검토 필요로 바꿨어요."))}>{t("Needs checking again", "다시 검토 필요")}</Button>
+        </Actions>
+      )}
+    </div>
   );
 }

@@ -124,6 +124,17 @@ export const RULES: LintRule[] = [
     },
   },
   {
+    id: "page-status",
+    defaultEnabled: false,
+    defaults: {},
+    run(g, l) {
+      const ok = ["draft", "stable", "deprecated"];
+      return [...g.notes.values()]
+        .filter((n) => l.isWikiPage(n.path) && !ok.includes(String(n.frontmatter.status ?? "")))
+        .map((n) => ({ rule: "page-status", path: n.path, message: n.frontmatter.status ? `status "${n.frontmatter.status}" is not draft, stable or deprecated` : "no status (draft · stable · deprecated)" }));
+    },
+  },
+  {
     id: "bad-filenames",
     defaultEnabled: true,
     defaults: {},

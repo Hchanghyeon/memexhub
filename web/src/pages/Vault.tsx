@@ -7,7 +7,7 @@ interface V {
   connected: boolean; provider: string | null; choice: { provider?: string; path?: string; url?: string; username?: string; notionPage?: string };
   roots: string[]; runtime: string;
   dav: { enabled: boolean; maxFileMb: number; available: boolean };
-  wiki: { preset: string | null; presets: string[]; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
+  wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
 }
 
 const PRESET_TEXT: Record<string, [string, string]> = {
@@ -107,6 +107,9 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
         <Input label={t("Archive folder", "보관 폴더")} value={roles.archive} onChange={(x) => setRoles({ ...roles, archive: x })} mono />
         <div><Button kind="secondary" busy={busy} onClick={() => run(() => post("/wiki/roles", { ...roles, rules: roles.rules.split(",") }), t("Layout saved.", "구조를 저장했어요."), reload)}>{t("Save folders", "폴더 저장")}</Button></div>
       </More>
+      <Toggle checked={v.wiki.gate} disabled={busy} onChange={(on) => run(() => post("/wiki/gate", { on }), t("Saved.", "저장했어요."), reload)}
+        label={t("Check pages Claude writes", "Claude가 쓰는 페이지 검사")}
+        hint={t("A wiki page needs frontmatter and a link to an existing source, or it is not saved. Pages are saved as drafts until you confirm them in Notes.", "위키 페이지는 프론트매터와 실제 원본 링크가 있어야 저장돼요. 노트 화면에서 확인하기 전까지는 '검토 필요'로 저장돼요.")} />
       <More summary={t("Wiki checks", "위키 점검 규칙")}>
         <div className="grid gap-3 sm:grid-cols-2">
           {lint.map((l) => <Check key={l.id} checked={l.enabled} onChange={(on) => setLint(lint.map((x) => (x.id === l.id ? { ...x, enabled: on } : x)))} label={<code>{l.id}</code>} />)}

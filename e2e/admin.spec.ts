@@ -187,3 +187,15 @@ test("devices: one QR sets up OwnTracks with a fresh location token", async ({ p
   await expect(page.getByText(/\/ingest\/message$/).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("notes: a page Claude wrote is a draft until you confirm it", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/notes/wiki/Tomatoes.md");
+  await expect(page.getByText("Claude가 쓰고 아직 확인하지 않은 페이지예요.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "확인했어요" }).click();
+  await expect(page.getByText("확인됨", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "다시 검토 필요" }).click();
+  await expect(page.getByRole("button", { name: "확인했어요" })).toBeVisible();
+  expect(errors).toEqual([]);
+});

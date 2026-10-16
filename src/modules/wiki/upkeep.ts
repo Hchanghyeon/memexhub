@@ -87,3 +87,12 @@ export async function backlinks(vault: SafeVault, path: string) {
   if (!target) throw new StorageError("not_found", `"${path}" not found`);
   return (g.incoming.get(target) ?? []).map((b) => ({ ...b, text: g.notes.get(b.from)!.text.split("\n")[b.line - 1]?.trim().slice(0, 200) ?? "" }));
 }
+
+/** Wiki pages Claude has not cited yet: sources that no wiki page links to (the "what to ingest" list). */
+export async function pendingSources(vault: SafeVault, layout: Layout) {
+  if (!layout.sources) return [];
+  const g = await LinkGraph.build(vault);
+  return [...g.notes.keys()]
+    .filter((p) => layout.isSource(p) && !(g.incoming.get(p) ?? []).some((x) => layout.isWikiPage(x.from)))
+    .sort();
+}

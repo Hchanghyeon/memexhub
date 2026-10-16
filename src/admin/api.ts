@@ -7,7 +7,10 @@ import { safeEqual } from "../core/crypto.js";
 import { audit } from "../core/audit.js";
 import { listAccess, recordAccess } from "../core/access.js";
 import { ANTHROPIC_OUTBOUND_CIDRS, type Settings } from "../core/settings.js";
-import { PRESETS, RolesSchema } from "../modules/wiki/layout.js";
+import { Layout, PRESETS, RolesSchema } from "../modules/wiki/layout.js";
+import { setFrontmatter, STATUSES } from "../modules/wiki/gate.js";
+import { today } from "../modules/wiki/upkeep.js";
+import { normalizeVaultPath } from "../storage/paths.js";
 import { effectiveRules } from "../modules/wiki/lint.js";
 import { fieldsOf, INTERNAL } from "./forms.js";
 import { exportBackup, importBackup } from "../core/backup.js";
@@ -261,7 +264,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       roots: opts.vaultRoots,
       runtime: hub.platform.name,
       dav: { enabled: s.dav.enabled, maxFileMb: s.dav.maxFileMb, available: !!storage[0] && storage[0].provider === "fs" },
-      wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })) },
+      wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, gate: s.wiki.gate ?? !!new Layout(s.wiki.roles).sources, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })) },
     });
   });
   api.post("/vault", async (c) => {
@@ -319,6 +322,36 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const lint = Object.fromEntries(effectiveRules(s.wiki.lint).map((x) => [x.rule.id, { enabled: f.on.includes(x.rule.id), options: s.wiki.lint[x.rule.id]?.options }]));
     await hub.settings.set("wiki", { ...s.wiki, lint });
     await hub.reload();
+    return c.json({ ok: true });
+  });
+  api.post("/wiki/gate", async (c) => {
+    const f = await body(c, z.object({ on: z.boolean() }));
+    const s = await hub.settings.get();
+    await hub.settings.set("wiki", { ...s.wiki, gate: f.on });
+    await hub.reload();
+    return c.json({ ok: true });
+  });
+  // The owner confirms a page Claude wrote (stable), marks it outdated (deprecated) or back to draft.
+  api.post("/vault/status", async (c) => {
+    const f = await body(c, z.object({ path: z.string().min(1).max(1000), status: z.enum(STATUSES) }));
+    const s = await hub.settings.get();
+    const layout = new Layout(s.wiki.roles);
+    let p: string;
+    try {
+      p = normalizeVaultPath(f.path);
+    } catch {
+      throw new Fail("invalid_input");
+    }
+    if (!layout.isWikiPage(p)) throw new Fail("invalid_input", "only wiki pages have a status");
+    const v = needVault().confirmedByAdmin(`admin:${c.get("adminId")}`);
+    try {
+      let text = setFrontmatter((await v.read(p)).text, "status", f.status);
+      if (f.status === "stable") text = setFrontmatter(text, "reviewed", today(s.timezone));
+      await v.write(p, text);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      throw new Fail(code === "not_found" ? "not_found" : "invalid_input", (e as Error).message.slice(0, 160), code === "not_found" ? 404 : 400);
+    }
     return c.json({ ok: true });
   });
   api.post("/dav", async (c) => {

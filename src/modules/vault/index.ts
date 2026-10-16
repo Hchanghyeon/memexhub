@@ -2,10 +2,15 @@ import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import type { SafeVault } from "../../storage/safe-vault.js";
+import { Layout } from "../wiki/layout.js";
+import { gateWikiWrite } from "../wiki/gate.js";
+
+/** Runs before a tool writes a note; may change the text (e.g. mark a wiki page draft) or refuse. */
+export type WriteGate = (vault: SafeVault, path: string, text: string) => Promise<{ text: string; notes: string[] }>;
 
 const fmtDate = (d: Date) => d.toISOString().slice(0, 19);
 
-export function vaultTools(vault: SafeVault) {
+export function vaultTools(vault: SafeVault, gate?: WriteGate) {
   return [
     defineTool({
       name: "list_notes",
@@ -72,8 +77,10 @@ export function vaultTools(vault: SafeVault) {
       ),
       input: { path: z.string(), content: z.string(), overwrite: z.boolean().default(true) },
       async run({ path, content, overwrite }, ctx) {
-        const r = await vault.withActor(ctx.actor).write(path, content, { overwrite });
-        return `${r.created ? "created" : r.changed ? "overwritten" : "unchanged"}: ${r.path}`;
+        const v = vault.withActor(ctx.actor);
+        const g = gate ? await gate(v, path, content) : { text: content, notes: [] };
+        const r = await v.write(path, g.text, { overwrite });
+        return [`${r.created ? "created" : r.changed ? "overwritten" : "unchanged"}: ${r.path}`, ...g.notes].join("\n");
       },
     }),
     defineTool({
@@ -81,7 +88,17 @@ export function vaultTools(vault: SafeVault) {
       description: T("Append to the end of a note; creates it if missing.", "노트 끝에 내용을 덧붙인다. 없으면 새로 만든다."),
       input: { path: z.string(), content: z.string() },
       async run({ path, content }, ctx) {
-        const r = await vault.withActor(ctx.actor).append(path, content);
+        const v = vault.withActor(ctx.actor);
+        if (gate) {
+          // A wiki page is checked as a whole: what it will look like after the append.
+          const cur = await v.read(path).then((x) => x.text, () => "");
+          const g = await gate(v, path, cur + (cur === "" || cur.endsWith("\n") ? "" : "\n") + content);
+          if (g.notes.length) {
+            const r = await v.write(path, g.text, { overwrite: true });
+            return [`${r.created ? "created" : "appended"}: ${r.path}`, ...g.notes].join("\n");
+          }
+        }
+        const r = await v.append(path, content);
         return `${r.created ? "created" : "appended"}: ${r.path}`;
       },
     }),
@@ -112,5 +129,9 @@ export default defineModule({
   id: "vault",
   title: T("Vault", "볼트"),
   needs: ["vault"],
-  setup: ({ vault }) => ({ tools: vaultTools(vault!) }),
+  setup: ({ vault, settings }) => {
+    const layout = new Layout(settings.wiki.roles);
+    const on = settings.wiki.gate ?? !!layout.sources;
+    return { tools: vaultTools(vault!, on ? (v, p, t) => gateWikiWrite(v, layout, p, t) : undefined) };
+  },
 });

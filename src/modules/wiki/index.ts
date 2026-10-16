@@ -4,7 +4,19 @@ import { z } from "zod";
 import { Layout } from "./layout.js";
 import { LinkGraph } from "./graph.js";
 import { effectiveRules, formatFindings, lint, RULES } from "./lint.js";
-import { addToIndex, appendLog, backlinks, saveSource, today } from "./upkeep.js";
+import { addToIndex, appendLog, backlinks, pendingSources, saveSource, today } from "./upkeep.js";
+import { normalizeVaultPath } from "../../storage/paths.js";
+
+/** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
+const WORKFLOW = [
+  "how to work:",
+  "- ingest: save an original with wiki_save_source (never edited), then update or create every wiki page it touches — one source can change many pages. Each claim links its source note ([[…]]). wiki_pending lists sources no page cites yet.",
+  "- conflicts: when sources disagree, keep both in a '> [!warning] Conflict' callout naming each source and date; follow the trust order in the vault's rule notes (official documents > what the owner wrote > notes and chats > your own inference).",
+  "- status: pages you write are saved as status: draft until the owner confirms them in the admin UI (stable). Mark outdated pages status: deprecated instead of deleting them.",
+  "- check: after writing, run wiki_check on each page and fix it until it passes; then read the cited sources again and make sure every sentence is really in them.",
+  "- answers: when an answer combines several notes, offer to save it as a wiki page (with its sources).",
+  "- log every ingest with wiki_log.",
+].join("\n");
 
 export default defineModule({
   id: "wiki",
@@ -24,7 +36,8 @@ export default defineModule({
           ),
           input: {},
           async run() {
-            return `${layout.describe()}\npreset: ${settings.wiki.preset ?? "(custom)"}\nlint rules on: ${enabledRules.join(", ") || "(none)"}`;
+            const gate = settings.wiki.gate ?? !!layout.sources;
+            return `${layout.describe()}\npreset: ${settings.wiki.preset ?? "(custom)"}\nlint rules on: ${enabledRules.join(", ") || "(none)"}\nwrite check: ${gate ? "on — wiki pages need frontmatter and an existing source, and are saved as draft" : "off"}\n\n${WORKFLOW}`;
           },
         }),
         defineTool({
@@ -89,6 +102,43 @@ export default defineModule({
                 async run({ path, description, section }, ctx) {
                   const r = await addToIndex(vault!.withActor(ctx.actor), layout, { path, description, section });
                   return r.added ? `listed in ${r.index}` : `already listed in ${r.index}`;
+                },
+              }),
+            ]
+          : []),
+        defineTool({
+          name: "wiki_check",
+          readOnly: true,
+          description: T(
+            "Check one wiki page the exact way the engine does: frontmatter, status, an existing source, broken links, size, index entry and the other lint rules. Returns PASS or what to fix. Run it after writing each page.",
+            "위키 페이지 하나를 엔진 방식 그대로 점검 — 프론트매터, 상태, 실제 원본 인용, 깨진 링크, 크기, 목차, 그 밖의 점검 규칙. 통과(PASS) 또는 고칠 것을 돌려준다. 페이지를 쓴 뒤마다 부른다.",
+          ),
+          input: { path: z.string().min(1).max(500) },
+          async run({ path }) {
+            const p = normalizeVaultPath(path);
+            const g = await LinkGraph.build(vault!);
+            const n = g.notes.get(p);
+            if (!n) return `FAIL ${p}: no such note`;
+            const problems = lint(g, layout, { ...settings.wiki.lint, ...Object.fromEntries(["page-status", "wiki-page-without-source", "frontmatter-required"].map((id) => [id, { ...settings.wiki.lint[id], enabled: true }])) })
+              .filter((f) => f.path === p)
+              .map((f) => `- ${f.rule}${f.line ? ` L${f.line}` : ""}: ${f.message}`);
+            if (!layout.isWikiPage(p)) problems.unshift(`- note: ${p} is not in the wiki folder (${layout.wiki ?? "off"})`);
+            return problems.length ? `FAIL ${p}\n${problems.join("\n")}` : `PASS ${p} (status: ${n.frontmatter.status ?? "?"})`;
+          },
+        }),
+        ...(layout.sources
+          ? [
+              defineTool({
+                name: "wiki_pending",
+                readOnly: true,
+                description: T(
+                  "Sources no wiki page cites yet — what is left to ingest, oldest first.",
+                  "아직 어떤 위키 페이지도 인용하지 않은 원본 — 정리할 차례인 것, 오래된 순.",
+                ),
+                input: { limit: z.number().int().min(1).max(200).default(30) },
+                async run({ limit }) {
+                  const list = await pendingSources(vault!, layout);
+                  return list.length ? `${list.length} sources not yet in the wiki\n${list.slice(0, limit).map((x) => `- ${x}`).join("\n")}${list.length > limit ? `\n- … ${list.length - limit} more` : ""}` : "every source is cited by a wiki page ✓";
                 },
               }),
             ]

@@ -49,6 +49,8 @@
 | `wiki_log` ✅ | 로그에 `- YYYY-MM-DD 내용` 한 줄 추가 | `log` 설정 시 |
 | `wiki_index` ✅ | 페이지를 목차에 `- [[페이지]] — 설명`으로 한 번만, `## 섹션` 아래에도 | 목차 방식 ≠ `none` |
 | `wiki_backlinks` ✅ | 이 노트를 가리키는 노트와 그 줄 | 항상 |
+| `wiki_check` ✅ | 페이지 하나를 엔진과 똑같이 점검 — `PASS` 또는 고칠 것 | 항상 |
+| `wiki_pending` ✅ | 아직 어떤 위키 페이지도 인용하지 않은 원본 (정리할 차례) | `sources` 설정 시 |
 
 ## 점검 규칙 ✅
 
@@ -62,9 +64,18 @@
 | `frontmatter-required` | 끔 | `keys`, `scope` (`wiki` / `all`) | 필수 키가 빠진 노트 |
 | `unregistered-tags` | 끔 | `allowed` | 등록 안 된 태그 |
 | `wiki-page-without-source` | 끔 | — | 원본을 하나도 인용하지 않는 위키 페이지 |
+| `page-status` | 꺼짐 | — | `status: draft · stable · deprecated` 가 없는 위키 페이지 |
 | `bad-filenames` | 켬 | — | `[ ] # ^ \| : ? * " < > \`가 들어간 이름 |
 
 링크는 Obsidian처럼 해석해요: 정확한 경로 → 링크한 노트 기준 상대 경로 → 파일 이름 (가까운 폴더 먼저).
+
+## 하네스: 검사는 코드가, 확인은 주인이 ✅
+
+판단(원본이 무슨 뜻인지, 무엇을 고칠지)은 Claude가 하고, 정답이 하나인 것은 코드가 검사해요.
+
+- **쓰기 검사** (원본 폴더가 있으면 켜짐, 볼트 → 위키 구조): Claude가 `write_note`·`append_note` 로 쓰는 위키 페이지는 프론트매터와 **실제로 있는** 원본 링크가 하나 이상 있어야 저장돼요(없으면 거부). 없는 노트로 가는 링크는 결과에 알려 줘요.
+- **페이지 상태**: Claude가 쓴 페이지는 `status: draft` 로 저장돼요. 관리 화면 **노트**에서 읽고 *확인했어요*(`stable` + `reviewed: 날짜`) 또는 *옛 정보로 표시*(`deprecated`)를 눌러요. Claude는 stable 로 못 바꾸고 deprecated 로만 바꿀 수 있어요. Claude가 다시 고치면 draft 로 돌아가요.
+- **Claude의 순서** (`wiki_layout` 에도 나와요): `wiki_pending` → `wiki_save_source` → 페이지 쓰기 → `wiki_check` 통과할 때까지 → 인용한 원본 다시 읽기 → `wiki_index`·`wiki_log`. 원본끼리 어긋나면 두 출처를 다 적은 `> [!warning] 상충` 블록으로, 규칙 노트의 신뢰 순서를 따라요.
 
 ## Claude에게 이렇게
 

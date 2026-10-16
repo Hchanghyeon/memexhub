@@ -33,6 +33,8 @@ export const SettingsSchema = z.object({
       preset: z.string().optional(),
       roles: RolesSchema.default({ index: { style: "none" }, rules: [] }),
       lint: z.record(z.string(), z.object({ enabled: z.boolean(), options: z.record(z.string(), z.unknown()).optional() })).default({}),
+      /** Check wiki pages Claude writes (frontmatter, an existing source, status: draft). Default: on when there is a sources folder. */
+      gate: z.boolean().optional(),
     })
     .default({ roles: { index: { style: "none" }, rules: [] }, lint: {} }),
   ledger: z
