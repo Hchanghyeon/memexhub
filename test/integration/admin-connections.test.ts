@@ -12,7 +12,7 @@ import { adminClient } from "../admin-client.js";
 /** Outbound calls answered locally; anything unexpected fails the test. */
 const fake = (async (u: string | URL) => {
   const url = new URL(String(u));
-  if (url.hostname.endsWith("open-meteo.com")) {
+  if (["api.open-meteo.com", "archive-api.open-meteo.com"].includes(url.hostname)) {
     const d = url.searchParams.get("start_date")!;
     return new Response(JSON.stringify({ daily: { time: [d], weather_code: [3], temperature_2m_max: [18], temperature_2m_min: [9], precipitation_sum: [0] } }));
   }
