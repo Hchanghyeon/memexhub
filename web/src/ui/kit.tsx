@@ -40,6 +40,7 @@ export function errorText(t: T, e: unknown): string {
   const d = e.detail ? ` (${e.detail})` : "";
   const m: Record<string, [string, string]> = {
     login_failed: ["Wrong username, password or code.", "아이디, 비밀번호 또는 코드가 맞지 않아요."],
+    wrong_password: ["The current password is not right.", "지금 비밀번호가 맞지 않아요."],
     two_factor_required: ["From outside your home network you need two-factor sign-in. Turn it on from home first.", "집 밖에서는 2단계 인증이 필요해요. 먼저 집에서 켜세요."],
     wrong_setup_code: ["Wrong setup code. Copy it from the server log.", "설정 코드가 맞지 않아요. 서버 로그에서 복사하세요."],
     wrong_code: ["That code did not match. Check the time on your phone and try the newest code.", "코드가 맞지 않아요. 폰 시간을 확인하고 가장 새 코드를 넣어 보세요."],

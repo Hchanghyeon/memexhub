@@ -9,6 +9,7 @@ A review of memexhub against a subset of **OWASP ASVS 4.0 level 2** that fits a 
 | Admin passwords ≥ 12 characters, PBKDF2-SHA256 600k iterations | ✅ | `test/unit/auth.test.ts` |
 | Lockout after 5 failed logins (15 min) | ✅ | `auth.test.ts › locks after repeated failures` |
 | Optional TOTP; required when the admin UI is opened to the internet | ✅ / warning on the security card | `admin-wizard.test.ts › security checks` |
+| TOTP is asked only off the home network (admin UI and Claude consent); a browser that passed it may be remembered 30 days (HttpOnly cookie, hash stored, per admin); a password change signs out other sessions and forgets remembered browsers | ✅ | `two-factor.test.ts` |
 | First-run takeover blocked: one-time setup code from the server log; MCP and ingest refuse until an admin exists | ✅ | `connector.test.ts › unclaimed instance` |
 | Session id random, stored hashed, new on every login (no fixation) | ✅ | `attacks.test.ts › new session id per login` |
 | Session cookie `HttpOnly`, `SameSite=Strict`, `Secure` on https | ✅ | `attacks.test.ts` |

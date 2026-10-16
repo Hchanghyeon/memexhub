@@ -3,6 +3,7 @@ import { base32Encode, decrypt, encrypt, hashPassword, randomBytes, randomToken,
 import { audit } from "../core/audit.js";
 
 const SESSION_IDLE_MS = 30 * 60 * 1000;
+const TRUST_MS = 30 * 86_400_000;
 
 /**
  * Admin accounts, sessions and the first-run setup code.
@@ -49,8 +50,15 @@ export class AdminAuth {
     return id;
   }
 
-  /** Throttles by key (ip+username): 5 failures → locked for 15 minutes. */
-  async login(username: string, password: string, totpCode: string | undefined, key: string): Promise<string | null> {
+  /**
+   * Throttles by key (ip+username): 5 failures → locked for 15 minutes.
+   * With two-factor on, the code is asked unless `o.skipTotp` (the home network) or `o.trusted` is a remembered
+   * browser of this admin. A login that needed and passed the code reports `usedTotp`.
+   */
+  async login(username: string, password: string, totpCode: string | undefined, key: string, o: { skipTotp?: boolean; trusted?: string } = {}): Promise<string | null> {
+    return (await this.loginDetail(username, password, totpCode, key, o))?.id ?? null;
+  }
+  async loginDetail(username: string, password: string, totpCode: string | undefined, key: string, o: { skipTotp?: boolean; trusted?: string } = {}): Promise<{ id: string; usedTotp: boolean } | null> {
     const f = this.failures.get(key);
     if (f && f.until > Date.now()) return null;
     const row = await this.db.get<{ id: string; password_hash: string; totp_secret_enc: string | null }>(
@@ -61,9 +69,11 @@ export class AdminAuth {
     const ok =
       (await verifyPassword(password, row?.password_hash ?? "pbkdf2$600000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")) && !!row;
     let totpOk = true;
-    if (ok && row?.totp_secret_enc) {
+    let usedTotp = false;
+    if (ok && row?.totp_secret_enc && !o.skipTotp && !(o.trusted && (await this.isTrusted(row.id, o.trusted)))) {
       const s = await decrypt(this.secret, "totp", row.totp_secret_enc, row.id);
       totpOk = !!totpCode && (await verifyTotp(s, totpCode, Date.now()));
+      usedTotp = totpOk;
     }
     if (!ok || !totpOk || !row) {
       const n = (f?.n ?? 0) + 1;
@@ -73,7 +83,41 @@ export class AdminAuth {
     }
     this.failures.delete(key);
     await audit(this.db, `admin:${row.id}`, "admin.login");
-    return row.id;
+    return { id: row.id, usedTotp };
+  }
+
+  /** Remember this browser for 30 days (after it passed two-factor). Returns the cookie value. */
+  async trustDevice(adminId: string): Promise<string> {
+    const token = randomToken("trd_");
+    const now = Date.now();
+    await this.db.run(`INSERT INTO admin_trusted (id_hash, admin_id, created_at, expires_at) VALUES (?, ?, ?, ?)`, [await sha256Hex(token), adminId, new Date(now).toISOString(), new Date(now + TRUST_MS).toISOString()]);
+    await this.db.run(`DELETE FROM admin_trusted WHERE expires_at < ?`, [new Date(now).toISOString()]);
+    return token;
+  }
+  private async isTrusted(adminId: string, token: string) {
+    const row = await this.db.get<{ expires_at: string }>(`SELECT expires_at FROM admin_trusted WHERE id_hash = ? AND admin_id = ?`, [await sha256Hex(token), adminId]);
+    return !!row && Date.parse(row.expires_at) > Date.now();
+  }
+  async trustedCount(adminId: string) {
+    return (await this.db.get<{ n: number }>(`SELECT COUNT(*) n FROM admin_trusted WHERE admin_id = ? AND expires_at > ?`, [adminId, new Date().toISOString()]))?.n ?? 0;
+  }
+  async forgetDevices(adminId: string) {
+    await this.db.run(`DELETE FROM admin_trusted WHERE admin_id = ?`, [adminId]);
+  }
+
+  /** New password: checks the current one, signs out every other session and forgets remembered browsers. */
+  async changePassword(adminId: string, current: string, next: string, keepSid: string | undefined): Promise<boolean> {
+    if (next.length < 12) throw new Error("password must be at least 12 characters");
+    const row = await this.db.get<{ password_hash: string }>(`SELECT password_hash FROM admins WHERE id = ?`, [adminId]);
+    if (!row || !(await verifyPassword(current, row.password_hash))) return false;
+    const keep = keepSid ? await sha256Hex(keepSid) : "";
+    await this.db.batch([
+      { sql: `UPDATE admins SET password_hash = ? WHERE id = ?`, params: [await hashPassword(next), adminId] },
+      { sql: `DELETE FROM admin_sessions WHERE admin_id = ? AND id_hash != ?`, params: [adminId, keep] },
+      { sql: `DELETE FROM admin_trusted WHERE admin_id = ?`, params: [adminId] },
+    ]);
+    await audit(this.db, `admin:${adminId}`, "admin.password_changed");
+    return true;
   }
 
   /**
@@ -107,6 +151,7 @@ export class AdminAuth {
     await this.db.batch([
       { sql: `UPDATE admins SET totp_secret_enc = ? WHERE id = ?`, params: [await encrypt(this.secret, "totp", p.s, adminId), adminId] },
       { sql: `DELETE FROM cursors WHERE key = ?`, params: [key] },
+      { sql: `DELETE FROM admin_trusted WHERE admin_id = ?`, params: [adminId] },
     ]);
     await audit(this.db, `admin:${adminId}`, "admin.totp_enabled");
     return true;

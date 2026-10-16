@@ -37,6 +37,8 @@ export async function download(path: string, fallbackName: string) {
 
 export interface Session {
   setupNeeded: boolean;
+  /** On the home network: no authenticator code is asked. */
+  home?: boolean;
   signedIn: boolean;
   language: "auto" | "en" | "ko";
   platform: string;

@@ -3,7 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { LATEST_PROTOCOL_VERSION, SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js";
 import type { Hub } from "../hub.js";
 import { OAuthError } from "../auth/oauth.js";
-import { inAny } from "../core/ip.js";
+import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
 import { langOf } from "../admin/lang.js";
@@ -109,7 +109,8 @@ export function mcpApp(hub: Hub) {
     } catch (e) {
       return oauthErr(c, e);
     }
-    const adminId = await hub.admin.login(String(form.username ?? ""), String(form.password ?? ""), String(form.totp ?? "") || undefined, `${c.get("ip")}|${form.username}`);
+    // Same rule as the admin UI: the authenticator code is asked outside the home network.
+    const adminId = await hub.admin.login(String(form.username ?? ""), String(form.password ?? ""), String(form.totp ?? "") || undefined, `${c.get("ip")}|${form.username}`, { skipTotp: inAny(c.get("ip"), PRIVATE_CIDRS) });
     await recordAccess(hub.platform.db, { kind: "claude.authorize", ip: c.get("ip"), ok: !!adminId, who: v.clientName, detail: adminId ? String(form.decision ?? "") : `sign-in failed: ${String(form.username ?? "").slice(0, 40)}` }, { now: hub.platform.now() });
     if (!adminId) return c.html(consentPage({ v, query: String(form.query), error: "Login failed", needTotp: true, lang: await langOf(hub, c) }), 401);
     const target = new URL(v.redirect);

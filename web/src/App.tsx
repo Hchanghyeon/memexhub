@@ -56,7 +56,7 @@ export function App() {
         ) : session.setupNeeded ? (
           <Setup onDone={refresh} />
         ) : !session.signedIn ? (
-          <Login onDone={refresh} error={session.error} />
+          <Login onDone={refresh} error={session.error} home={!!session.home} />
         ) : session.mustEnrol ? (
           <Enrol onDone={refresh} />
         ) : (

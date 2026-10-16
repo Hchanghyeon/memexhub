@@ -18,6 +18,8 @@ import { CHANNELS } from "../modules/ledger/messages/types.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 export const SESSION_COOKIE = "mx_admin";
+/** A browser that passed two-factor and asked to be remembered (30 days). */
+export const TRUST_COOKIE = "mx_trust";
 
 /** A security check by id; the web app words it. "high" ones are shown in red. */
 export interface Check { id: string; ok: boolean; level?: "high"; n?: number }
@@ -90,7 +92,8 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const s = await hub.settings.get();
     const hasAdmin = await hub.admin.hasAdmin();
     const sess = hasAdmin ? await hub.admin.session(getCookie(c, SESSION_COOKIE)) : null;
-    const base = { setupNeeded: !hasAdmin, language: s.admin.language, platform: hub.platform.name };
+    // Whether the sign-in form needs the authenticator code field: never on the home network.
+    const base = { setupNeeded: !hasAdmin, language: s.admin.language, platform: hub.platform.name, home: !offNetwork(c) };
     if (!sess) return c.json({ ...base, signedIn: false });
     const totp = await hub.admin.hasTotp(sess.adminId);
     const row = await db.get<{ username: string }>(`SELECT username FROM admins WHERE id = ?`, [sess.adminId]);
@@ -111,13 +114,16 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   });
 
   api.post("/login", async (c) => {
-    const f = await body(c, z.object({ username: z.string().max(60), password: z.string().max(200), totp: z.string().max(10).optional() }));
-    const id = await hub.admin.login(f.username, f.password, f.totp || undefined, `${c.get("ip")}|${f.username}`);
+    const f = await body(c, z.object({ username: z.string().max(60), password: z.string().max(200), totp: z.string().max(10).optional(), remember: z.boolean().optional() }));
+    // Two-factor is asked from outside the home network only, and not again from a remembered browser.
+    const r = await hub.admin.loginDetail(f.username, f.password, f.totp || undefined, `${c.get("ip")}|${f.username}`, { skipTotp: !offNetwork(c), trusted: getCookie(c, TRUST_COOKIE) });
+    const id = r?.id ?? null;
     await recordAccess(db, { kind: "admin", ip: c.get("ip"), ok: !!id, who: id ? `admin:${id}` : undefined, detail: id ? undefined : `sign-in failed: ${f.username.slice(0, 40)}` }, { now: now() });
     if (!id) throw new Fail("login_failed", undefined, 401);
     if (offNetwork(c) && !(await hub.admin.hasTotp(id)) && !(await hub.admin.enrolWindowOpen(id))) throw new Fail("two_factor_required", undefined, 403);
     const { sid } = await hub.admin.createSession(id);
     setCookie(c, SESSION_COOKIE, sid, { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/" });
+    if (r?.usedTotp && f.remember) setCookie(c, TRUST_COOKIE, await hub.admin.trustDevice(id), { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/", maxAge: 30 * 86_400 });
     return c.json({ ok: true });
   });
 
@@ -497,7 +503,20 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       adminUrl: `${hub.env.PUBLIC_URL}${B}`,
       protectedPaths: s.vault.protectedPaths,
       readOnly: s.vault.readOnly,
+      trustedDevices: await hub.admin.trustedCount(c.get("adminId")),
     });
+  });
+  api.post("/password", async (c) => {
+    const f = await body(c, z.object({ current: z.string().max(200), next: z.string().min(12).max(200) }));
+    if (!(await hub.admin.changePassword(c.get("adminId"), f.current, f.next, getCookie(c, SESSION_COOKIE)))) throw new Fail("wrong_password", undefined, 403);
+    deleteCookie(c, TRUST_COOKIE, { path: "/" });
+    return c.json({ ok: true });
+  });
+  api.post("/forget-devices", async (c) => {
+    await hub.admin.forgetDevices(c.get("adminId"));
+    deleteCookie(c, TRUST_COOKIE, { path: "/" });
+    await audit(db, actor(c), "admin.forget_devices");
+    return c.json({ ok: true });
   });
   api.post("/vault-safety", async (c) => {
     const glob = z.string().trim().min(1).max(200).refine((g) => !g.startsWith("/") && !g.split("/").includes(".."), "relative paths only");

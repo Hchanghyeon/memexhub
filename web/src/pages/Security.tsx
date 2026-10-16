@@ -2,10 +2,10 @@ import { useState } from "react";
 import { post } from "../api";
 import { useT } from "../i18n";
 import { checkText, type Check } from "../checks";
-import { Badge, Button, Card, Copy, Item, List, Loading, Page, Status, TextArea, Toggle, useAction, useData } from "../ui/kit";
+import { Badge, Button, Card, Copy, Fields, Hint, Input, Item, List, Loading, Page, Status, TextArea, Toggle, useAction, useData } from "../ui/kit";
 import { TwoFactorSetup } from "./Auth";
 
-interface S { checks: Check[]; totp: boolean; mcpAnthropicOnly: boolean; allowPublic: boolean; forcedPublic: boolean; adminUrl: string; protectedPaths: string[]; readOnly: boolean }
+interface S { checks: Check[]; totp: boolean; mcpAnthropicOnly: boolean; allowPublic: boolean; forcedPublic: boolean; adminUrl: string; protectedPaths: string[]; readOnly: boolean; trustedDevices: number }
 
 export function Security() {
   const { t } = useT();
@@ -22,7 +22,15 @@ export function Security() {
         </List>
       </Card>
       <Card title={t("Two-factor sign-in", "2단계 인증")} badge={recommended} sub={t("A code from an authenticator app on top of the password. Needed to open this page from outside.", "비밀번호에 더해 인증 앱의 코드를 넣어요. 밖에서 이 화면을 열려면 필요해요.")}>
-        {data.totp ? <Status tone="ok">{t("On", "켜져 있어요")}</Status> : enrolling ? <TwoFactorSetup onDone={() => { setEnrolling(false); reload(); }} /> : <div><Button onClick={() => setEnrolling(true)}>{t("Turn on", "켜기")}</Button></div>}
+        {data.totp ? (
+          <>
+            <Status tone="ok">{t("On — asked only from outside your home network", "켜져 있어요 — 집 네트워크 밖에서만 물어요")}</Status>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Hint>{t(`${data.trustedDevices} browser(s) remembered for 30 days.`, `30일 동안 기억한 기기 ${data.trustedDevices}개.`)}</Hint>
+              {data.trustedDevices > 0 && <Button kind="secondary" size="sm" busy={busy} onClick={() => run(() => post("/forget-devices"), t("Every browser will be asked again.", "모든 기기에서 다시 코드를 물어요."), reload)}>{t("Forget them all", "모두 잊기")}</Button>}
+            </div>
+          </>
+        ) : enrolling ? <TwoFactorSetup onDone={() => { setEnrolling(false); reload(); }} /> : <div><Button onClick={() => setEnrolling(true)}>{t("Turn on", "켜기")}</Button></div>}
       </Card>
       <Card title={t("Who may connect", "누가 접속할 수 있나")} badge={recommended}>
         <Toggle checked={data.mcpAnthropicOnly} disabled={busy} onChange={(v) => run(() => post("/mcp-allow", { enforce: v }), t("Saved.", "저장했어요."), reload)}
@@ -31,6 +39,7 @@ export function Security() {
           label={t("Open this page from anywhere", "이 화면을 어디서나 열기")} hint={data.totp ? t("Signing in from outside needs the password and the authenticator code.", "밖에서 로그인할 때는 비밀번호와 인증 앱 코드가 필요해요.") : t("Turn on two-factor first.", "먼저 2단계 인증을 켜세요.")} />
         {(data.allowPublic || data.forcedPublic) && <Copy text={data.adminUrl} />}
       </Card>
+      <Password />
       <VaultSafety s={data} reload={reload} />
     </Page>
   );
@@ -47,6 +56,24 @@ function VaultSafety({ s, reload }: { s: S; reload: () => void }) {
         hint={t("Claude can read and search but not write. Payments and other records still arrive, but notes are not updated.", "Claude는 읽고 찾기만 하고 쓰지 못해요. 결제 같은 기록은 계속 받지만 노트는 고쳐지지 않아요.")} />
       <TextArea label={t("Notes Claude may not change", "Claude가 못 고치는 노트")} hint={t("One per line; * matches within a folder, ** across folders; relative to the vault. Rule notes from Vault → Wiki layout are protected too.", "한 줄에 하나. *는 폴더 안, **는 하위 폴더까지, 볼트 안의 상대 경로로. 볼트 → 위키 구조의 규칙 노트도 함께 보호돼요.")}
         value={paths} onChange={setPaths} rows={5} mono />
+    </Card>
+  );
+}
+
+function Password() {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const [f, setF] = useState({ current: "", next: "", again: "" });
+  const mismatch = !!f.again && f.next !== f.again;
+  return (
+    <Card title={t("Password", "비밀번호")} sub={t("Changing it signs out your other browsers and forgets remembered ones.", "바꾸면 다른 기기의 로그인과 기억한 기기가 모두 풀려요.")}
+      onSubmit={() => void run(() => post("/password", { current: f.current, next: f.next }), t("Password changed.", "비밀번호를 바꿨어요."), () => setF({ current: "", next: "", again: "" }))}
+      footer={<Button type="submit" busy={busy} disabled={!f.current || f.next.length < 12 || f.next !== f.again}>{t("Change password", "비밀번호 바꾸기")}</Button>}>
+      <Input label={t("Current password", "지금 비밀번호")} type="password" value={f.current} onChange={(v) => setF({ ...f, current: v })} autoComplete="current-password" />
+      <Fields>
+        <Input label={t("New password", "새 비밀번호")} hint={t("12 characters or more.", "12자 이상.")} type="password" value={f.next} onChange={(v) => setF({ ...f, next: v })} autoComplete="new-password" />
+        <Input label={t("New password again", "새 비밀번호 확인")} hint={mismatch ? t("Does not match.", "같지 않아요.") : undefined} type="password" value={f.again} onChange={(v) => setF({ ...f, again: v })} autoComplete="new-password" />
+      </Fields>
     </Card>
   );
 }

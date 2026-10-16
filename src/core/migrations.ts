@@ -74,6 +74,13 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE INDEX access_log_at ON access_log (at)`,
     ],
   },
+  {
+    id: 6,
+    sql: [
+      // Browsers that passed two-factor and asked to be remembered (30 days). Only a hash of the cookie is kept.
+      `CREATE TABLE admin_trusted (id_hash TEXT PRIMARY KEY, admin_id TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

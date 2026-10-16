@@ -7,7 +7,7 @@ import { decrypt, encrypt } from "./crypto.js";
  * tokens (hashes), events, inbox, audit — is kept. Restoring needs the same MEMEXHUB_SECRET, because
  * connection secrets inside are encrypted with it as well.
  */
-const SKIP = new Set(["schema_migrations", "admin_sessions", "oauth_codes", "geocode_cache"]);
+const SKIP = new Set(["schema_migrations", "admin_sessions", "admin_trusted", "oauth_codes", "geocode_cache"]);
 const PURPOSE = "backup";
 const AAD = "memexhub-backup-v1";
 const IDENT = /^[a-z_][a-z0-9_]*$/;
