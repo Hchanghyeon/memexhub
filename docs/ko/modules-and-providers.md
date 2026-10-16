@@ -72,6 +72,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |
+| calendar | `calendar_list` `calendar_events` | — | — | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | — | — | ✅ |
 
 ## 결제: 메시지 레시피 ✅

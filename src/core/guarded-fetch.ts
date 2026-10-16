@@ -6,7 +6,7 @@
  * - redirects are never followed; timeout; response size cap
  */
 export interface GuardOptions {
-  hosts: string[]; // lowercase host names (no port)
+  hosts: string[]; // lowercase host names (no port); "*.example.com" = any subdomain (fixed by a provider, never user input)
   allowPrivate: boolean;
   timeoutMs?: number;
   maxBytes?: number;
@@ -17,9 +17,11 @@ export class BlockedRequest extends Error {}
 
 export function guardedFetch(base: typeof fetch, o: GuardOptions): typeof fetch {
   const hosts = new Set(o.hosts.map((h) => h.toLowerCase()));
+  const suffixes = [...hosts].filter((h) => h.startsWith("*.") && h.split(".").length >= 3).map((h) => h.slice(1));
+  const allowed = (h: string) => hosts.has(h) || suffixes.some((s) => h.endsWith(s) && h.length > s.length);
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-    if (!hosts.has(url.hostname.toLowerCase())) throw new BlockedRequest(`host not allowed: ${url.hostname}`);
+    if (!allowed(url.hostname.toLowerCase())) throw new BlockedRequest(`host not allowed: ${url.hostname}`);
     if (url.protocol !== "https:" && !(url.protocol === "http:" && o.allowPrivate)) throw new BlockedRequest("https required");
     if (url.username || url.password) throw new BlockedRequest("credentials in URL are not allowed");
     if (!o.allowPrivate && o.isPrivate && (await o.isPrivate(url.hostname))) throw new BlockedRequest("private network address not allowed");

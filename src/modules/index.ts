@@ -9,6 +9,7 @@ import health from "./health/index.js";
 import tasks from "./tasks/index.js";
 import notion from "./notion/index.js";
 import weather from "./weather/index.js";
+import calendar from "./calendar/index.js";
 
 /** Plugin registry. Adding a module = one line here. */
-export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, notion, weather, hub];
+export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, calendar, notion, weather, hub];

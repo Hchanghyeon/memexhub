@@ -10,11 +10,18 @@ import { PORTABLE_PROVIDERS } from "../../src/providers/registry.js";
 import { adminClient } from "../admin-client.js";
 
 /** Outbound calls answered locally; anything unexpected fails the test. */
-const fake = (async (u: string | URL) => {
+const fake = (async (u: string | URL, init?: RequestInit) => {
   const url = new URL(String(u));
   if (["api.open-meteo.com", "archive-api.open-meteo.com"].includes(url.hostname)) {
     const d = url.searchParams.get("start_date")!;
     return new Response(JSON.stringify({ daily: { time: [d], weather_code: [3], temperature_2m_max: [18], temperature_2m_min: [9], precipitation_sum: [0] } }));
+  }
+  if (url.hostname === "dav.example.com") {
+    const body = String(init?.body ?? "");
+    const ms = (x: string) => new Response(`<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">${x}</d:multistatus>`, { status: 207 });
+    if (body.includes("current-user-principal") || body.includes("calendar-home-set")) return ms("");
+    if (init?.method === "PROPFIND") return ms(`<d:response><d:href>/cal/home/</d:href><d:propstat><d:prop><d:resourcetype><c:calendar/></d:resourcetype><d:displayname>Home</d:displayname></d:prop></d:propstat></d:response>`);
+    return ms(`<d:response><d:href>/cal/home/a.ics</d:href><d:propstat><d:prop><c:calendar-data>BEGIN:VEVENT\nDTSTART;TZID=Asia/Seoul:20261016T190000\nDTEND;TZID=Asia/Seoul:20261016T210000\nSUMMARY:Dinner\nEND:VEVENT</c:calendar-data></d:prop></d:propstat></d:response>`);
   }
   throw new Error(`unexpected request to ${url.hostname}`);
 }) as unknown as typeof fetch;
@@ -28,6 +35,7 @@ beforeAll(async () => {
   await hub.init();
   console.log = log;
   await hub.admin.createAdmin("owner", "a-long-test-password", "t");
+  await hub.settings.set("timezone", "Asia/Seoul");
   a = adminClient(hub);
   await a.login();
 });
@@ -42,5 +50,13 @@ describe("adding a connection from the admin API", () => {
     expect(await tool.run({ date: "2026-10-16", days: 1 }, { actor: "t" })).toBe("Sample City:\n- 2026-10-16 overcast · high 18° low 9°");
     const day = hub.tools.find((t) => t.name === "day_summary")!;
     expect(await day.run({ date: "2026-10-16" }, { actor: "t" })).toContain("Sample City: overcast · high 18° low 9°");
+  });
+
+  it("a CalDAV calendar lands in day_summary and calendar_events", async () => {
+    const r = await (await a.post("/connections", { provider: "calendar:caldav", name: "family", config: { url: "https://dav.example.com/cal/", username: "u" }, secrets: { password: "p" } })).json();
+    expect(r.test).toEqual({ ok: true });
+    expect((await hub.settings.get()).modules.calendar?.enabled).toBe(true);
+    expect(await hub.tools.find((t) => t.name === "calendar_events")!.run({ date: "2026-10-16", days: 1 }, { actor: "t" })).toBe("2026-10-16\n- 19:00–21:00 Dinner (Home)");
+    expect(await hub.tools.find((t) => t.name === "day_summary")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("19:00–21:00 Dinner (Home)");
   });
 });

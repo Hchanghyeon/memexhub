@@ -25,6 +25,7 @@ const MOD: Record<string, [string, string, string, string]> = {
   health: ["Health", "건강", "Sleep, steps and workouts become health notes.", "수면·걸음·운동을 건강 노트로 남겨요."],
   tasks: ["Tasks", "할 일", "Google Tasks for Claude.", "Claude가 Google Tasks를 써요."],
   notion: ["Notion", "Notion", "Copy records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."],
+  calendar: ["Calendar", "캘린더", "Your events in summaries; Claude can look up any day.", "일정을 요약에 넣고, Claude가 어느 날이든 찾아봐요."],
   weather: ["Weather", "날씨", "The day's weather in summaries and the journal.", "그날 날씨를 요약과 일지에 넣어요."],
 };
 const BASIC = ["vault", "wiki", "hub"];
