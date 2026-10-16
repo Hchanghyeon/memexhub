@@ -72,7 +72,7 @@ test("a device token is shown once after it is created", async ({ page }) => {
   await page.goto("/admin/devices");
   const name = `E2E ${test.info().project.name}`;
   await page.getByLabel("이름").fill(name);
-  await page.getByRole("button", { name: "토큰 만들기" }).click();
+  await page.getByRole("button", { name: "토큰 만들기", exact: true }).click();
   await expect(page.getByRole("heading", { name: "새 토큰" })).toBeVisible();
   await expect(page.getByText(/^mxi_/).first()).toBeVisible();
   await page.getByRole("button", { name: "다 했어요" }).click();
