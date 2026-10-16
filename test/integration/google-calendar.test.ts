@@ -49,3 +49,44 @@ describe("Google Calendar", () => {
     expect(url.searchParams.get("scope")).toBe("openid email https://www.googleapis.com/auth/calendar.readonly");
   });
 });
+
+describe("several Google accounts", () => {
+  it("copies the app to another account, signs in separately, and labels events by account", async () => {
+    const { adminClient } = await import("../admin-client.js");
+    const env = loadEnv({ MEMEXHUB_SECRET: "k".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-gm-")) });
+    const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date("2026-10-16T03:00:00Z"), fetch: google, log: { ...jsonLogger, info() {} } }, env, MODULES, [googleCalendarProvider, (await import("../../src/providers/tasks/google.js")).googleTasksProvider]);
+    const log = console.log;
+    console.log = () => {};
+    await hub.init();
+    console.log = log;
+    await hub.admin.createAdmin("owner", "a-long-test-password", "t");
+    await hub.settings.set("timezone", "Asia/Seoul");
+    const a = adminClient(hub);
+    await a.login();
+    const first = await hub.connections.upsert({ kind: "calendar", provider: "google", name: "personal", config: { clientId: "client-123.apps.example", email: "me@example.com" }, secrets: { clientSecret: "cs", refreshToken: "rt-personal" } }, "t");
+    await hub.settings.set("modules", { calendar: { enabled: true } });
+    await hub.reload();
+
+    // another account: same app, no refresh token, no e-mail, straight to Google
+    const r = await (await a.post(`/connections/${first}/another`, { name: "work" })).json();
+    expect(new URL(r.url).searchParams.get("scope")).toContain("calendar.readonly");
+    const work = (await hub.connections.byId(r.id))!;
+    expect(work.config).toEqual({ clientId: "client-123.apps.example" });
+    expect(await hub.connections.secretsOf(r.id)).toEqual({ clientSecret: "cs" });
+    expect((await (await a.post(`/connections/${first}/another`, { name: "work" })).json()).error).toBe("invalid_input");
+
+    // a new Google Tasks connection can reuse the same app
+    const form = await a.json("/connections/form?provider=tasks:google");
+    expect(form.reuse.map((x: { name: string }) => x.name)).toEqual(["personal", "work"]);
+    const t = await (await a.post("/connections", { provider: "tasks:google", name: "todo", config: {}, secrets: {}, copyFrom: first })).json();
+    expect(await hub.connections.secretsOf(t.id)).toEqual({ clientSecret: "cs" });
+    expect((await (await a.post("/connections", { provider: "tasks:google", name: "x", config: {}, secrets: {}, copyFrom: "con_nope" })).json()).error).toBe("invalid_input");
+
+    // both accounts signed in → each line says which account
+    await hub.connections.patch(r.id, { secrets: { refreshToken: "rt-work" } }, "t");
+    await hub.reload();
+    const out = await hub.tools.find((x) => x.name === "calendar_events")!.run({ date: "2026-10-16", days: 1 }, { actor: "t" });
+    expect(out).toContain("(Work · personal)");
+    expect(out).toContain("(Work · work)");
+  });
+});

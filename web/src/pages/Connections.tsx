@@ -7,7 +7,7 @@ import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Ite
 type Text = { en: string; ko: string };
 interface Item { id: string; kind: string; name: string; provider: string; providerTitle: Text; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null; signIn: string | null }
 interface Field { key: string; label: string; type: "text" | "password" | "checkbox" | "number" | "select"; options?: string[]; optional: boolean; defaultValue?: unknown }
-interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null; signIn: string | null }
+interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null; signIn: string | null; reuse: { id: string; name: string; kind: string; account: string | null }[] }
 
 /** Kinds in the order they are shown, with an icon, a name and what the connection is for. */
 const KINDS: { kind: string; icon: LucideIcon; name: [string, string]; what: [string, string] }[] = [
@@ -44,6 +44,8 @@ export function Connections() {
   const { busy, run } = useAction();
   const [adding, setAdding] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  const [another, setAnother] = useState<Item | null>(null);
+  const [anotherName, setAnotherName] = useState("");
   if (!data) return <Page title={t("Connections", "연결")}><Loading error={error} reload={reload} /></Page>;
   const tx = (x: Text) => (lang === "ko" ? x.ko : x.en);
   const known = KINDS.map((k) => k.kind);
@@ -64,6 +66,7 @@ export function Connections() {
                   title={tx(x.providerTitle)} badges={<Badge>{x.name}</Badge>}
                   meta={<>{status(x)}{x.email ? ` · ${x.email}` : ""}</>}
                   actions={<>
+                    {x.signIn && x.email && <Button size="sm" kind="secondary" onClick={() => setAnother(x)}><Plus />{t("Add account", "계정 추가")}</Button>}
                     {x.signIn && <Button size="sm" kind={x.email ? "secondary" : "primary"} onClick={() => run(() => post<{ url: string }>(`/connections/${x.id}/signin`), undefined, (r) => void (location.href = r.url))}>{x.email ? t("Sign in again", "다시 로그인") : t(`Sign in with ${x.signIn}`, `${x.signIn}로 로그인`)}</Button>}
                     {x.enabled && <Button kind="secondary" size="sm" busy={testing === x.id} onClick={async () => { setTesting(x.id); await run(() => post<{ ok: boolean; error?: string }>(`/connections/${x.id}/test`), (r) => (r.ok ? t("Working.", "정상이에요.") : t(`Failed: ${r.error}`, `실패: ${r.error}`)), reload); setTesting(null); }}>{t("Test", "시험")}</Button>}
                     <Button kind="ghost" size="sm" disabled={busy} onClick={() => run(() => post(`/connections/${x.id}/${x.enabled ? "disable" : "enable"}`), x.enabled ? t("Turned off.", "껐어요.") : t("Turned on.", "켰어요."), reload)}>{x.enabled ? t("Turn off", "끄기") : t("Turn on", "켜기")}</Button>
@@ -91,6 +94,13 @@ export function Connections() {
           </section>
         ))}
       </Card>
+      <Dialog open={!!another} onClose={() => setAnother(null)} title={t("Add another account", "다른 계정 추가")}
+        sub={another ? t(`Uses the same ${another.signIn} app as “${another.name}”. Next you sign in with the other account.`, `“${another.name}”과 같은 ${another.signIn} 앱 설정을 써요. 다음 화면에서 다른 계정으로 로그인하세요.`) : undefined}>
+        <form className="flex flex-col gap-5" onSubmit={(e) => { e.preventDefault(); if (another) void run(() => post<{ url: string }>(`/connections/${another.id}/another`, { name: anotherName }), undefined, (r) => void (location.href = r.url)); }}>
+          <Input label={t("Name for the new account", "새 계정의 이름")} hint={t("e.g. work or family", "예: work, family")} value={anotherName} onChange={setAnotherName} required />
+          <Actions><Button type="submit" busy={busy}>{t(`Continue to ${another?.signIn ?? ""}`, `${another?.signIn ?? ""} 로그인으로`)}</Button></Actions>
+        </form>
+      </Dialog>
       <Dialog open={!!adding} onClose={() => setAdding(null)} title={adding ? tx(data.addable.find((a) => a.key === adding)!.title) : t("Add a connection", "연결 추가")} sub={adding && NEEDS[adding] ? t(...NEEDS[adding]!) : undefined}>
         {adding && <AddForm provider={adding} onDone={() => { setAdding(null); reload(); }} />}
       </Dialog>
@@ -117,16 +127,30 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
   const [name, setName] = useState("");
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [secrets, setSecrets] = useState<Record<string, string>>({});
+  const [copyFrom, setCopyFrom] = useState<string>();
   if (!form) return <Loading />;
   const val = (f: Field) => (config[f.key] ?? f.defaultValue ?? (f.type === "checkbox" ? false : "")) as string | boolean;
+  // An app already set up for this service (client ID + secret) is offered first; then only the account sign-in is left.
+  const from = copyFrom ?? form.reuse[0]?.id ?? "";
+  const APP = ["clientId", "clientSecret"];
+  const shown = (f: Field) => !(from && APP.includes(f.key));
+  const KIND_NAME = Object.fromEntries(KINDS.map((k) => [k.kind, t(...k.name)]));
   return (
     <form className="flex flex-col gap-5" onSubmit={(e) => {
       e.preventDefault();
       const cfg = Object.fromEntries(form.fields.map((f) => [f.key, f.type === "number" ? (val(f) === "" ? undefined : Number(val(f))) : val(f)]));
-      void run(() => post<{ id: string; test: { ok: boolean; error?: string } }>("/connections", { provider, name, config: cfg, secrets }), (r) => (r.test.ok ? t("Connected and working.", "연결했고 정상이에요.") : t(`Saved, but the test failed: ${r.test.error}`, `저장했지만 시험에 실패했어요: ${r.test.error}`)), onDone);
+      const save = () => post<{ id: string; test: { ok: boolean; error?: string } }>("/connections", { provider, name, config: Object.fromEntries(Object.entries(cfg).filter(([k]) => !from || !APP.includes(k))), secrets, ...(from ? { copyFrom: from } : {}) });
+      // Services with a sign-in go straight to it after saving.
+      if (form.signIn) void run(async () => (await post<{ url: string }>(`/connections/${(await save()).id}/signin`)).url, undefined, (url) => void (location.href = url));
+      else void run(save, (r) => (r.test.ok ? t("Connected and working.", "연결했고 정상이에요.") : t(`Saved, but the test failed: ${r.test.error}`, `저장했지만 시험에 실패했어요: ${r.test.error}`)), onDone);
     }}>
       <Input label={t("Name", "이름")} hint={t("Your own label, e.g. personal or work.", "구분용 이름이에요. 예: personal, work")} value={name} onChange={setName} required />
-      {form.fields.map((f) =>
+      {form.reuse.length > 0 && (
+        <Select label={t(`${form.signIn} app`, `${form.signIn} 앱 설정`)} hint={t("Use the client ID and secret you already entered, then just sign in with the other account.", "이미 넣은 Client ID·Secret을 그대로 쓰고, 다른 계정으로 로그인만 하면 돼요.")}
+          value={from} onChange={setCopyFrom}
+          options={[...form.reuse.map((r) => ({ value: r.id, label: t(`Same as ${r.name} (${KIND_NAME[r.kind] ?? r.kind}${r.account ? `, ${r.account}` : ""})`, `${r.name}과 같게 (${KIND_NAME[r.kind] ?? r.kind}${r.account ? `, ${r.account}` : ""})`) })), { value: "", label: t("Enter a new one", "새로 입력") }]} />
+      )}
+      {form.fields.filter(shown).map((f) =>
         f.type === "checkbox" ? (
           <Check key={f.key} checked={!!val(f)} onChange={(v) => setConfig({ ...config, [f.key]: v })} label={f.label} />
         ) : f.type === "select" ? (
@@ -135,19 +159,19 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
           <Input key={f.key} label={`${f.label}${f.optional ? "" : " *"}`} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} inputMode={f.type === "number" ? "numeric" : undefined} required={!f.optional} />
         ),
       )}
-      {form.secrets.map((f) => (
+      {form.secrets.filter(shown).map((f) => (
         <Input key={f.key} label={f.label} hint={t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
       ))}
-      {form.googleRedirect && (
+      {form.googleRedirect && !from && (
         <Callout>
           <p>{form.signIn === "Google"
             ? t("In Google Cloud create an OAuth client (Web application), enable the API (Google Tasks API or Google Calendar API) and add this redirect URI:", "Google Cloud에서 OAuth 클라이언트(웹 애플리케이션)를 만들고 API(Google Tasks API 또는 Google Calendar API)를 켠 뒤 이 리디렉션 URI를 추가하세요:")
             : t(`In the ${form.signIn} developer dashboard create an app and add this redirect URI:`, `${form.signIn} 개발자 대시보드에서 앱을 만들고 이 리디렉션 URI를 추가하세요:`)}</p>
           <code>{form.googleRedirect}</code>
-          <p>{t("After saving, press “Sign in” on the connection.", "저장한 뒤 연결의 “로그인”을 누르세요.")}</p>
+          <p>{t(`Saving takes you to ${form.signIn} to sign in.`, `저장하면 ${form.signIn} 로그인으로 넘어가요.`)}</p>
         </Callout>
       )}
-      <Actions><Button type="submit" busy={busy}>{t("Save and test", "저장하고 시험")}</Button></Actions>
+      <Actions><Button type="submit" busy={busy}>{form.signIn ? t(`Save and sign in with ${form.signIn}`, `저장하고 ${form.signIn}로 로그인`) : t("Save and test", "저장하고 시험")}</Button></Actions>
     </form>
   );
 }

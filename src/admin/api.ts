@@ -300,12 +300,41 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       fields: fieldsOf(def.config), secrets: fieldsOf(def.secrets, true),
       googleRedirect: hub.signIns.get(def.id)?.redirectUri ?? null,
       signIn: hub.signIns.get(def.id)?.spec.title ?? null,
+      // Connections whose app (client ID + secret) can be reused: same service, already set up.
+      reuse: hub.signIns.has(def.id)
+        ? (await hub.connections.list()).filter((x) => x.provider === def.id && x.config.clientId).map((x) => ({ id: x.id, name: x.name, kind: x.kind, account: (x.config.email ?? x.config.account ?? null) as string | null }))
+        : [],
     });
   });
+  /** The app part of a sign-in connection (client ID + secret), copied to another account of the same service. */
+  const appOf = async (id: string, provider: string) => {
+    const src = await hub.connections.byId(id);
+    if (!src || src.provider !== provider || !hub.signIns.has(provider) || !src.config.clientId) throw new Fail("invalid_input", "cannot copy the app settings from that connection");
+    return { clientId: String(src.config.clientId), clientSecret: (await hub.connections.secretsOf(src.id)).clientSecret ?? "" };
+  };
+  // "Add another account": a new connection with the same app settings, then straight to the service's sign-in.
+  api.post("/connections/:id/another", async (c) => {
+    const f = await body(c, z.object({ name: z.string().regex(/^[A-Za-z0-9가-힣_-]{1,32}$/) }));
+    const src = await hub.connections.byId(c.req.param("id"));
+    if (!src) throw new Fail("unknown_connection", undefined, 404);
+    if (await hub.connections.get(src.kind, f.name)) throw new Fail("invalid_input", "that name is taken");
+    const app = await appOf(src.id, src.provider);
+    const def = hub.providers.find((p) => p.kind === src.kind && p.id === src.provider)!;
+    const shape = def.config.shape as Record<string, { description?: string }>;
+    const config = Object.fromEntries(Object.entries(src.config).filter(([k]) => shape[k]?.description !== INTERNAL));
+    const id = await hub.connections.upsert({ kind: src.kind, provider: src.provider, name: f.name, config: { ...config, clientId: app.clientId }, secrets: { clientSecret: app.clientSecret } }, actor(c));
+    await hub.reload();
+    return c.json({ id, url: await hub.signIns.get(src.provider)!.start(id) });
+  });
   api.post("/connections", async (c) => {
-    const f = await body(c, z.object({ provider: z.string().max(80), name: z.string().regex(/^[A-Za-z0-9가-힣_-]{1,32}$/), config: z.record(z.string(), z.unknown()), secrets: z.record(z.string(), z.string().max(2000)) }));
+    const f = await body(c, z.object({ provider: z.string().max(80), name: z.string().regex(/^[A-Za-z0-9가-힣_-]{1,32}$/), config: z.record(z.string(), z.unknown()), secrets: z.record(z.string(), z.string().max(2000)), copyFrom: z.string().max(40).optional() }));
     const def = findDef(f.provider);
     if (!def) throw new Fail("unknown_provider");
+    if (f.copyFrom) {
+      const app = await appOf(f.copyFrom, def.id);
+      f.config = { ...f.config, clientId: app.clientId };
+      f.secrets = { ...f.secrets, clientSecret: app.clientSecret };
+    }
     const cfg = def.config.safeParse(Object.fromEntries(Object.entries(f.config).filter(([, v]) => v !== "" && v !== null && v !== undefined)));
     if (!cfg.success) throw new Fail("invalid_settings", cfg.error.issues.map((i) => i.path.join(".")).join(", "));
     const sec = Object.fromEntries(Object.entries(f.secrets).filter(([, v]) => v !== ""));

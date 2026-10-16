@@ -37,7 +37,9 @@ export default defineModule({
       const out: { account: string; events?: CalendarEvent[]; error?: string }[] = [];
       for (const a of only ? [only] : accounts) {
         try {
-          out.push({ account: a, events: await (await get(a)).events(from, to) });
+          const list = await (await get(a)).events(from, to);
+          // With several accounts, every line says which one it came from.
+          out.push({ account: a, events: accounts.length > 1 ? list.map((e) => ({ ...e, calendar: `${e.calendar} · ${a}` })) : list });
         } catch (e) {
           out.push({ account: a, error: (e as Error).message.slice(0, 160) });
         }
