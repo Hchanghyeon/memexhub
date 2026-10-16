@@ -125,10 +125,40 @@ export class Hub {
         this.moduleStatus.push({ id: m.id, enabled: true, error: (e as Error).message });
       }
     }
+    // Connection status follows reality, not only the admin's "Test" button: every 6 hours (and right after start)
+    // each enabled connection is checked, so one that was imported or broke later shows its real state.
+    jobs.push({ module: "hub", job: { id: "connection-check", everyMinutes: 360, run: async () => void (await this.checkConnections()) } });
     this.tools = tools;
     this.summaries = summaries;
     this.ingest = ingest;
     this.jobs = jobs;
+  }
+
+  /** Test one connection with its provider's check and store the result. */
+  async testConnection(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+    const con = (await this.connections.list()).find((x) => x.id === id);
+    if (!con) throw new Error("unknown connection");
+    const def = this.providers.find((p) => p.kind === con.kind && p.id === con.provider);
+    try {
+      const inst = await this.provider(con.kind, con.name);
+      if (def?.test && inst) await def.test(inst as never);
+      await this.connections.setStatus(id, true);
+      return { ok: true };
+    } catch (e) {
+      const error = (e as Error).message.slice(0, 200);
+      await this.connections.setStatus(id, false, error);
+      return { ok: false, error };
+    }
+  }
+
+  /** Test every enabled connection except the vault (which is checked on every use). */
+  async checkConnections() {
+    const out: { id: string; ok: boolean }[] = [];
+    for (const c of await this.connections.list()) {
+      if (!c.enabled || c.kind === "storage") continue;
+      out.push({ id: c.id, ok: (await this.testConnection(c.id)).ok });
+    }
+    return out;
   }
 
   /** Factory: connection row → provider instance (guarded fetch, decrypted secrets). Cached until the next reload. */

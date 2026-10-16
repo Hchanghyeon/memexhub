@@ -279,19 +279,8 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return hub.providers.find((p) => p.kind === kind && p.id === id && p.kind !== "storage");
   };
   const testConnection = async (id: string) => {
-    const con = (await hub.connections.list()).find((x) => x.id === id);
-    if (!con) throw new Fail("unknown_connection", undefined, 404);
-    const def = hub.providers.find((p) => p.kind === con.kind && p.id === con.provider);
-    try {
-      const inst = await hub.provider(con.kind, con.name);
-      if (def?.test && inst) await def.test(inst as never);
-      await hub.connections.setStatus(id, true);
-      return { ok: true as const };
-    } catch (e) {
-      const msg = (e as Error).message.slice(0, 200);
-      await hub.connections.setStatus(id, false, msg);
-      return { ok: false as const, error: msg };
-    }
+    if (!(await hub.connections.list()).some((x) => x.id === id)) throw new Fail("unknown_connection", undefined, 404);
+    return hub.testConnection(id);
   };
   api.get("/connections", async (c) => {
     const rows = await db.all<{ id: string; status: string | null; last_ok_at: string | null; last_error: string | null }>(`SELECT id, status, last_ok_at, last_error FROM connections`);

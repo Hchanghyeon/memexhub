@@ -67,6 +67,19 @@ describe("provider factory and scheduler", () => {
     await hub.runDueJobs(new Date(t0.getTime() + 31 * 60_000));
     expect(runs).toBe(2);
   });
+  it("checks every enabled connection on a schedule and records the result", async () => {
+    const good = defineProvider({ kind: "echo", id: "good", title: T("g", "g"), runtimes: ["node"], config: z.object({}), create: () => ({}), test: async () => {} });
+    const bad = defineProvider({ kind: "echo", id: "bad", title: T("b", "b"), runtimes: ["node"], config: z.object({}), create: () => ({}), test: async () => { throw new Error("login refused"); } });
+    const hub = mkHub([good, bad], []);
+    const log = console.log; console.log = () => {}; await hub.init(); console.log = log;
+    await hub.connections.upsert({ kind: "echo", provider: "good", name: "a", config: {} }, "t");
+    await hub.connections.upsert({ kind: "echo", provider: "bad", name: "b", config: {} }, "t");
+    await hub.reload();
+    expect(hub.jobs.map((j) => j.job.id)).toContain("connection-check");
+    await hub.runDueJobs(new Date("2026-10-15T00:00:00Z"));
+    const rows = await hub.platform.db.all<{ name: string; status: string; last_error: string | null }>(`SELECT name, status, last_error FROM connections ORDER BY name`);
+    expect(rows).toEqual([{ name: "a", status: "ok", last_error: null }, { name: "b", status: "error", last_error: "login refused" }]);
+  });
 });
 
 describe("generated forms", () => {
