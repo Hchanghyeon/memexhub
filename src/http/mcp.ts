@@ -8,6 +8,7 @@ import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { consentPage } from "../admin/consent.js";
 import { langOf } from "../admin/lang.js";
 import { recordAccess } from "../core/access.js";
+import { ANTHROPIC_OUTBOUND_CIDRS } from "../core/settings.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -123,7 +124,7 @@ export function mcpApp(hub: Hub) {
     try {
       const form = Object.fromEntries(Object.entries(await c.req.parseBody()).map(([k, v]) => [k, String(v)]));
       const out = await hub.oauth.token(form);
-      await recordAccess(hub.platform.db, { kind: "claude.token", ip: c.get("ip"), ok: true, who: form.client_id }, { now: hub.platform.now(), windowMinutes: 60 });
+      await recordAccess(hub.platform.db, { kind: "claude.token", ip: c.get("ip"), ok: true, who: form.client_id }, { now: hub.platform.now(), windowMinutes: 60, sameNetwork: ANTHROPIC_OUTBOUND_CIDRS });
       return c.json(out);
     } catch (e) {
       await recordAccess(hub.platform.db, { kind: "claude.token", ip: c.get("ip"), ok: false, detail: (e as Error).message }, { now: hub.platform.now(), windowMinutes: 10 });
@@ -143,7 +144,7 @@ export function mcpApp(hub: Hub) {
     if (!(await hub.admin.hasAdmin())) return c.json({ error: "setup_required" }, 503);
     const auth = c.req.header("authorization") ?? "";
     const who = auth.toLowerCase().startsWith("bearer ") ? await hub.oauth.verifyAccess(auth.slice(7).trim()) : null;
-    await recordAccess(hub.platform.db, { kind: "claude", ip: c.get("ip"), ok: !!who, who: who?.clientId }, { now: hub.platform.now(), windowMinutes: who ? 60 : 10 });
+    await recordAccess(hub.platform.db, { kind: "claude", ip: c.get("ip"), ok: !!who, who: who?.clientId }, { now: hub.platform.now(), windowMinutes: who ? 60 : 10, sameNetwork: who ? ANTHROPIC_OUTBOUND_CIDRS : undefined });
     if (!who) {
       c.header("WWW-Authenticate", `Bearer resource_metadata="${hub.env.PUBLIC_URL}/.well-known/oauth-protected-resource"`);
       return c.json({ error: "unauthorized" }, 401);
