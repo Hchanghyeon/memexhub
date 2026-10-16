@@ -144,3 +144,25 @@ test("map: a day's route and stays", async ({ page }) => {
   await expect(page.getByText("이날은 위치 기록이 없어요.")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("first-run setup: three steps, waits for Claude, can finish later", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/start");
+  await expect(page.getByText("3단계 중 1단계")).toBeVisible();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page.getByText("3단계 중 2단계")).toBeVisible();
+  await page.getByRole("button", { name: "그대로 두고 계속" }).click();
+  await expect(page.getByText("Claude 앱이 로그인하기를 기다리는 중…")).toBeVisible();
+  await page.getByRole("button", { name: /나중에 할게요/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "개요" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("connections: developer-app services are marked advanced, with the easier path", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/admin/connections");
+  const google = page.getByRole("button", { name: /Google 캘린더/ });
+  await expect(google.getByText("고급")).toBeVisible();
+  await expect(google.getByText(/Claude 앱의 Google Calendar 커넥터가 더 쉬워요/)).toBeVisible();
+});

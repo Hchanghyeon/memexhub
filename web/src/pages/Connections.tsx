@@ -40,6 +40,16 @@ const NEEDS: Record<string, [string, string]> = {
   "notion:notion": ["An internal integration token, shared with your pages.", "페이지와 공유한 내부 통합 토큰."],
 };
 
+/**
+ * Services that need a developer app of your own (Google Cloud / Spotify developer). Shown last with an
+ * "Advanced" badge, and with the easier path when Claude already has its own connector for it.
+ */
+const ADVANCED: Record<string, [string, string] | null> = {
+  "calendar:google": ["Only want Claude to see your Google Calendar? The Claude app's own Google Calendar connector is easier — use this for several accounts or daily summaries.", "Claude가 구글 캘린더만 보면 된다면 Claude 앱의 Google Calendar 커넥터가 더 쉬워요. 여러 계정을 쓰거나 하루 요약에 넣을 때 쓰세요."],
+  "tasks:google": null,
+  "music:spotify": ["Last.fm is easier: a user name and an API key.", "Last.fm이 더 쉬워요: 사용자 이름과 API 키만 있으면 돼요."],
+};
+
 export function Connections() {
   const { t, lang } = useT();
   const { data, error, reload } = useData<{ items: Item[]; addable: { key: string; kind: string; title: Text }[] }>("/connections");
@@ -83,12 +93,13 @@ export function Connections() {
           <section key={k.kind} className="flex flex-col gap-3">
             <KindHeading icon={k.icon} name={t(...k.name)} what={k.what[0] ? t(...k.what) : undefined} />
             <div className="grid gap-2 sm:grid-cols-2">
-              {data.addable.filter((a) => a.kind === k.kind).map((a) => (
+              {data.addable.filter((a) => a.kind === k.kind).sort((x, y) => Number(x.key in ADVANCED) - Number(y.key in ADVANCED)).map((a) => (
                 <button key={a.key} type="button" onClick={() => setAdding(a.key)} className="hover:bg-accent/60 flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors">
                   <Plus className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
                   <span className="min-w-0 space-y-0.5">
-                    <span className="block font-medium">{tx(a.title)}</span>
+                    <span className="flex flex-wrap items-center gap-2 font-medium">{tx(a.title)}{a.key in ADVANCED && <Badge>{t("Advanced", "고급")}</Badge>}</span>
                     {NEEDS[a.key] && <span className="text-muted-foreground block text-[0.8125rem] leading-5">{t(...NEEDS[a.key]!)}</span>}
+                    {ADVANCED[a.key] && <span className="text-muted-foreground block text-[0.8125rem] leading-5">💡 {t(...ADVANCED[a.key]!)}</span>}
                   </span>
                 </button>
               ))}

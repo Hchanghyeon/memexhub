@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { post } from "../api";
 import { useT } from "../i18n";
 import { navigate } from "../router";
 import { Progress } from "@/components/ui/progress";
-import { Button, Card, Choice, Copy, Field, Hint, Input, Loading, Page, Segmented, Select, Steps, useAction, useData } from "../ui/kit";
+import { Button, Card, Choice, Copy, Field, Hint, Input, Loading, Page, Segmented, Select, Status, Steps, useAction, useData } from "../ui/kit";
 
 interface S { timezone: string; zones: string[]; notes: "en" | "ko"; tools: "en" | "ko" | "both"; vault: boolean; runtime: string; preset: string | null; presets: string[]; mcpUrl: string }
 
-/** First-run setup: four short steps, each skippable, recommended choice first. */
+/**
+ * First-run setup: three short steps, recommended choice first. Only what is needed to use memexhub from
+ * Claude; everything else (phone, mail, calendar …) waits on the Overview checklist.
+ */
 export function Start({ onDone }: { onDone: () => void }) {
   const { t } = useT();
   const { data, error, reload } = useData<S>("/start");
@@ -18,12 +21,18 @@ export function Start({ onDone }: { onDone: () => void }) {
   const [preset, setPreset] = useState("");
   if (!data) return <Page title={t("Set up", "처음 설정")}><Loading error={error} reload={reload} /></Page>;
   const b = basics ?? { timezone: data.timezone === "UTC" ? Intl.DateTimeFormat().resolvedOptions().timeZone : data.timezone, notes: data.notes, tools: data.tools };
-  const STEPS = [t("Language & time", "언어·시간"), t("Vault", "볼트"), t("Layout", "구조"), t("Claude app", "Claude 앱")];
+  const STEPS = [t("Language & time", "언어·시간"), t("Vault", "볼트"), t("Claude app", "Claude 앱")];
+  // A new, empty vault gets the LLM Wiki layout; an existing folder asks which layout is closest.
+  const askLayout = vault.provider === "folder" || (data.vault && !data.preset);
+  const connectVault = async () => {
+    if (!data.vault) await post("/vault", { provider: data.runtime === "workers" ? "r2" : vault.provider || "builtin", path: vault.path });
+    if (askLayout || !data.preset) await post("/wiki/preset", { preset: preset || data.preset || "llm-wiki" });
+  };
   const next = () => setStep((s) => s + 1);
   const finish = () => run(() => post("/start/done"), t("All set.", "설정을 마쳤어요."), () => { onDone(); navigate("/", true); });
   return (
-    <Page title={t("Welcome to memexhub", "memexhub에 오신 걸 환영해요")} sub={t(`Step ${step} of 4 · ${STEPS[step - 1]}`, `4단계 중 ${step}단계 · ${STEPS[step - 1]}`)}>
-      <Progress value={(step / 4) * 100} className="h-1.5" />
+    <Page title={t("Welcome to memexhub", "memexhub에 오신 걸 환영해요")} sub={t(`Step ${step} of 3 · ${STEPS[step - 1]}`, `3단계 중 ${step}단계 · ${STEPS[step - 1]}`)}>
+      <Progress value={(step / 3) * 100} className="h-1.5" />
       {step === 1 && (
         <Card title={STEPS[0]} footer={<Button busy={busy} onClick={() => run(() => post("/start/basics", b), undefined, next)}>{t("Next", "다음")}</Button>}>
           <Select label={t("Time zone", "시간대")} hint={t("Dates in notes use it.", "노트의 날짜에 써요.")} value={b.timezone} onChange={(v) => setBasics({ ...b, timezone: v })} options={data.zones.map((z) => ({ value: z, label: z }))} />
@@ -33,9 +42,9 @@ export function Start({ onDone }: { onDone: () => void }) {
       )}
       {step === 2 && (
         <Card title={STEPS[1]} sub={data.vault ? t("A vault is already connected. You can keep it.", "볼트가 이미 연결돼 있어요. 그대로 써도 돼요.") : t("Where should your notes live?", "노트를 어디에 둘까요?")}
-          footer={data.vault ? <Button onClick={next}>{t("Keep it and continue", "그대로 두고 계속")}</Button> : <>
-            <Button busy={busy} onClick={() => run(() => post("/vault", { provider: data.runtime === "workers" ? "r2" : vault.provider || "builtin", path: vault.path }), t("Vault connected.", "볼트를 연결했어요."), next)}>{t("Connect and continue", "연결하고 계속")}</Button>
-            <Button kind="ghost" onClick={next}>{t("Skip", "건너뛰기")}</Button>
+          footer={<>
+            <Button busy={busy} onClick={() => run(connectVault, data.vault ? undefined : t("Vault connected.", "볼트를 연결했어요."), next)}>{data.vault ? t("Keep it and continue", "그대로 두고 계속") : t("Connect and continue", "연결하고 계속")}</Button>
+            {!data.vault && <Button kind="ghost" onClick={next}>{t("Skip", "건너뛰기")}</Button>}
           </>}>
           {!data.vault && (
             <>
@@ -51,28 +60,42 @@ export function Start({ onDone }: { onDone: () => void }) {
               <Hint>{t("WebDAV and Notion are under Vault later.", "WebDAV나 Notion은 나중에 볼트 화면에서 고를 수 있어요.")}</Hint>
             </>
           )}
+          {askLayout && (
+            <Field label={t("Which layout is closest to your notes?", "노트 구조가 어느 쪽에 가까운가요?")}>
+              <Choice value={preset || data.preset || "llm-wiki"} onChange={setPreset} options={data.presets.map((p) => ({ value: p, label: p }))} />
+            </Field>
+          )}
+          {!askLayout && !data.vault && <Hint>{t("A new vault starts with sources in raw/ and wiki pages in wiki/ — Claude keeps it tidy.", "새 볼트는 원본은 raw/, 위키는 wiki/ 로 시작해요. 정리는 Claude가 해요.")}</Hint>}
         </Card>
       )}
-      {step === 3 && (
-        <Card title={STEPS[2]} sub={t("Pick the layout closest to yours. You can change every folder later.", "가장 비슷한 구조를 고르세요. 폴더는 나중에 다 바꿀 수 있어요.")}
-          footer={<>
-            <Button busy={busy} onClick={() => run(() => post("/wiki/preset", { preset: preset || data.preset || "llm-wiki" }), undefined, next)}>{t("Use this layout", "이 구조 쓰기")}</Button>
-            <Button kind="ghost" onClick={next}>{t("Skip", "건너뛰기")}</Button>
-          </>}>
-          <Choice value={preset || data.preset || "llm-wiki"} onChange={setPreset} options={data.presets.map((p) => ({ value: p, label: p }))} />
-        </Card>
-      )}
-      {step === 4 && (
-        <Card title={STEPS[3]} footer={<Button busy={busy} onClick={() => void finish()}>{t("Finish", "마치기")}</Button>}>
-          <Steps>
-            {[
-              <p key="1">{t("Claude app or claude.ai → Settings → Connectors → Add custom connector.", "Claude 앱이나 claude.ai → 설정 → 커넥터 → 사용자 지정 커넥터 추가.")}</p>,
-              <div key="2" className="space-y-2"><p>{t("Paste this address:", "이 주소를 붙여 넣으세요:")}</p><Copy text={data.mcpUrl} /></div>,
-              <p key="3">{t("Sign in with the account you just made and press Allow.", "방금 만든 계정으로 로그인하고 허용을 누르세요.")}</p>,
-            ]}
-          </Steps>
-        </Card>
-      )}
+      {step === 3 && <ConnectClaude url={data.mcpUrl} busy={busy} finish={() => void finish()} />}
     </Page>
+  );
+}
+
+/** The last step waits for the Claude app to sign in, so you see it worked before leaving. */
+function ConnectClaude({ url, busy, finish }: { url: string; busy: boolean; finish: () => void }) {
+  const { t } = useT();
+  const { data, reload } = useData<{ clients: { revoked: boolean }[] }>("/claude");
+  const connected = !!data?.clients.some((c) => !c.revoked);
+  useEffect(() => {
+    if (connected) return;
+    const id = setInterval(reload, 3000);
+    return () => clearInterval(id);
+  }, [connected, reload]);
+  return (
+    <Card title={t("Add memexhub to the Claude app", "Claude 앱에 memexhub 추가")} sub={t("The last step. Afterwards just ask Claude — “save this to my wiki”, “what did I do this week?”", "마지막 단계예요. 그다음부터는 Claude에게 말하면 돼요 — “이거 위키에 정리해 줘”, “이번 주 뭐 했지?”")}
+      footer={<>
+        <Button busy={busy} kind={connected ? "primary" : "secondary"} onClick={finish}>{connected ? t("Finish", "마치기") : t("Finish — I'll do this later", "나중에 할게요 — 마치기")}</Button>
+      </>}>
+      <Steps>
+        {[
+          <p key="1">{t("Claude app or claude.ai → Settings → Connectors → Add custom connector.", "Claude 앱이나 claude.ai → 설정 → 커넥터 → 사용자 지정 커넥터 추가.")}</p>,
+          <div key="2" className="space-y-2"><p>{t("Name it memexhub and paste this address:", "이름은 memexhub, 주소는 이걸 붙여 넣으세요:")}</p><Copy text={url} /></div>,
+          <p key="3">{t("Sign in with the account you just made and press Allow.", "방금 만든 계정으로 로그인하고 허용을 누르세요.")}</p>,
+        ]}
+      </Steps>
+      <Status tone={connected ? "ok" : "idle"}>{connected ? t("Claude is connected.", "Claude가 연결됐어요.") : t("Waiting for the Claude app to sign in…", "Claude 앱이 로그인하기를 기다리는 중…")}</Status>
+    </Card>
   );
 }
