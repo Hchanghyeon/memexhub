@@ -10,6 +10,7 @@ import { MODULES } from "../src/modules/index.js";
 import { sqliteDb, jsonLogger } from "../src/platform/node.js";
 import { loadEnv } from "../src/core/config.js";
 import { ingestApp } from "../src/http/ingest.js";
+import { PRESETS } from "../src/modules/wiki/layout.js";
 import { adminApp } from "../src/admin/app.js";
 import { nodeAdminAssets } from "../src/platform/node-assets.js";
 import { PORTABLE_PROVIDERS } from "../src/providers/registry.js";
@@ -46,7 +47,7 @@ await hub.connections.upsert({ kind: "weather", provider: "open-meteo", name: "h
 await hub.settings.set("modules", Object.fromEntries(["vault", "wiki", "hub", "ledger", "location", "health"].map((m) => [m, { enabled: true }])));
 const s = await hub.settings.get();
 await hub.settings.set("vault", { ...s.vault, connection: "vault" });
-await hub.settings.set("wiki", { ...s.wiki, preset: "llm-wiki" });
+await hub.settings.set("wiki", { ...s.wiki, preset: "llm-wiki", roles: PRESETS["llm-wiki"]! });
 await hub.settings.set("onboarded", true);
 // A morning on 2026-01-15 (UTC 03:00–05:00): one stay, a walk, another stay. No map background: no outside calls.
 const M0 = Date.parse("2026-01-15T03:00:00Z") / 1000;
