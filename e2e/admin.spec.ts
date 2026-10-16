@@ -112,3 +112,20 @@ test("notes: browse folders, read a note, follow a wiki link, search", async ({ 
   await expect(page.getByText("노트 1개")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("notes: pictures show in place, PDFs open by link", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/notes/Attachments.md");
+  const img = page.getByRole("img", { name: "pixel.png" });
+  await expect(img).toBeVisible();
+  expect(await img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1);
+  const pdf = page.getByRole("link", { name: /Scan result\.pdf/ }).first();
+  await expect(pdf).toHaveAttribute("href", "/admin/api/vault/file?path=files%2FScan%20result.pdf");
+  const r = await page.request.get("/admin/api/vault/file?path=files%2FScan%20result.pdf");
+  expect(r.headers()["content-type"]).toBe("application/pdf");
+  await page.goto("/admin/notes");
+  await page.getByRole("button", { name: "files" }).click();
+  await expect(page.getByRole("link", { name: "pixel.png" })).toBeVisible();
+  expect(errors).toEqual([]);
+});

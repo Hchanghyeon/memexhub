@@ -12,7 +12,7 @@ interface R2Object {
   text?(): Promise<string>;
 }
 export interface R2Like {
-  get(key: string): Promise<(R2Object & { text(): Promise<string> }) | null>;
+  get(key: string): Promise<(R2Object & { text(): Promise<string>; arrayBuffer(): Promise<ArrayBuffer> }) | null>;
   head(key: string): Promise<R2Object | null>;
   put(key: string, value: string, opts?: { onlyIf?: Headers; httpMetadata?: { contentType?: string } }): Promise<R2Object | null>;
   delete(key: string): Promise<void>;
@@ -34,6 +34,11 @@ export class R2Storage implements VaultStorage {
     const o = await this.b.get(this.key(path));
     if (!o) throw new StorageError("not_found", `${path}: not found`);
     return { text: await o.text(), etag: o.httpEtag };
+  }
+  async readBytes(path: string) {
+    const o = await this.b.get(this.key(path));
+    if (!o) throw new StorageError("not_found", `${path}: not found`);
+    return new Uint8Array(await o.arrayBuffer());
   }
   async write(path: string, text: string, opts: { ifMatch?: string; ifNoneMatch?: "*" } = {}) {
     const onlyIf = new Headers();

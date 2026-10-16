@@ -2,16 +2,18 @@ import type { ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { prepare, WIKILINK } from "./markdown-prepare";
+import { EMBED, prepare, WIKILINK } from "./markdown-prepare";
 
 export { prepare };
 
 /**
  * Obsidian-flavoured Markdown, read-only: GitHub Markdown (tables, task lists) through react-markdown, plus
- * [[wiki links]], ![[embeds]] (shown by name), callouts and frontmatter. Raw HTML is never rendered, and
- * pictures from the internet are shown as links (opening the note must not call outside servers).
+ * [[wiki links]], ![[embeds]] (pictures from the vault shown in place, PDFs as links), callouts and frontmatter.
+ * Raw HTML is never rendered, and pictures from the internet are shown as links (opening the note must not
+ * call outside servers).
  */
-export function Markdown(p: { text: string; open: (target: string) => void; exists: (target: string) => boolean }) {
+export interface VaultFile { url: string; kind: "image" | "pdf"; name: string }
+export function Markdown(p: { text: string; open: (target: string) => void; exists: (target: string) => boolean; file?: (target: string) => VaultFile | undefined }) {
   const { body } = prepare(p.text);
   const components: Components = {
     h1: (x) => <h1 className="mt-8 mb-3 text-2xl font-semibold tracking-tight first:mt-0">{x.children}</h1>,
@@ -33,13 +35,26 @@ export function Markdown(p: { text: string; open: (target: string) => void; exis
     thead: (x) => <thead className="bg-muted/50">{x.children}</thead>,
     th: (x) => <th className="border-b px-3 py-2 text-left font-medium">{x.children}</th>,
     td: (x) => <td className="border-b px-3 py-2 align-top [tr:last-child>&]:border-b-0">{x.children}</td>,
-    img: (x) => (x.src ? <a href={String(x.src)} target="_blank" rel="noopener noreferrer" className="underline">🖼 {x.alt || String(x.src)}</a> : <span>🖼 {x.alt}</span>),
+    img: (x) => {
+      const src = String(x.src ?? "");
+      if (src.startsWith(EMBED)) {
+        const target = decodeURIComponent(src.slice(EMBED.length));
+        const f = p.file?.(target);
+        if (f?.kind === "image") return <a href={f.url} target="_blank" rel="noopener noreferrer" className="my-3 block w-fit"><img src={f.url} alt={f.name} loading="lazy" className="max-h-[32rem] max-w-full rounded-lg border" /></a>;
+        if (f) return <FileLink f={f} />;
+        if (p.exists(target)) return <a href="#" onClick={(e) => { e.preventDefault(); p.open(target); }} className="decoration-primary/40 hover:decoration-primary font-medium underline underline-offset-4">↪ {target}</a>;
+        return <span className="text-muted-foreground" title={`${target} (not in the vault)`}>🖼 {target}</span>;
+      }
+      return src ? <a href={src} target="_blank" rel="noopener noreferrer" className="underline">🖼 {x.alt || src}</a> : <span>🖼 {x.alt}</span>;
+    },
     a: (x) => {
       const href = String(x.href ?? "");
       if (href.startsWith(WIKILINK)) {
         const target = decodeURIComponent(href.slice(WIKILINK.length));
         if (!target) return <span className="font-medium">{x.children}</span>;
         const ok = p.exists(target);
+        const f = ok ? undefined : p.file?.(target);
+        if (f) return <FileLink f={f} label={x.children as ReactNode} />;
         return (
           <a href="#" onClick={(e) => { e.preventDefault(); if (ok) p.open(target); }} className={cn("font-medium underline underline-offset-4", ok ? "decoration-primary/40 hover:decoration-primary" : "text-muted-foreground cursor-default decoration-dotted")} title={ok ? target : `${target} (no such note)`}>
             {x.children as ReactNode}
@@ -53,5 +68,14 @@ export function Markdown(p: { text: string; open: (target: string) => void; exis
     <div className="text-[0.9375rem] break-words">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{body}</ReactMarkdown>
     </div>
+  );
+}
+
+/** A vault file that is not shown in place: opens in a new tab (the browser's own PDF viewer). */
+function FileLink({ f, label }: { f: VaultFile; label?: ReactNode }) {
+  return (
+    <a href={f.url} target="_blank" rel="noopener noreferrer" className="decoration-primary/40 hover:decoration-primary font-medium underline underline-offset-4">
+      {f.kind === "pdf" ? "📄 " : "🖼 "}{label ?? f.name}
+    </a>
   );
 }

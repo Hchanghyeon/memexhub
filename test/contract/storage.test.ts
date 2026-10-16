@@ -56,6 +56,12 @@ for (const [name, make] of Object.entries(adapters)) {
       await s.write("n/full.md", note.replace("# H", "# H2"));
       expect((await s.read("n/full.md")).text).toBe(note.replace("# H", "# H2"));
     });
+    it("reads raw bytes when it can, and says not_found for missing files", async () => {
+      if (!s.readBytes) return; // optional: such a store shows no attachments in the viewer
+      await s.write("pics/한글 a.md", "bytes ✓");
+      expect(new TextDecoder().decode(await s.readBytes("pics/한글 a.md"))).toBe("bytes ✓");
+      await expect(s.readBytes("pics/missing.png")).rejects.toMatchObject({ code: "not_found" });
+    });
     it("moves without overwriting", async () => {
       await s.write("x.md", "x");
       await s.write("y.md", "y");

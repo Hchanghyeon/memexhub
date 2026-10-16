@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prepare, WIKILINK } from "../../web/src/ui/markdown-prepare.js";
+import { EMBED, prepare, WIKILINK } from "../../web/src/ui/markdown-prepare.js";
 
 describe("vault viewer: Obsidian syntax", () => {
   it("splits frontmatter, rewrites wiki links, embeds and callouts, and leaves code alone", () => {
@@ -9,9 +9,16 @@ describe("vault viewer: Obsidian syntax", () => {
     expect(body).toContain(`[Seeds](${WIKILINK}Seeds)`);
     expect(body).toContain(`[the plan](${WIKILINK}folder%2FPlan)`);
     expect(body).toContain(`[#Local](${WIKILINK})`);
-    expect(body).toContain("*🖼 photo.png*");
+    expect(body).toContain(`![photo.png](${EMBED}photo.png)`);
     expect(body).toContain("> **⚠️ Careful**\\\n> text");
     expect(body).toContain("```\n[[not a link]]\n```");
     expect(body.startsWith("# T")).toBe(true);
+  });
+
+  it("keeps embed targets but drops size and heading parts", () => {
+    const { body } = prepare("![[files/scan 1.pdf]] ![[pic.png|300]] ![[Note#Part]]");
+    expect(body).toContain(`![files/scan 1.pdf](${EMBED}files%2Fscan%201.pdf)`);
+    expect(body).toContain(`![pic.png](${EMBED}pic.png)`);
+    expect(body).toContain(`![Note](${EMBED}Note)`);
   });
 });

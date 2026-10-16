@@ -1,6 +1,7 @@
 /** Obsidian syntax → plain Markdown for the viewer (no React here, so it is unit-tested). */
 const CALLOUT: Record<string, string> = { note: "📝", info: "ℹ️", tip: "💡", success: "✅", warning: "⚠️", danger: "⛔", bug: "🐞", example: "📎", quote: "💬", question: "❓", abstract: "📋", todo: "☑️" };
 export const WIKILINK = "#wikilink=";
+export const EMBED = "#embed=";
 
 export function prepare(src: string): { meta: [string, string][]; body: string } {
   let text = src.replace(/\r\n?/g, "\n");
@@ -20,7 +21,11 @@ export function prepare(src: string): { meta: [string, string][]; body: string }
       i % 2
         ? part
         : part
-            .replace(/!\[\[([^\]]+)\]\]/g, (_, t: string) => `*🖼 ${t.split("|")[0]!.replace(/[*_]/g, "")}*`)
+            // ![[file|300]] → an image whose address names the vault file; the viewer decides how to show it.
+            .replace(/!\[\[([^\]]+)\]\]/g, (_, t: string) => {
+              const target = t.split("|")[0]!.split("#")[0]!.trim();
+              return `![${target.replace(/[[\]*_]/g, "")}](${EMBED}${encodeURIComponent(target)})`;
+            })
             .replace(/\[\[([^\]|#]*)(#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (_, target: string, heading: string | undefined, label: string | undefined) => {
               const shown = (label ?? `${target}${heading ?? ""}`).replace(/[[\]]/g, "") || target;
               return `[${shown}](${WIKILINK}${encodeURIComponent(target)})`;

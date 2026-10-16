@@ -224,6 +224,27 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       throw new Fail(code === "not_found" ? "not_found" : "invalid_input", (e as Error).message.slice(0, 160), code === "not_found" ? 404 : 400);
     }
   });
+  // Pictures and PDFs the notes link to. Same session as the rest of the API; never rendered as a page of ours.
+  api.get("/vault/file", async (c) => {
+    const path = z.string().min(1).max(1000).safeParse(c.req.query("path"));
+    if (!path.success) throw new Fail("invalid_input");
+    let f;
+    try {
+      f = await needVault().readAttachment(path.data);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      throw new Fail(code === "not_found" ? "not_found" : "invalid_input", (e as Error).message.slice(0, 160), code === "not_found" ? 404 : 400);
+    }
+    const name = encodeURIComponent(f.path.split("/").pop()!);
+    return c.body(f.bytes as unknown as ArrayBuffer, 200, {
+      "content-type": f.type,
+      "content-disposition": `inline; filename*=UTF-8''${name}`,
+      "cache-control": "private, max-age=300",
+      "x-content-type-options": "nosniff",
+      // An SVG opened on its own could run script on this origin; sandbox it. PDFs open in the browser's viewer.
+      ...(f.type === "image/svg+xml" ? { "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
+    });
+  });
   api.get("/vault/search", async (c) => {
     const q = z.string().min(1).max(200).safeParse(c.req.query("q"));
     if (!q.success) throw new Fail("invalid_input");

@@ -19,6 +19,12 @@ beforeAll(async () => {
   writeFileSync(join(dir, "World.md"), "# World\nsample text\n");
   writeFileSync(join(dir, ".obsidian", "app.json"), "{}");
   writeFileSync(join(dir, ".obsidian", "hidden.md"), "# hidden");
+  mkdirSync(join(dir, "files"), { recursive: true });
+  writeFileSync(join(dir, "files", "scan 1.pdf"), "%PDF-1.4 fake");
+  writeFileSync(join(dir, "files", "photo.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  writeFileSync(join(dir, "files", "draw.svg"), "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>");
+  writeFileSync(join(dir, "files", "run.sh"), "echo hi");
+  writeFileSync(join(dir, ".obsidian", "secret.png"), "x");
   const env = loadEnv({ MEMEXHUB_SECRET: "k".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-vvd-")) });
   hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(dir)]);
   const log = console.log;
@@ -37,7 +43,7 @@ beforeAll(async () => {
 describe("vault viewer API", () => {
   it("lists files without hidden folders, reads notes, searches", async () => {
     const { files } = await a.json("/vault/files");
-    expect(files.map((f: { path: string }) => f.path)).toEqual(["notes/Hello.md", "World.md"]);
+    expect(files.map((f: { path: string }) => f.path)).toEqual(["files/draw.svg", "files/photo.png", "files/run.sh", "files/scan 1.pdf", "notes/Hello.md", "World.md"]);
     expect((await a.json("/vault/note?path=notes/Hello.md")).text).toContain("See [[World]].");
     expect((await a.json("/vault/search?q=sample")).hits.map((h: { path: string }) => h.path)).toEqual(["World.md"]);
   });
@@ -52,9 +58,35 @@ describe("vault viewer API", () => {
     expect((await a.get("/vault/note")).status).toBe(400);
   });
 
+  it("serves pictures and PDFs inline, safely", async () => {
+    const pdf = await a.get(`/vault/file?path=${encodeURIComponent("files/scan 1.pdf")}`);
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers.get("content-type")).toBe("application/pdf");
+    expect(pdf.headers.get("content-disposition")).toBe("inline; filename*=UTF-8''scan%201.pdf");
+    expect(pdf.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(await pdf.text()).toBe("%PDF-1.4 fake");
+    const png = await a.get("/vault/file?path=files/photo.png");
+    expect(png.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await png.arrayBuffer())).toEqual(new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
+    // An SVG with script must not run on our origin.
+    const svg = await a.get("/vault/file?path=files/draw.svg");
+    expect(svg.headers.get("content-security-policy")).toContain("sandbox");
+  });
+
+  it("refuses other file types, hidden folders, escapes and missing files", async () => {
+    for (const p of ["files/run.sh", "notes/Hello.md", ".obsidian/secret.png", "../etc/x.png", "files/../../x.png"]) {
+      const r = await a.get(`/vault/file?path=${encodeURIComponent(p)}`);
+      expect(r.status, p).toBe(400);
+    }
+    expect((await a.get("/vault/file?path=files/nope.pdf")).status).toBe(404);
+    expect((await a.get(`/vault/file?path=${encodeURIComponent("files/%2e%2e/World.png")}`)).status).toBe(404); // taken literally, never decoded twice
+    expect((await a.get("/vault/file")).status).toBe(400);
+  });
+
   it("needs a signed-in admin", async () => {
     const anon = adminClient(hub);
     expect((await anon.get("/vault/files")).status).toBe(401);
     expect((await anon.get("/vault/note?path=World.md")).status).toBe(401);
+    expect((await anon.get("/vault/file?path=files/photo.png")).status).toBe(401);
   });
 });

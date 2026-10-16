@@ -13,6 +13,11 @@ export interface VaultPolicy {
 }
 
 const TRASH = ".trash";
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+export const ATTACHMENT_TYPES: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml",
+  pdf: "application/pdf",
+};
 
 /**
  * The only way modules touch the vault. Enforces path normalization, protected paths,
@@ -58,6 +63,22 @@ export class SafeVault {
   async read(path: string) {
     const p = this.checkNote(path);
     return { path: p, ...(await this.store.read(p)) };
+  }
+
+  /**
+   * A picture or PDF for the read-only viewer. Only these types, never hidden folders, size-capped.
+   * Not audited (reading), and not a tool: only the signed-in admin UI reads attachments.
+   */
+  async readAttachment(path: string): Promise<{ path: string; type: string; bytes: Uint8Array<ArrayBuffer> }> {
+    const p = normalizeVaultPath(path);
+    if (p.split("/").some((s) => s.startsWith("."))) throw new StorageError("invalid", "hidden files are not shown");
+    const type = ATTACHMENT_TYPES[p.slice(p.lastIndexOf(".") + 1).toLowerCase()];
+    if (!type) throw new StorageError("invalid", "only pictures and PDFs can be shown");
+    if (!this.store.readBytes) throw new StorageError("invalid", "this vault storage cannot show attachments");
+    const st = await this.store.stat(p);
+    if (!st) throw new StorageError("not_found", `"${p}" not found`);
+    if (st.size > MAX_ATTACHMENT_BYTES) throw new StorageError("invalid", `file too large to show (${st.size} bytes)`);
+    return { path: p, type, bytes: await this.store.readBytes(p) };
   }
 
   async list(dir?: string): Promise<FileInfo[]> {

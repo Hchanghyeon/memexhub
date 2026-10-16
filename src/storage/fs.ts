@@ -36,6 +36,15 @@ export class FsStorage implements VaultStorage {
     }
   }
 
+  async readBytes(p: string) {
+    try {
+      return new Uint8Array(await readFile(this.abs(p)));
+    } catch (e: any) {
+      if (e?.code === "ENOENT" || e?.code === "EISDIR") throw new StorageError("not_found", `"${p}" not found`);
+      throw e instanceof StorageError ? e : new StorageError("io", "read failed");
+    }
+  }
+
   async write(p: string, text: string, opts: { ifMatch?: string; ifNoneMatch?: "*" } = {}) {
     const a = this.abs(p);
     const cur = await this.stat(p);

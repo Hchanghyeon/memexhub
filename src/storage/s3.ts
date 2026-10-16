@@ -55,6 +55,12 @@ export class S3Storage implements VaultStorage {
     return { text: await r.text(), etag: r.headers.get("etag") ?? undefined };
   }
 
+  async readBytes(path: string) {
+    const r = await this.send("GET", this.url(this.key(path)));
+    if (!r.ok) this.fail(r, path);
+    return new Uint8Array(await r.arrayBuffer());
+  }
+
   async write(path: string, text: string, opts: { ifMatch?: string; ifNoneMatch?: "*" } = {}) {
     const headers: Record<string, string> = { "content-type": "text/markdown; charset=utf-8" };
     if (opts.ifMatch) headers["if-match"] = opts.ifMatch;

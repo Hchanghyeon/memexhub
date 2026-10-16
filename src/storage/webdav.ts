@@ -35,6 +35,13 @@ export class WebDavStorage implements VaultStorage {
     return { text: await r.text(), etag: r.headers.get("etag") ?? undefined };
   }
 
+  async readBytes(p: string) {
+    const r = await this.req("GET", p);
+    if (r.status === 404) throw new StorageError("not_found", `"${p}" not found`);
+    if (!r.ok) throw new StorageError("io", `webdav GET ${r.status}`);
+    return new Uint8Array(await r.arrayBuffer());
+  }
+
   private async mkcols(p: string) {
     const parts = p.split("/").slice(0, -1);
     let cur = "";

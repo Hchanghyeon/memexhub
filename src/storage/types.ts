@@ -21,6 +21,8 @@ export class StorageError extends Error {
 export interface VaultStorage {
   readonly id: string; // "fs" | "webdav" | "s3" ...
   read(path: string): Promise<{ text: string; etag?: string }>;
+  /** Raw bytes of any file (pictures, PDFs) for the read-only viewer. Optional: stores without it show no attachments. */
+  readBytes?(path: string): Promise<Uint8Array<ArrayBuffer>>;
   /** ifMatch: fail with "conflict" if the current etag differs (when supported). ifNoneMatch "*": fail if exists. */
   write(path: string, text: string, opts?: { ifMatch?: string; ifNoneMatch?: "*" }): Promise<{ etag?: string }>;
   list(dir?: string): Promise<FileInfo[]>; // recursive

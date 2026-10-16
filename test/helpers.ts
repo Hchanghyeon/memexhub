@@ -86,7 +86,7 @@ export function fakeD1() {
 export function fakeR2() {
   const m = new Map<string, { body: string; etag: string; uploaded: Date }>();
   let n = 0;
-  const obj = (key: string, o: { body: string; etag: string; uploaded: Date }) => ({ key, size: o.body.length, uploaded: o.uploaded, httpEtag: o.etag, text: async () => o.body });
+  const obj = (key: string, o: { body: string; etag: string; uploaded: Date }) => ({ key, size: o.body.length, uploaded: o.uploaded, httpEtag: o.etag, text: async () => o.body, arrayBuffer: async () => new TextEncoder().encode(o.body).buffer as ArrayBuffer });
   return {
     objects: m,
     async get(key: string) {

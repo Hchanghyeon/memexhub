@@ -19,6 +19,8 @@ async function handle<T>(r: Response): Promise<T> {
   throw new ApiError(r.status, e.error ?? `http_${r.status}`, e.detail);
 }
 
+/** Address of a picture or PDF in the vault (same session cookie; for <img src> and links). */
+export const fileUrl = (path: string) => `${BASE}/vault/file?path=${encodeURIComponent(path)}`;
 export const get = <T>(path: string) => fetch(BASE + path, { credentials: "same-origin" }).then((r) => handle<T>(r));
 export const post = <T = { ok: true }>(path: string, body: unknown = {}) =>
   fetch(BASE + path, { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json", "x-csrf": csrf }, body: JSON.stringify(body) }).then((r) => handle<T>(r));

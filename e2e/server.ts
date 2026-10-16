@@ -24,6 +24,11 @@ const vaultDir = mkdtempSync(join(tmpdir(), "mx-e2ev-"));
 mkdirSync(join(vaultDir, "Projects"));
 writeFileSync(join(vaultDir, "Projects", "Garden plan.md"), "---\nstatus: active\n---\n# Garden plan\n\nSee [[Seeds]] and [[Missing note]].\n\n- [x] dig\n- [ ] plant\n\n| Bed | Plant |\n|---|---|\n| A | Tomato |\n\n> [!tip] Water\n> In the morning.\n");
 writeFileSync(join(vaultDir, "Seeds.md"), "# Seeds\n\nSample seed list.\n");
+// Attachments: a 1×1 picture shown in place and a PDF opened by link.
+mkdirSync(join(vaultDir, "files"));
+writeFileSync(join(vaultDir, "files", "pixel.png"), Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==", "base64"));
+writeFileSync(join(vaultDir, "files", "Scan result.pdf"), "%PDF-1.4\n%sample\n");
+writeFileSync(join(vaultDir, "Attachments.md"), "# Attachments\n\n![[pixel.png]]\n\nSee [[Scan result.pdf]].\n");
 const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
 const log = console.log;
 console.log = () => {};

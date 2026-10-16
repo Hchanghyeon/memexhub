@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ChevronRight, FileText, Folder, Search, X } from "lucide-react";
-import { get } from "../api";
+import { ArrowLeft, ChevronRight, FileImage, FileText, Folder, Search, X } from "lucide-react";
+import { fileUrl, get } from "../api";
 import { useT, when } from "../i18n";
 import { navigate } from "../router";
 import { cn } from "@/lib/utils";
 import { Input as UIInput } from "@/components/ui/input";
 import { Button, Callout, Card, Empty, Loading, Skeleton, errorText, useData } from "../ui/kit";
-import { Markdown, prepare } from "../ui/markdown";
+import { Markdown, prepare, type VaultFile } from "../ui/markdown";
 
 interface F { path: string; size: number; mtime: string }
-type Tree = { dirs: Map<string, Tree>; notes: F[] };
+type Tree = { dirs: Map<string, Tree>; notes: F[]; files: F[] };
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const nameOf = (p: string) => p.split("/").pop()!.replace(/\.md$/i, "");
+/** Pictures and PDFs the server will show (same list as the API). */
+const KIND: Record<string, VaultFile["kind"]> = { png: "image", jpg: "image", jpeg: "image", gif: "image", webp: "image", avif: "image", svg: "image", pdf: "pdf" };
+const kindOf = (p: string) => KIND[p.slice(p.lastIndexOf(".") + 1).toLowerCase()];
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 /** Screen path ↔ note path: /notes/<segments> (each segment URL-encoded). */
@@ -19,16 +22,17 @@ export const notePathOf = (route: string) => route.replace(/^\/notes\/?/, "").sp
 const openNote = (path: string) => navigate(`/notes/${path.split("/").map(encodeURIComponent).join("/")}`);
 
 function build(files: F[]): Tree {
-  const root: Tree = { dirs: new Map(), notes: [] };
+  const root: Tree = { dirs: new Map(), notes: [], files: [] };
   for (const f of files) {
-    if (!/\.md$/i.test(f.path)) continue;
+    const note = /\.md$/i.test(f.path);
+    if (!note && !kindOf(f.path)) continue;
     const parts = f.path.split("/");
     let t = root;
     for (const d of parts.slice(0, -1)) {
-      if (!t.dirs.has(d)) t.dirs.set(d, { dirs: new Map(), notes: [] });
+      if (!t.dirs.has(d)) t.dirs.set(d, { dirs: new Map(), notes: [], files: [] });
       t = t.dirs.get(d)!;
     }
-    t.notes.push(f);
+    (note ? t.notes : t.files).push(f);
   }
   return root;
 }
@@ -48,11 +52,28 @@ export function resolver(files: F[]) {
   };
 }
 
+/** ![[photo.png]] / [[scan.pdf]] → a vault picture or PDF, matched like Obsidian: exact path, then file name. */
+export function attachments(files: F[]) {
+  const all = files.filter((f) => kindOf(f.path)).map((f) => f.path);
+  const byPath = new Map(all.map((p) => [p.toLowerCase(), p]));
+  const byName = new Map<string, string>();
+  for (const p of [...all].sort((a, b) => a.length - b.length)) {
+    const n = p.split("/").pop()!.toLowerCase();
+    if (!byName.has(n)) byName.set(n, p);
+  }
+  return (target: string): VaultFile | undefined => {
+    const t = target.trim().replace(/^\/+/, "").toLowerCase();
+    const p = byPath.get(t) ?? byName.get(t.split("/").pop()!);
+    return p ? { url: fileUrl(p), kind: kindOf(p)!, name: p.split("/").pop()! } : undefined;
+  };
+}
+
 export function Notes({ route }: { route: string }) {
   const { t } = useT();
   const { data, error, reload } = useData<{ files: F[]; truncated: boolean }>("/vault/files");
   const path = notePathOf(route);
   const resolve = useMemo(() => resolver(data?.files ?? []), [data]);
+  const file = useMemo(() => attachments(data?.files ?? []), [data]);
   if (!data) return <div className="mx-auto max-w-3xl px-4 pt-12 sm:px-8"><Loading error={error} reload={reload} /></div>;
   return (
     <div className="md:grid md:min-h-svh md:grid-cols-[300px_1fr]">
@@ -60,7 +81,7 @@ export function Notes({ route }: { route: string }) {
         <Browser files={data.files} current={path} truncated={data.truncated} />
       </aside>
       <section className={cn("min-w-0", !path && "hidden md:block")}>
-        {path ? <Note key={path} path={path} resolve={resolve} files={data.files} /> : (
+        {path ? <Note key={path} path={path} resolve={resolve} file={file} files={data.files} /> : (
           <div className="mx-auto max-w-3xl px-4 pt-16 sm:px-8"><Empty>{t("Pick a note on the left, or search.", "왼쪽에서 노트를 고르거나 찾아보세요.")}</Empty></div>
         )}
       </section>
@@ -123,6 +144,7 @@ function Browser({ files, current, truncated }: { files: F[]; current: string; t
 function TreeView(p: { tree: Tree; prefix: string; open: Set<string>; setOpen: (s: Set<string>) => void; current: string; depth: number }) {
   const dirs = [...p.tree.dirs.keys()].sort(collator.compare);
   const notes = [...p.tree.notes].sort((a, b) => collator.compare(nameOf(a.path), nameOf(b.path)));
+  const files = [...p.tree.files].sort((a, b) => collator.compare(a.path, b.path));
   const pad = { paddingLeft: `${p.depth * 14 + 8}px` };
   return (
     <ul className="flex flex-col">
@@ -148,11 +170,19 @@ function TreeView(p: { tree: Tree; prefix: string; open: Set<string>; setOpen: (
           </button>
         </li>
       ))}
+      {files.map((f) => (
+        <li key={f.path}>
+          <a href={fileUrl(f.path)} target="_blank" rel="noopener noreferrer" style={{ paddingLeft: `${p.depth * 14 + 28}px` }} className="hover:bg-accent text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-left text-sm">
+            {kindOf(f.path) === "pdf" ? <FileText className="size-4 shrink-0" aria-hidden /> : <FileImage className="size-4 shrink-0" aria-hidden />}
+            <span className="break-all">{f.path.split("/").pop()}</span>
+          </a>
+        </li>
+      ))}
     </ul>
   );
 }
 
-function Note({ path, resolve, files }: { path: string; resolve: (t: string) => string | undefined; files: F[] }) {
+function Note({ path, resolve, file, files }: { path: string; resolve: (t: string) => string | undefined; file: (t: string) => VaultFile | undefined; files: F[] }) {
   const { t } = useT();
   const { data, error } = useData<{ path: string; text: string }>(`/vault/note?path=${encodeURIComponent(path)}`);
   const info = files.find((f) => f.path === path);
@@ -167,7 +197,7 @@ function Note({ path, resolve, files }: { path: string; resolve: (t: string) => 
         {data && <Meta text={data.text} />}
       </header>
       {error ? <Card><Callout tone="error"><p>{errorText(t, error)}</p></Callout></Card> : !data ? <Skeleton lines={8} /> : (
-        <Markdown text={withoutTitle(data.text, nameOf(path))} exists={(x) => !!resolve(x)} open={(x) => { const p = resolve(x); if (p) openNote(p); }} />
+        <Markdown text={withoutTitle(data.text, nameOf(path))} exists={(x) => !!resolve(x)} open={(x) => { const p = resolve(x); if (p) openNote(p); }} file={file} />
       )}
     </article>
   );
