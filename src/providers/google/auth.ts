@@ -53,3 +53,17 @@ export class GoogleToken {
   }
 }
 
+
+/** Sign-in description for OAuthSignIn. */
+export const GOOGLE_SIGNIN = {
+  provider: "google",
+  title: "Google",
+  auth: GOOGLE.auth,
+  token: GOOGLE.token,
+  hosts: GOOGLE.hosts,
+  scopes: (kind: string) => GOOGLE.scopes[kind] ?? GOOGLE.scopes.tasks!,
+  params: { access_type: "offline", prompt: "consent select_account" },
+  clientAuth: "body" as const,
+  whoField: "email",
+  who: async (token: string, f: typeof fetch) => String(((await (await f(GOOGLE.userinfo, { headers: { authorization: `Bearer ${token}` } })).json()) as { email?: string }).email ?? ""),
+};

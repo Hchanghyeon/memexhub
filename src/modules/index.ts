@@ -11,6 +11,7 @@ import notion from "./notion/index.js";
 import weather from "./weather/index.js";
 import calendar from "./calendar/index.js";
 import home from "./home/index.js";
+import music from "./music/index.js";
 
 /** Plugin registry. Adding a module = one line here. */
-export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, calendar, notion, weather, home, hub];
+export const MODULES: ModuleDef[] = [vault, wiki, ledger, mail, location, health, tasks, calendar, notion, weather, home, music, hub];

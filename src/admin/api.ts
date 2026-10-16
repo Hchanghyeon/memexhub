@@ -286,7 +286,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const rows = await db.all<{ id: string; status: string | null; last_ok_at: string | null; last_error: string | null }>(`SELECT id, status, last_ok_at, last_error FROM connections`);
     const items = (await hub.connections.list()).filter((x) => x.kind !== "storage").map((x) => {
       const st = rows.find((r) => r.id === x.id);
-      return { id: x.id, kind: x.kind, name: x.name, provider: x.provider, enabled: x.enabled, status: st?.status ?? null, lastOkAt: st?.last_ok_at ?? null, lastError: st?.last_error ?? null, email: x.provider === "google" ? (x.config.email ?? null) : null };
+      return { id: x.id, kind: x.kind, name: x.name, provider: x.provider, enabled: x.enabled, status: st?.status ?? null, lastOkAt: st?.last_ok_at ?? null, lastError: st?.last_error ?? null, email: hub.signIns.has(x.provider) ? ((x.config.email ?? x.config.account ?? null) as string | null) : null, signIn: hub.signIns.get(x.provider)?.spec.title ?? null };
     });
     const addable = hub.providers.filter((p) => p.kind !== "storage" && p.runtimes.includes(hub.platform.name)).map((p) => ({ key: `${p.kind}:${p.id}`, kind: p.kind, title: p.title }));
     return c.json({ items, addable });
@@ -297,7 +297,8 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({
       key: `${def.kind}:${def.id}`, kind: def.kind, title: def.title,
       fields: fieldsOf(def.config), secrets: fieldsOf(def.secrets, true),
-      googleRedirect: def.id === "google" ? hub.google.redirectUri : null,
+      googleRedirect: hub.signIns.get(def.id)?.redirectUri ?? null,
+      signIn: hub.signIns.get(def.id)?.spec.title ?? null,
     });
   });
   api.post("/connections", async (c) => {
@@ -332,13 +333,19 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     await hub.reload();
     return c.json({ ok: true });
   });
-  api.post("/connections/:id/google", async (c) => {
+  // "Sign in with …" for a connection whose provider has one (Google, Spotify). /google is the older name.
+  const signIn = async (c: Context<Vars>) => {
+    const con = await hub.connections.byId(c.req.param("id") ?? "");
+    const flow = con && hub.signIns.get(con.provider);
+    if (!flow) throw new Fail("google_failed", "this connection has no sign-in");
     try {
-      return c.json({ url: await hub.google.start(c.req.param("id")) });
+      return c.json({ url: await flow.start(con.id) });
     } catch (e) {
       throw new Fail("google_failed", (e as Error).message.slice(0, 200));
     }
-  });
+  };
+  api.post("/connections/:id/signin", signIn);
+  api.post("/connections/:id/google", signIn);
 
   // ---- features ----
   api.get("/features", async (c) => {

@@ -60,6 +60,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | calendar | `calendars · events(from, to)` | CalDAV ✅ · iCloud ✅ · Google ✅ | — |
 | weather | `place · days(from, to)` | Open-Meteo ✅ | — |
 | home | `states · logbook(from, to, entity?)` (read-only) | Home Assistant ✅ | — |
+| music | `plays(from, to)` · `history` | Last.fm ✅ · Spotify ✅ (recent 50, collected every 30 min) | — |
 
 ## Modules
 
@@ -76,6 +77,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | calendar | `calendar_list` `calendar_events` | — | — | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | — | — | ✅ |
 | home | `home_states` `home_day` | — | — | ✅ ([home](home.md)) |
+| music | `music_day` | — | — | ✅ ([music](music.md)) |
 
 ## Ledger: message recipes ✅
 

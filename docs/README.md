@@ -13,7 +13,7 @@
 - [Claude integration](claude-integration.md) — connector, OAuth, `day_summary` / `week_summary`
 - [Wiki engine](wiki-engine.md) — roles, presets, lint, sources, index, log
 - [Ledger](ledger.md) — payments and money notes · [Message recipes](recipes.md) — SMS / mail / notifications without code
-- [Mail](mail.md) · [Location](location.md) · [Health](health.md) · [Tasks](tasks.md) · [Calendar](calendar.md) · [Home](home.md) · [Notion](notion.md)
+- [Mail](mail.md) · [Location](location.md) · [Health](health.md) · [Tasks](tasks.md) · [Calendar](calendar.md) · [Home](home.md) · [Music](music.md) · [Notion](notion.md)
 
 ## Run
 - [Configuration and storage](configuration-and-storage.md) — environment, vault storage, built-in WebDAV, backups

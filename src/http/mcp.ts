@@ -54,16 +54,18 @@ export function mcpApp(hub: Hub) {
 
   app.get("/healthz", (c) => c.text("ok"));
 
-  // Google sign-in for a Tasks connection lands here (Google requires https). The one-time state is the only key.
-  app.get("/oauth/google/callback", rateLimit(10, (c) => c.get("ip")), async (c) => {
+  // "Sign in with Google / Spotify" for a connection lands here (the services require https). The one-time state is the only key.
+  app.get("/oauth/:provider/callback", rateLimit(10, (c) => c.get("ip")), async (c) => {
+    const signIn = hub.signIns.get(c.req.param("provider"));
+    if (!signIn) return c.notFound();
     const page = (title: string, msg: string, status: 200 | 400) =>
       c.html(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="font:15px system-ui;max-width:520px;margin:3rem auto;padding:0 1rem"><h1 style="font-size:1.3rem">${title}</h1><p>${msg}</p></body>`, status);
     const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     if (c.req.query("error")) return page("Sign-in cancelled", "Nothing was changed. You can close this tab.", 400);
     try {
-      const r = await hub.google.finish(c.req.query("state") ?? "", c.req.query("code") ?? "");
+      const r = await signIn.finish(c.req.query("state") ?? "", c.req.query("code") ?? "");
       await hub.reload();
-      return page("Connected", `Signed in as <b>${esc(r.email || "your Google account")}</b>. You can close this tab and return to the admin UI.`, 200);
+      return page("Connected", `Signed in as <b>${esc(r.email || `your ${signIn.spec.title} account`)}</b>. You can close this tab and return to the admin UI.`, 200);
     } catch (e) {
       return page("Sign-in failed", esc((e as Error).message.slice(0, 200)), 400);
     }

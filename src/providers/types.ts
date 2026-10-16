@@ -21,6 +21,8 @@ export interface ProviderContext<C, S> {
   /** IANA time zone from settings. */
   timezone: string;
   connection: { id: string; name: string };
+  /** Store changed secrets of this connection (a service that rotates its refresh token). */
+  saveSecrets(patch: Record<string, string>): Promise<void>;
 }
 
 /** Plugin contract for an external service. Adding one = a file + one line in the registry. */

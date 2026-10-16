@@ -10,8 +10,9 @@ import { pick } from "./core/i18n.js";
 import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
-import { GoogleSignIn } from "./auth/google-signin.js";
-import { GOOGLE } from "./providers/google/auth.js";
+import { OAuthSignIn } from "./auth/oauth-signin.js";
+import { GOOGLE_SIGNIN } from "./providers/google/auth.js";
+import { SPOTIFY_SIGNIN } from "./providers/music/spotify.js";
 import { Cursors } from "./core/cursors.js";
 import { SafeVault } from "./storage/safe-vault.js";
 import { Layout } from "./modules/wiki/layout.js";
@@ -30,7 +31,11 @@ export class Hub {
   bus: EventBus;
   admin: AdminAuth;
   oauth: OAuthServer;
-  google: GoogleSignIn;
+  /** "Sign in with …" per provider id (google, spotify). */
+  signIns: Map<string, OAuthSignIn>;
+  get google() {
+    return this.signIns.get("google")!;
+  }
   ingestTokens: IngestTokens;
   vault?: SafeVault;
   /** Byte access to the vault for the built-in WebDAV — only when enabled and the vault is held by this server. */
@@ -53,9 +58,13 @@ export class Hub {
     this.admin = new AdminAuth(db, platform.secret);
     this.oauth = new OAuthServer(db, env.PUBLIC_URL, async () => (await this.settings.get()).oauth.allowedRedirectHosts);
     this.ingestTokens = new IngestTokens(db);
-    // Only Google's token and userinfo hosts, https, no redirects.
-    const gfetch = guardedFetch(platform.fetch, { hosts: GOOGLE.hosts, allowPrivate: false, isPrivate: platform.isPrivateHost?.bind(platform) });
-    this.google = new GoogleSignIn(this.connections, new Cursors(db, () => platform.now()), env.PUBLIC_URL, gfetch, () => platform.now());
+    // Each sign-in may call only its service's token and user-info hosts (https, no redirects).
+    this.signIns = new Map(
+      [GOOGLE_SIGNIN, SPOTIFY_SIGNIN].map((spec) => [
+        spec.provider,
+        new OAuthSignIn(spec, this.connections, new Cursors(db, () => platform.now()), env.PUBLIC_URL, guardedFetch(platform.fetch, { hosts: spec.hosts, allowPrivate: false, isPrivate: platform.isPrivateHost?.bind(platform) }), () => platform.now()),
+      ]),
+    );
   }
 
   async init(opts: { setupCode?: string } = {}) {
@@ -179,7 +188,7 @@ export class Hub {
           allowPrivate: def.allowPrivate?.(config) ?? false,
           isPrivate: this.platform.isPrivateHost?.bind(this.platform),
         });
-        return def.create({ config, secrets, fetch, platform: this.platform, timezone: (await this.settings.get()).timezone, connection: { id: c.id, name: c.name } });
+        return def.create({ config, secrets, fetch, platform: this.platform, timezone: (await this.settings.get()).timezone, connection: { id: c.id, name: c.name }, saveSecrets: (patch) => this.connections.patch(c.id, { secrets: patch }, `provider:${c.provider}`) });
       })());
     }
     return (await this.instances.get(key)) as T;

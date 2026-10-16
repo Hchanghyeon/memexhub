@@ -5,9 +5,9 @@ import { Plus } from "lucide-react";
 import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Item, List, Loading, Page, Select, Tile, Tiles, useAction, useData } from "../ui/kit";
 
 type Text = { en: string; ko: string };
-interface Item { id: string; kind: string; name: string; provider: string; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null }
+interface Item { id: string; kind: string; name: string; provider: string; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null; signIn: string | null }
 interface Field { key: string; label: string; type: "text" | "password" | "checkbox" | "number" | "select"; options?: string[]; optional: boolean; defaultValue?: unknown }
-interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null }
+interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null; signIn: string | null }
 
 const KIND: Record<string, [string, string, string, string]> = {
   mail: ["Mail", "메일", "Claude can search and read your mailbox (read-only).", "Claude가 메일함을 찾고 읽어요 (읽기 전용)."],
@@ -17,6 +17,7 @@ const KIND: Record<string, [string, string, string, string]> = {
   notion: ["Notion", "Notion", "Copy records into Notion.", "기록을 Notion으로 복사해요."],
   calendar: ["Calendar", "캘린더", "Read your events (read-only).", "일정을 읽어요 (읽기 전용)."],
   home: ["Home", "집", "Smart-home states and history (read-only).", "스마트홈 상태와 기록 (읽기 전용)."],
+  music: ["Music", "음악", "Your listening history (read-only).", "듣기 기록 (읽기 전용)."],
   weather: ["Weather", "날씨", "The day's weather at a place you choose.", "고른 장소의 그날 날씨."],
 };
 
@@ -38,7 +39,7 @@ export function Connections() {
                 title={x.name} badges={<><Badge>{kind(x.kind)}</Badge><Badge>{x.provider}</Badge></>}
                 meta={<>{!x.enabled ? t("Off", "꺼짐") : x.status === "ok" ? t(`Working · checked ${ago(t, x.lastOkAt, "UTC")}`, `정상 · ${ago(t, x.lastOkAt, "UTC")} 확인`) : x.status === "error" ? <span className="text-destructive">{x.lastError}</span> : t("Not tested yet", "아직 시험 안 함")}{x.email ? ` · ${x.email}` : ""}</>}
                 actions={<>
-                  {x.provider === "google" && <Button size="sm" onClick={() => run(() => post<{ url: string }>(`/connections/${x.id}/google`), undefined, (r) => void (location.href = r.url))}>{x.email ? t("Sign in again", "다시 로그인") : t("Sign in with Google", "Google로 로그인")}</Button>}
+                  {x.signIn && <Button size="sm" onClick={() => run(() => post<{ url: string }>(`/connections/${x.id}/signin`), undefined, (r) => void (location.href = r.url))}>{x.email ? t("Sign in again", "다시 로그인") : t(`Sign in with ${x.signIn}`, `${x.signIn}로 로그인`)}</Button>}
                   {x.enabled && <Button kind="secondary" size="sm" busy={testing === x.id} onClick={async () => { setTesting(x.id); await run(() => post<{ ok: boolean; error?: string }>(`/connections/${x.id}/test`), (r) => (r.ok ? t("Working.", "정상이에요.") : t(`Failed: ${r.error}`, `실패: ${r.error}`)), reload); setTesting(null); }}>{t("Test", "시험")}</Button>}
                   <Button kind="ghost" size="sm" disabled={busy} onClick={() => run(() => post(`/connections/${x.id}/${x.enabled ? "disable" : "enable"}`), x.enabled ? t("Turned off.", "껐어요.") : t("Turned on.", "켰어요."), reload)}>{x.enabled ? t("Turn off", "끄기") : t("Turn on", "켜기")}</Button>
                 </>} />
@@ -88,7 +89,15 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
       {form.secrets.map((f) => (
         <Input key={f.key} label={f.label} hint={t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
       ))}
-      {form.googleRedirect && <Callout><p>{t("In Google Cloud create an OAuth client (Web application), enable the API (Google Tasks API or Google Calendar API) and add this redirect URI:", "Google Cloud에서 OAuth 클라이언트(웹 애플리케이션)를 만들고 API(Google Tasks API 또는 Google Calendar API)를 켠 뒤 이 리디렉션 URI를 추가하세요:")}</p><code>{form.googleRedirect}</code></Callout>}
+      {form.googleRedirect && (
+        <Callout>
+          <p>{form.signIn === "Google"
+            ? t("In Google Cloud create an OAuth client (Web application), enable the API (Google Tasks API or Google Calendar API) and add this redirect URI:", "Google Cloud에서 OAuth 클라이언트(웹 애플리케이션)를 만들고 API(Google Tasks API 또는 Google Calendar API)를 켠 뒤 이 리디렉션 URI를 추가하세요:")
+            : t(`In the ${form.signIn} developer dashboard create an app and add this redirect URI:`, `${form.signIn} 개발자 대시보드에서 앱을 만들고 이 리디렉션 URI를 추가하세요:`)}</p>
+          <code>{form.googleRedirect}</code>
+          <p>{t("After saving, press “Sign in” on the connection.", "저장한 뒤 연결의 “로그인”을 누르세요.")}</p>
+        </Callout>
+      )}
       <Actions><Button type="submit" busy={busy}>{t("Save and test", "저장하고 시험")}</Button></Actions>
     </form>
   );
