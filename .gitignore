@@ -10,3 +10,7 @@ coverage/
 .DS_Store
 dist-worker/
 dist-web/
+
+# Playwright
+test-results/
+playwright-report/

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { get, post, setCsrf, whenSignedOut, type Session } from "./api";
 import { LangContext, makeT, pickLang, useT } from "./i18n";
 import { Link, navigate, useRoute } from "./router";
@@ -10,16 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Login, Setup, Enrol } from "./pages/Auth";
 import { Overview } from "./pages/Overview";
-import { Vault } from "./pages/Vault";
-import { Connections } from "./pages/Connections";
-import { Features } from "./pages/Features";
-import { Recipes } from "./pages/Recipes";
-import { Claude } from "./pages/Claude";
-import { Devices } from "./pages/Devices";
-import { Security } from "./pages/Security";
-import { Activity } from "./pages/Activity";
-import { Backups } from "./pages/Backups";
-import { Start } from "./pages/Start";
+
+// Screens other than the overview load when first opened.
+const Vault = lazy(() => import("./pages/Vault").then((m) => ({ default: m.Vault })));
+const Connections = lazy(() => import("./pages/Connections").then((m) => ({ default: m.Connections })));
+const Features = lazy(() => import("./pages/Features").then((m) => ({ default: m.Features })));
+const Recipes = lazy(() => import("./pages/Recipes").then((m) => ({ default: m.Recipes })));
+const Claude = lazy(() => import("./pages/Claude").then((m) => ({ default: m.Claude })));
+const Devices = lazy(() => import("./pages/Devices").then((m) => ({ default: m.Devices })));
+const Security = lazy(() => import("./pages/Security").then((m) => ({ default: m.Security })));
+const Activity = lazy(() => import("./pages/Activity").then((m) => ({ default: m.Activity })));
+const Backups = lazy(() => import("./pages/Backups").then((m) => ({ default: m.Backups })));
+const Start = lazy(() => import("./pages/Start").then((m) => ({ default: m.Start })));
 
 export function App() {
   const [session, setSession] = useState<Session>();
@@ -109,7 +111,9 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
   useEffect(() => {
     if (!session.onboarded && path === "/") navigate("/start", true);
   }, [session.onboarded, path]);
-  useEffect(() => window.scrollTo(0, 0), [path]);
+  useEffect(() => {
+    window.scrollTo(0, 0); // returns a Promise in newer browsers: never let it become the effect cleanup
+  }, [path]);
   const page: ReactNode = (() => {
     switch (path) {
       case "/": return <Overview />;
@@ -143,7 +147,7 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
           <Button variant="ghost" size="icon" aria-label={t("Menu", "메뉴")} onClick={() => setMenu(true)}><Menu /></Button>
           <strong className="text-[0.95rem]">{current ? t(...current.label) : "memexhub"}</strong>
         </div>
-        {page}
+        <Suspense fallback={<div className="mx-auto w-full max-w-3xl px-4 pt-12 sm:px-8"><Skeleton lines={4} /></div>}>{page}</Suspense>
       </main>
     </div>
   );

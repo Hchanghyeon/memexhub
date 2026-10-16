@@ -78,4 +78,6 @@ npm run dev            # server
 npm run dev:web        # admin web app with hot reload (http://localhost:5173/admin/)
 npm run build:web      # what the server serves under /admin
 npm test
+npm run test:e2e       # the admin app in a real browser (after build:web; `npx playwright install chromium` once,
+                       # or PW_CHROME=/path/to/chrome to use an installed one)
 ```
