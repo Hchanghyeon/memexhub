@@ -418,7 +418,19 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       clients: (await hub.oauth.clients()).map((x) => ({ id: x.client_id, name: x.client_name ?? x.client_id, createdAt: x.created_at, lastUsed: x.last_token_at ?? null, revoked: !!x.revoked_at })),
       tools: (await hub.visibleTools()).map((t) => ({ name: t.name, readOnly: !!t.readOnly, destructive: !!t.destructive })),
       toolLanguage: s.toolLanguage,
+      destructive: hub.tools.filter((t) => t.destructive).map((t) => ({ name: t.name, description: t.description, enabled: s.enabledDestructive.includes(t.name) })),
     });
+  });
+  api.post("/claude/destructive", async (c) => {
+    const f = await body(c, z.object({ name: z.string().max(64), enabled: z.boolean() }));
+    if (!hub.tools.some((t) => t.destructive && t.name === f.name)) throw new Fail("invalid_input", "unknown tool");
+    const s = await hub.settings.get();
+    const on = new Set(s.enabledDestructive);
+    if (f.enabled) on.add(f.name);
+    else on.delete(f.name);
+    await hub.settings.set("enabledDestructive", [...on].sort());
+    await audit(db, actor(c), f.enabled ? "tool.enable" : "tool.disable", f.name);
+    return c.json({ ok: true });
   });
   api.post("/claude/language", async (c) => {
     const f = await body(c, z.object({ toolLanguage: z.enum(["en", "ko", "both"]) }));
@@ -455,7 +467,17 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       forcedPublic: hub.env.ADMIN_PUBLIC || hub.platform.name === "workers",
       adminUrl: `${hub.env.PUBLIC_URL}${B}`,
       protectedPaths: s.vault.protectedPaths,
+      readOnly: s.vault.readOnly,
     });
+  });
+  api.post("/vault-safety", async (c) => {
+    const glob = z.string().trim().min(1).max(200).refine((g) => !g.startsWith("/") && !g.split("/").includes(".."), "relative paths only");
+    const f = await body(c, z.object({ readOnly: z.boolean(), protectedPaths: z.array(glob).max(50) }));
+    const s = await hub.settings.get();
+    await hub.settings.set("vault", { ...s.vault, readOnly: f.readOnly, protectedPaths: [...new Set(f.protectedPaths)] });
+    await hub.reload();
+    await audit(db, actor(c), "vault.safety", undefined, { readOnly: f.readOnly, protectedPaths: f.protectedPaths.length });
+    return c.json({ ok: true });
   });
   api.post("/totp/start", async (c) => {
     if (await hub.admin.hasTotp(c.get("adminId"))) throw new Fail("already_on", undefined, 409);

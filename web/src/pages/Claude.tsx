@@ -1,12 +1,12 @@
 import { post } from "../api";
 import { ago, useT, when } from "../i18n";
-import { Badge, Button, Card, Copy, Empty, Field, Item, List, Loading, Page, Segmented, Steps, Tags, useAction, useConfirm, useData } from "../ui/kit";
+import { Badge, Button, Card, Copy, Empty, Field, Item, List, Loading, Page, Segmented, Steps, Tags, Toggle, useAction, useConfirm, useData } from "../ui/kit";
 
-interface C { url: string; clients: { id: string; name: string; createdAt: string; lastUsed: string | null; revoked: boolean }[]; tools: { name: string; readOnly: boolean; destructive: boolean }[]; toolLanguage: "en" | "ko" | "both" }
+interface C { url: string; clients: { id: string; name: string; createdAt: string; lastUsed: string | null; revoked: boolean }[]; tools: { name: string; readOnly: boolean; destructive: boolean }[]; toolLanguage: "en" | "ko" | "both"; destructive: { name: string; description: { en: string; ko: string }; enabled: boolean }[] }
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function Claude() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { data, error, reload } = useData<C>("/claude");
   const { busy, run } = useAction();
   const confirm = useConfirm();
@@ -41,6 +41,14 @@ export function Claude() {
           <Segmented value={data.toolLanguage} onChange={(v) => run(() => post("/claude/language", { toolLanguage: v }), t("Saved.", "저장했어요."), reload)} options={[{ value: "ko", label: "한국어" }, { value: "en", label: "English" }, { value: "both", label: t("Both", "둘 다") }]} />
         </Field>
       </Card>
+      {data.destructive.length > 0 && (
+        <Card title={t("Tools that move or delete notes", "노트를 옮기거나 지우는 도구")} badge={<Badge>{t("Optional", "선택")}</Badge>} sub={t("Off by default. Deleted notes go to .trash/ and can be brought back.", "기본은 꺼져 있어요. 지운 노트는 .trash/로 가서 되살릴 수 있어요.")}>
+          {data.destructive.map((x) => (
+            <Toggle key={x.name} checked={x.enabled} disabled={busy} onChange={(on) => run(() => post("/claude/destructive", { name: x.name, enabled: on }), on ? t("Claude can use it now.", "이제 Claude가 쓸 수 있어요.") : t("Hidden from Claude.", "Claude에게서 숨겼어요."), reload)}
+              label={<code>{x.name}</code>} hint={lang === "ko" ? x.description.ko : x.description.en} />
+          ))}
+        </Card>
+      )}
     </Page>
   );
 }

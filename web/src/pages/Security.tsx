@@ -2,10 +2,10 @@ import { useState } from "react";
 import { post } from "../api";
 import { useT } from "../i18n";
 import { checkText, type Check } from "../checks";
-import { Badge, Button, Card, Copy, Hint, Item, List, Loading, Page, Status, Tags, Toggle, useAction, useData } from "../ui/kit";
+import { Badge, Button, Card, Copy, Item, List, Loading, Page, Status, TextArea, Toggle, useAction, useData } from "../ui/kit";
 import { TwoFactorSetup } from "./Auth";
 
-interface S { checks: Check[]; totp: boolean; mcpAnthropicOnly: boolean; allowPublic: boolean; forcedPublic: boolean; adminUrl: string; protectedPaths: string[] }
+interface S { checks: Check[]; totp: boolean; mcpAnthropicOnly: boolean; allowPublic: boolean; forcedPublic: boolean; adminUrl: string; protectedPaths: string[]; readOnly: boolean }
 
 export function Security() {
   const { t } = useT();
@@ -31,10 +31,22 @@ export function Security() {
           label={t("Open this page from anywhere", "이 화면을 어디서나 열기")} hint={data.totp ? t("Signing in from outside needs the password and the authenticator code.", "밖에서 로그인할 때는 비밀번호와 인증 앱 코드가 필요해요.") : t("Turn on two-factor first.", "먼저 2단계 인증을 켜세요.")} />
         {(data.allowPublic || data.forcedPublic) && <Copy text={data.adminUrl} />}
       </Card>
-      <Card title={t("Notes Claude may not change", "Claude가 못 고치는 노트")}>
-        <Tags>{data.protectedPaths.map((p) => <code key={p}>{p}</code>)}</Tags>
-        <Hint>{t("Change them under Vault → Wiki layout → rule notes.", "볼트 → 위키 구조 → 규칙 노트에서 바꿔요.")}</Hint>
-      </Card>
+      <VaultSafety s={data} reload={reload} />
     </Page>
+  );
+}
+
+function VaultSafety({ s, reload }: { s: S; reload: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const [paths, setPaths] = useState(s.protectedPaths.join("\n"));
+  const save = (readOnly: boolean) => run(() => post("/vault-safety", { readOnly, protectedPaths: paths.split("\n").map((x) => x.trim()).filter(Boolean) }), t("Saved.", "저장했어요."), reload);
+  return (
+    <Card title={t("What Claude may change", "Claude가 바꿀 수 있는 것")} footer={<Button busy={busy} onClick={() => void save(s.readOnly)}>{t("Save", "저장")}</Button>}>
+      <Toggle checked={s.readOnly} disabled={busy} onChange={(on) => void save(on)} label={t("Read-only vault", "볼트 읽기 전용")}
+        hint={t("Claude can read and search but not write. Payments and other records still arrive, but notes are not updated.", "Claude는 읽고 찾기만 하고 쓰지 못해요. 결제 같은 기록은 계속 받지만 노트는 고쳐지지 않아요.")} />
+      <TextArea label={t("Notes Claude may not change", "Claude가 못 고치는 노트")} hint={t("One per line; * matches within a folder, ** across folders; relative to the vault. Rule notes from Vault → Wiki layout are protected too.", "한 줄에 하나. *는 폴더 안, **는 하위 폴더까지, 볼트 안의 상대 경로로. 볼트 → 위키 구조의 규칙 노트도 함께 보호돼요.")}
+        value={paths} onChange={setPaths} rows={5} mono />
+    </Card>
   );
 }
