@@ -1,7 +1,7 @@
 {
   "name": "memexhub",
   "version": "0.1.0",
-  "description": "A self-hosted memex: an LLM Wiki engine for Claude that keeps growing from your notes and life logs.",
+  "description": "The second brain for your AI: a self-hosted engine that collects your notes and life logs into an LLM Wiki, keeps it trustworthy, and serves it to any AI through one MCP connector.",
   "license": "MIT",
   "type": "module",
   "private": true,
