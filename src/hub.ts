@@ -10,6 +10,7 @@ import { pick } from "./core/i18n.js";
 import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
+import { SearchIndex } from "./storage/search-index.js";
 import { OAuthSignIn } from "./auth/oauth-signin.js";
 import { GOOGLE_SIGNIN } from "./providers/google/auth.js";
 import { SPOTIFY_SIGNIN } from "./providers/music/spotify.js";
@@ -45,6 +46,8 @@ export class Hub {
   moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
   /** Admin-only module APIs (see ModuleInstance.admin). */
   moduleAdmin = new Map<string, unknown>();
+  /** Full-text index of the vault's notes (rebuildable; see storage/search-index). */
+  searchIndex: SearchIndex;
   /** Summary parts by module, in module order (Composite for day_summary / week_summary). */
   summaries: { id: string; title: import("./core/i18n.js").Text; summary: import("./core/registry.js").Summary }[] = [];
   jobs: { module: string; job: JobDef }[] = [];
@@ -56,6 +59,7 @@ export class Hub {
     this.connections = new Connections(db, platform.secret);
     this.bus = new EventBus(db);
     this.admin = new AdminAuth(db, platform.secret);
+    this.searchIndex = new SearchIndex(db);
     this.oauth = new OAuthServer(db, env.PUBLIC_URL, async () => (await this.settings.get()).oauth.allowedRedirectHosts);
     this.ingestTokens = new IngestTokens(db);
     // Each sign-in may call only its service's token and user-info hosts (https, no redirects).
@@ -95,6 +99,7 @@ export class Hub {
           { ...s.vault, protectedPaths: [...s.vault.protectedPaths, ...layout.protectedGlobs()], writeOncePaths: layout.writeOnceGlobs() },
           this.platform.db,
           "system",
+          { index: this.searchIndex, source: `${store.id}:${s.vault.connection ?? ""}` },
         );
       }
     } catch (e) {

@@ -3,6 +3,7 @@ import { normalizeVaultPath } from "../../storage/paths.js";
 import { StorageError } from "../../storage/types.js";
 import type { Layout } from "./layout.js";
 import { parseFrontmatter, parseNote } from "./parse.js";
+import { isHub } from "./lint.js";
 
 /** Page lifecycle: Claude writes drafts; the owner confirms (stable); outdated pages are kept as deprecated. */
 export const STATUSES = ["draft", "stable", "deprecated"] as const;
@@ -49,7 +50,7 @@ export async function gateWikiWrite(vault: SafeVault, layout: Layout, path: stri
   const fm = parseFrontmatter(text);
   if (!fm.present) throw new StorageError("invalid", `wiki page ${p} needs frontmatter (---) with title, sources and dates — see wiki_layout`);
   // Hub pages that only list other pages (sub-indexes, maps of content) cite no source and carry no status.
-  if (["index", "area", "moc"].includes(String(fm.data.type ?? "").toLowerCase())) return { text, notes: [] };
+  if (isHub(fm.data)) return { text, notes: [] };
   const n = parseNote(text);
   const resolve = resolver((await vault.list()).map((f) => f.path));
   const targets = n.links.map((l) => ({ t: l.target, to: resolve(l.target) }));

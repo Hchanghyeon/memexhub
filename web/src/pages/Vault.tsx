@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { post } from "../api";
-import { useT } from "../i18n";
+import { ago, useT } from "../i18n";
 import { Badge, Button, Card, Check, Choice, Field, Fields, Input, Loading, More, Page, Segmented, Select, Status, Steps, Toggle, useAction, useData } from "../ui/kit";
 
 interface V {
   connected: boolean; provider: string | null; choice: { provider?: string; path?: string; url?: string; username?: string; notionPage?: string };
   roots: string[]; runtime: string;
   dav: { enabled: boolean; maxFileMb: number; available: boolean };
+  search: { available: boolean; ready: boolean; notes: number; updated: string | null } | null;
   wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
 }
 
@@ -52,6 +53,7 @@ function Storage({ v, reload }: { v: V; reload: () => void }) {
         <Status tone={v.connected ? "ok" : "err"}>{v.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")}</Status>
         {where && <code>{where}</code>}
       </div>
+      {v.connected && v.search && <SearchIndexLine s={v.search} reload={reload} />}
       {open && (
         <>
           <Select label={t("Kind", "종류")} value={f.provider} onChange={(p) => setF({ ...f, provider: p })} options={options} />
@@ -143,5 +145,23 @@ function Sync({ v, reload }: { v: V; reload: () => void }) {
         </>
       )}
     </Card>
+  );
+}
+
+/** The search index behind note search: how many notes, how fresh, and a rebuild button. */
+function SearchIndexLine({ s, reload }: { s: NonNullable<V["search"]>; reload: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const text = !s.available
+    ? t("Search index: not available here — search scans the notes.", "검색 색인: 이 환경에서는 못 써요 — 검색할 때 노트를 훑어요.")
+    : !s.ready
+      ? t("Search index: building…", "검색 색인: 만드는 중…")
+      : t(`Search index: ${s.notes} notes · updated ${ago(t, s.updated, tz)}`, `검색 색인: 노트 ${s.notes}개 · ${ago(t, s.updated, tz)} 갱신`);
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Status tone={s.available && s.ready ? "ok" : "idle"}>{text}</Status>
+      {s.available && <Button kind="ghost" size="sm" busy={busy} onClick={() => run(() => post<{ notes: number }>("/vault/search-index/rebuild"), (r) => t(`Rebuilt: ${r.notes} notes.`, `다시 만들었어요: 노트 ${r.notes}개.`), reload)}>{t("Rebuild", "다시 만들기")}</Button>}
+    </div>
   );
 }

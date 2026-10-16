@@ -3,18 +3,19 @@ import { decrypt, encrypt } from "./crypto.js";
 
 /**
  * Logical, encrypted backups of the database (works the same on SQLite and D1).
- * Sessions, one-time codes and caches are left out; everything else — settings, encrypted connections,
+ * Sessions, one-time codes, caches (place names, map pictures) and the search index are left out; everything else — settings, encrypted connections,
  * tokens (hashes), events, inbox, audit — is kept. Restoring needs the same MEMEXHUB_SECRET, because
  * connection secrets inside are encrypted with it as well.
  */
-const SKIP = new Set(["schema_migrations", "admin_sessions", "admin_trusted", "oauth_codes", "geocode_cache"]);
+const SKIP = new Set(["schema_migrations", "admin_sessions", "admin_trusted", "oauth_codes", "geocode_cache", "map_tiles"]);
 const PURPOSE = "backup";
 const AAD = "memexhub-backup-v1";
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
 async function tables(db: Db) {
   const rows = await db.all<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`);
-  return rows.map((r) => r.name).filter((n) => IDENT.test(n) && !SKIP.has(n));
+  // The search index (vault_search*) and map pictures are rebuilt from the vault / fetched again.
+  return rows.map((r) => r.name).filter((n) => IDENT.test(n) && !SKIP.has(n) && !n.startsWith("vault_search"));
 }
 
 export async function exportBackup(db: Db, secret: string, now = new Date()): Promise<string> {

@@ -43,8 +43,8 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
       name: "search_notes",
       readOnly: true,
       description: T(
-        "Full-text search across the vault. Returns matching lines per note. Use this before opening notes.",
-        "볼트 전체 본문 검색. 노트별 매칭 줄을 돌려준다. 노트를 열기 전에 먼저 쓴다.",
+        "Full-text search across the vault, best matches first (a hit in the title, aliases or summary ranks higher). Every word must appear; \"quotes\" keep a phrase together. Returns matching lines per note. Use this before opening notes.",
+        "볼트 전체 본문 검색, 잘 맞는 노트부터 (제목·별칭·요약에 있으면 위로). 모든 단어가 들어 있어야 하고, \"따옴표\" 로 구절을 묶는다. 노트별 매칭 줄을 돌려준다. 노트를 열기 전에 먼저 쓴다.",
       ),
       input: {
         query: z.string().min(1),
@@ -66,7 +66,9 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
       async run() {
         const files = await vault.list();
         const kb = files.reduce((s, f) => s + f.size, 0) / 1024;
-        return `files ${files.length} · notes ${files.filter((f) => f.path.endsWith(".md")).length} · ${kb.toFixed(1)}KB`;
+        const ix = await vault.searchIndexStats();
+        const index = !ix.available ? "search index: off (scanning)" : !ix.ready ? "search index: building" : `search index: ${ix.notes} notes · updated ${ix.updated}`;
+        return `files ${files.length} · notes ${files.filter((f) => f.path.endsWith(".md")).length} · ${kb.toFixed(1)}KB\n${index}`;
       },
     }),
     defineTool({
@@ -132,6 +134,10 @@ export default defineModule({
   setup: ({ vault, settings }) => {
     const layout = new Layout(settings.wiki.roles);
     const on = settings.wiki.gate ?? !!layout.sources;
-    return { tools: vaultTools(vault!, on ? (v, p, t) => gateWikiWrite(v, layout, p, t) : undefined) };
+    return {
+      tools: vaultTools(vault!, on ? (v, p, t) => gateWikiWrite(v, layout, p, t) : undefined),
+      // Notes changed outside memexhub (Obsidian sync, server edits) reach the search index within 10 minutes.
+      jobs: [{ id: "search-index", everyMinutes: 10, run: async () => void (await vault!.reindex()) }],
+    };
   },
 });

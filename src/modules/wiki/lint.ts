@@ -19,6 +19,31 @@ export interface LintRule {
   run(g: LinkGraph, layout: Layout, o: Opts): Finding[];
 }
 
+/** Hub pages list other pages (sub-indexes, maps of content): frontmatter type index, area or moc. */
+export const HUB_TYPES = ["index", "area", "moc"];
+export const isHub = (fm: Record<string, unknown>) => HUB_TYPES.includes(String(fm.type ?? "").toLowerCase());
+const MAX_INDEX_DEPTH = 3;
+
+/** Notes reachable from an index note through hub pages (up to 3 levels), the index itself included. */
+export function indexTree(g: LinkGraph, ix: string): Set<string> {
+  const seen = new Set<string>([ix]);
+  let level = [ix];
+  for (let d = 0; d < MAX_INDEX_DEPTH && level.length; d++) {
+    const next: string[] = [];
+    for (const p of level)
+      for (const l of g.notes.get(p)?.links ?? []) {
+        const to = g.resolve(l.target, p);
+        const n = to ? g.notes.get(to) : undefined;
+        if (to && n && !seen.has(to) && isHub(n.frontmatter)) {
+          seen.add(to);
+          next.push(to);
+        }
+      }
+    level = next;
+  }
+  return seen;
+}
+
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : typeof v === "string" && v ? v.split(",").map((s) => s.trim()) : []);
 const num = (v: unknown, d: number) => (typeof v === "number" && v > 0 ? v : d);
 
@@ -52,13 +77,21 @@ export const RULES: LintRule[] = [
     defaults: {},
     run(g, l) {
       const out: Finding[] = [];
+      // Each index with its hub pages: a page listed in a sub-index counts as listed.
+      const listed = new Map<string, Set<string>>();
+      const listedIn = (ix: string) => {
+        if (!listed.has(ix)) {
+          const tree = indexTree(g, ix);
+          listed.set(ix, new Set([...tree].flatMap((h) => (g.notes.get(h)?.links ?? []).map((k) => g.resolve(k.target, h)).filter((x): x is string => !!x))));
+        }
+        return listed.get(ix)!;
+      };
       for (const p of g.notes.keys()) {
         if (!l.isWikiPage(p)) continue;
         const ix = l.indexFor(p);
         if (!ix) continue;
-        const index = g.notes.get(ix);
-        if (!index) out.push({ rule: "missing-index-entry", path: p, message: `index note ${ix} does not exist` });
-        else if (!index.links.some((k) => g.resolve(k.target, ix) === p)) out.push({ rule: "missing-index-entry", path: p, message: `not listed in ${ix}` });
+        if (!g.notes.get(ix)) out.push({ rule: "missing-index-entry", path: p, message: `index note ${ix} does not exist` });
+        else if (!listedIn(ix).has(p)) out.push({ rule: "missing-index-entry", path: p, message: `not listed in ${ix} or its sub-indexes` });
       }
       return out;
     },
@@ -79,7 +112,7 @@ export const RULES: LintRule[] = [
     run(g, l, o) {
       const max = num(o.maxEntries, 50);
       return [...g.notes.values()]
-        .filter((n) => l.isIndex(n.path))
+        .filter((n) => l.isIndex(n.path) || (l.isWikiPage(n.path) && isHub(n.frontmatter)))
         .map((n) => ({ n, entries: n.text.split("\n").filter((x) => /^\s*[-*]\s+.*\[\[/.test(x)).length }))
         .filter((x) => x.entries > max)
         .map((x) => ({ rule: "index-too-long", path: x.n.path, message: `${x.entries} entries > ${max} — split into sub-indexes` }));
@@ -119,7 +152,7 @@ export const RULES: LintRule[] = [
     run(g, l) {
       if (!l.sources) return [];
       return [...g.notes.values()]
-        .filter((n) => l.isWikiPage(n.path) && !n.links.some((k) => l.isSource(g.resolve(k.target, n.path) ?? "")))
+        .filter((n) => l.isWikiPage(n.path) && !isHub(n.frontmatter) && !n.links.some((k) => l.isSource(g.resolve(k.target, n.path) ?? "")))
         .map((n) => ({ rule: "wiki-page-without-source", path: n.path, message: "cites no source note" }));
     },
   },
@@ -130,7 +163,7 @@ export const RULES: LintRule[] = [
     run(g, l) {
       const ok = ["draft", "stable", "deprecated"];
       return [...g.notes.values()]
-        .filter((n) => l.isWikiPage(n.path) && !ok.includes(String(n.frontmatter.status ?? "")))
+        .filter((n) => l.isWikiPage(n.path) && !isHub(n.frontmatter) && !ok.includes(String(n.frontmatter.status ?? "")))
         .map((n) => ({ rule: "page-status", path: n.path, message: n.frontmatter.status ? `status "${n.frontmatter.status}" is not draft, stable or deprecated` : "no status (draft · stable · deprecated)" }));
     },
   },

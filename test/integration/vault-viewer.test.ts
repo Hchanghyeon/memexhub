@@ -83,6 +83,16 @@ describe("vault viewer API", () => {
     expect((await a.get("/vault/file")).status).toBe(400);
   });
 
+  it("builds the search index on request and searches through it", async () => {
+    expect((await a.json("/vault")).search).toMatchObject({ available: true });
+    const r = await a.post("/vault/search-index/rebuild");
+    expect(r.status).toBe(200);
+    expect((await r.json()).notes).toBe(2);
+    expect((await a.json("/vault")).search).toMatchObject({ available: true, ready: true, notes: 2 });
+    expect((await a.json("/vault/search?q=sample")).hits.map((h: { path: string }) => h.path)).toEqual(["World.md"]);
+    expect((await adminClient(hub).post("/vault/search-index/rebuild")).status).toBe(401);
+  });
+
   it("needs a signed-in admin", async () => {
     const anon = adminClient(hub);
     expect((await anon.get("/vault/files")).status).toBe(401);

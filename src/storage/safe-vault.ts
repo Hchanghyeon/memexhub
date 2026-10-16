@@ -3,6 +3,13 @@ import { audit } from "../core/audit.js";
 import { sha256Hex } from "../core/crypto.js";
 import { matchesAny, normalizeVaultDir, normalizeVaultPath } from "./paths.js";
 import { StorageError, type FileInfo, type VaultStorage } from "./types.js";
+import type { SearchIndex } from "./search-index.js";
+
+/** The vault's search index and a name for this vault (a different vault rebuilds the index). */
+export interface IndexBinding {
+  index: SearchIndex;
+  source: string;
+}
 
 export interface VaultPolicy {
   readOnly: boolean;
@@ -29,10 +36,11 @@ export class SafeVault {
     private policy: VaultPolicy,
     private db: Db,
     private actor: string,
+    private search_?: IndexBinding,
   ) {}
 
   withActor(actor: string) {
-    return new SafeVault(this.store, this.policy, this.db, actor);
+    return new SafeVault(this.store, this.policy, this.db, actor, this.search_);
   }
 
   /**
@@ -40,7 +48,7 @@ export class SafeVault {
    * Never hand this to MCP tools. Read-only mode, write-once sources and size limits still apply.
    */
   confirmedByAdmin(actor = "admin") {
-    return new SafeVault(this.store, { ...this.policy, protectedPaths: [] }, this.db, actor);
+    return new SafeVault(this.store, { ...this.policy, protectedPaths: [] }, this.db, actor, this.search_);
   }
 
   private checkNote(path: string): string {
@@ -81,6 +89,31 @@ export class SafeVault {
     return { path: p, type, bytes: await this.store.readBytes(p) };
   }
 
+  /** Keep the search index in step with a write made through memexhub. Never fails the write. */
+  private async indexNote(p: string, text: string) {
+    if (!this.search_) return;
+    try {
+      const st = await this.store.stat(p);
+      if (st) await this.search_.index.upsert(p, text, st);
+    } catch {
+      // the next reconcile catches up
+    }
+  }
+  private async unindex(p: string) {
+    await this.search_?.index.remove(p).catch(() => {});
+  }
+
+  /** Re-read notes changed outside memexhub (Obsidian sync, edits on the server) into the search index. */
+  async reindex(opts: { rebuild?: boolean } = {}) {
+    if (!this.search_) return undefined;
+    if (opts.rebuild) await this.search_.index.clear();
+    return this.search_.index.reconcile(await this.list(), async (p) => (await this.store.read(p)).text, this.search_.source);
+  }
+
+  async searchIndexStats() {
+    return this.search_ ? this.search_.index.stats() : { available: false, ready: false, notes: 0, updated: null };
+  }
+
   async list(dir?: string): Promise<FileInfo[]> {
     const d = normalizeVaultDir(dir);
     return (await this.store.list(d)).filter((f) => !f.path.split("/").some((s) => s.startsWith(".")));
@@ -103,6 +136,7 @@ export class SafeVault {
       if (cur.text === text) return { path: p, created: false, changed: false };
     }
     await this.store.write(p, text, existing ? { ifMatch: opts.ifMatch } : { ifNoneMatch: "*" });
+    await this.indexNote(p, text);
     await audit(this.db, this.actor, existing ? "vault.overwrite" : "vault.create", p, {
       bytes,
       sha: (await sha256Hex(text)).slice(0, 12),
@@ -127,6 +161,7 @@ export class SafeVault {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const dest = `${TRASH}/${stamp} ${p.replace(/\//g, " - ")}`;
     await this.store.move(p, dest);
+    await this.unindex(p);
     await audit(this.db, this.actor, "vault.trash", p);
     return { path: p, movedTo: dest };
   }
@@ -138,6 +173,8 @@ export class SafeVault {
     this.checkWritable(b, "create");
     if (await this.store.stat(b)) throw new StorageError("exists", `"${b}" already exists`);
     await this.store.move(a, b);
+    await this.unindex(a);
+    await this.indexNote(b, (await this.store.read(b).catch(() => ({ text: "" }))).text);
     await audit(this.db, this.actor, "vault.move", a, { to: b });
     return { from: a, to: b };
   }
@@ -145,6 +182,11 @@ export class SafeVault {
   async search(query: string, opts: { regex?: boolean; caseSensitive?: boolean; limit?: number }) {
     const limit = Math.min(Math.max(opts.limit ?? 30, 1), 200);
     if (query.length > 300) throw new StorageError("invalid", "query too long");
+    // Plain searches use the index (ranked, fast); regex and case-sensitive ones keep exact scanning.
+    if (!opts.regex && !opts.caseSensitive && this.search_) {
+      const hits = await this.search_.index.search(query, limit).catch(() => undefined);
+      if (hits) return hits;
+    }
     const re = new RegExp(opts.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), opts.caseSensitive ? "" : "i");
     if (this.store.capabilities.search && this.store.search) return this.store.search(re, { limit });
     // Fallback: scan notes (cache/index for remote stores comes later).

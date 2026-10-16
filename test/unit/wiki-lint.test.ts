@@ -81,3 +81,38 @@ describe("wiki_lint on a fixture vault (llm-wiki preset)", () => {
     expect(formatFindings([])).toContain("no findings");
   });
 });
+
+describe("sub-indexes (hub pages)", () => {
+  let g: LinkGraph;
+  const layout = new Layout(PRESETS["llm-wiki"]!);
+  beforeAll(async () => {
+    const root = mkdtempSync(join(tmpdir(), "mx-hub-"));
+    const files: Record<string, string> = {
+      "raw/s.md": "source",
+      "wiki/index.md": "- [[Basics]] — sub-index\n- [[Not a hub]] — plain page\n",
+      "wiki/Basics.md": "---\ntype: area\n---\n- [[Deeper]]\n- [[A]]\n" + "- [[A]]\n".repeat(60),
+      "wiki/Deeper.md": "---\ntype: moc\n---\n- [[B]]\n- [[Basics]]\n", // links back: a cycle
+      "wiki/Not a hub.md": "---\ntype: wiki\nstatus: draft\n---\n[[C]] [[s]]",
+      "wiki/A.md": "---\nstatus: draft\n---\nA [[s]]",
+      "wiki/B.md": "---\nstatus: draft\n---\nB [[s]]",
+      "wiki/C.md": "---\nstatus: draft\n---\nC [[s]]",
+    };
+    for (const [p, c] of Object.entries(files)) {
+      mkdirSync(dirname(join(root, p)), { recursive: true });
+      writeFileSync(join(root, p), c);
+    }
+    const db = sqliteDb(":memory:");
+    await migrate(db);
+    g = await LinkGraph.build(new SafeVault(new FsStorage(root), { readOnly: false, protectedPaths: [], maxWriteBytes: 1e6 }, db, "t"));
+  });
+  const of = (rule: string) => lint(g, layout, { [rule]: { enabled: true } }, [rule]).map((f) => f.path).sort();
+
+  it("a page listed in a sub-index (two levels down, through a cycle) is listed; one linked from a plain page is not", () => {
+    expect(of("missing-index-entry")).toEqual(["wiki/C.md"]);
+  });
+  it("sub-indexes count for index-too-long, and need no status or source", () => {
+    expect(of("index-too-long")).toEqual(["wiki/Basics.md"]);
+    expect(of("page-status")).toEqual([]);
+    expect(of("wiki-page-without-source")).toEqual([]);
+  });
+});

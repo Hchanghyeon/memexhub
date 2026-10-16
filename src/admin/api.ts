@@ -264,6 +264,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       roots: opts.vaultRoots,
       runtime: hub.platform.name,
       dav: { enabled: s.dav.enabled, maxFileMb: s.dav.maxFileMb, available: !!storage[0] && storage[0].provider === "fs" },
+      search: hub.vault ? await hub.vault.searchIndexStats() : null,
       wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, gate: s.wiki.gate ?? !!new Layout(s.wiki.roles).sources, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })) },
     });
   });
@@ -323,6 +324,10 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     await hub.settings.set("wiki", { ...s.wiki, lint });
     await hub.reload();
     return c.json({ ok: true });
+  });
+  api.post("/vault/search-index/rebuild", async (c) => {
+    const r = await needVault().reindex({ rebuild: true });
+    return c.json({ ok: true, notes: r?.changed ?? 0 });
   });
   api.post("/wiki/gate", async (c) => {
     const f = await body(c, z.object({ on: z.boolean() }));

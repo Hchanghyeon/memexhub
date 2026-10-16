@@ -69,6 +69,20 @@ An empty role switches the related feature off (its tools are not shown to Claud
 
 Links resolve like Obsidian: exact path → path relative to the linking note → basename (nearest folder first).
 
+**Sub-indexes.** A wiki page whose frontmatter `type` is `index`, `area` or `moc` is a *hub*: it lists other pages. A page listed in a hub that the folder index links to (up to three levels) counts as listed for `missing-index-entry`; hubs are checked by `index-too-long` like indexes and need no `status` or source.
+
+## Search index ✅
+
+`search_notes` (and the admin Notes search) use a full-text index in the database: SQLite FTS5 with the **trigram** tokenizer, so words match inside words and Korean particles do not get in the way ("커넥션" finds "커넥션을").
+- **Ranking:** best match first, with a hit in the title (×10), aliases (×6) or summary (×4) above one in the body; ties go to the newest note.
+- **Query rules:** every word must appear; `"quotes"` keep a phrase. Words shorter than three letters are matched in the stored text.
+- **Exact modes:** `regex` and case-sensitive searches still scan the notes.
+- **Freshness:** writes through memexhub are indexed at once; changes made elsewhere (Obsidian sync, edits on the server) within 10 minutes. *Rebuild* is on the Vault screen.
+- **Not in backups:** the index can always be rebuilt from the vault, so backups leave it out.
+- **Fallback:** where FTS5 is missing, search scans as before.
+
+Design and the reasons for not using vector search: the vault note "설계 8 - 목차와 검색 색인" (Korean).
+
 ## Harness: code checks, the owner confirms ✅
 
 The judgement (what a source means, what to change) stays with Claude; everything that has one right answer is checked in code.
