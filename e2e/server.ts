@@ -31,7 +31,7 @@ writeFileSync(join(vaultDir, "files", "pixel.png"), Buffer.from("iVBORw0KGgoAAAA
 writeFileSync(join(vaultDir, "files", "Scan result.pdf"), "%PDF-1.4\n%sample\n");
 mkdirSync(join(vaultDir, "raw"));
 mkdirSync(join(vaultDir, "wiki"));
-writeFileSync(join(vaultDir, "raw", "2026-01-02 Sowing guide.md"), "---\ntitle: Seed list\ntype: source\n---\nTomatoes in March.\n");
+writeFileSync(join(vaultDir, "raw", "2026-01-02 Sowing guide.md"), "---\ntitle: Sowing guide\ntype: source\n---\nTomatoes in March.\n");
 writeFileSync(join(vaultDir, "wiki", "Tomatoes.md"), "---\ntitle: Tomatoes\nstatus: draft\n---\n# Tomatoes\n\nSow in March ([[2026-01-02 Sowing guide]]).\n");
 writeFileSync(join(vaultDir, "Attachments.md"), "# Attachments\n\n![[pixel.png]]\n\nSee [[Scan result.pdf]].\n");
 const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
