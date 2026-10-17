@@ -36,7 +36,9 @@ mkdirSync(join(vaultDir, "wiki"));
 writeFileSync(join(vaultDir, "raw", "2026-01-02 Sowing guide.md"), "---\ntitle: Sowing guide\ntype: source\n---\nTomatoes in March.\n");
 writeFileSync(join(vaultDir, "wiki", "Tomatoes.md"), "---\ntitle: Tomatoes\nstatus: draft\n---\n# Tomatoes\n\nSow in March ([[2026-01-02 Sowing guide]]).\n");
 writeFileSync(join(vaultDir, "Attachments.md"), "# Attachments\n\n![[pixel.png]]\n\nSee [[Scan result.pdf]].\n");
-const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} }, vaultHistory: (root) => new GitHistory(join(mkdtempSync(join(tmpdir(), "mx-e2eh-")), "v.git"), root) }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
+// One repository for the whole run, like DATA_DIR/vault-history on a real server (reloads reuse it).
+const historyDir = join(mkdtempSync(join(tmpdir(), "mx-e2eh-")), "v.git");
+const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} }, vaultHistory: (root) => new GitHistory(historyDir, root) }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
 const log = console.log;
 console.log = () => {};
 await hub.init();
