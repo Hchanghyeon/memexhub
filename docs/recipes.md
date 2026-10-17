@@ -1,5 +1,10 @@
 # Message recipes
 
+> **In plain words:** the admin page **Payment messages** shows this as:
+> - **Read by themselves:** card companies and pay services that have a recipe. Recorded without asking.
+> - **Please check:** messages memexhub was not sure about (the inbox). When you answer "It's a payment" with **read messages like this by themselves** on, a recipe is made from that message and your answer right away.
+> - Seeing or writing recipes by hand is under **Advanced**.
+
 How memexhub turns **messages**: card SMS, receipt mails, app notifications · into ledger records **without code per card company or shop**. ✅
 
 ## Why

@@ -78,7 +78,7 @@ const NAV: { group?: [string, string]; path: string; label: [string, string]; ic
   { path: "/devices", label: ["Devices", "기기"], icon: Smartphone },
   { path: "/connections", label: ["Connections", "연결"], icon: Cable },
   { path: "/features", label: ["Features", "기능"], icon: Puzzle },
-  { group: ["Records", "기록"], path: "/recipes", label: ["Recipes & inbox", "레시피·대기함"], icon: Inbox },
+  { group: ["Records", "기록"], path: "/recipes", label: ["Payment messages", "결제 메시지"], icon: Inbox },
   { path: "/activity", label: ["Activity", "활동"], icon: ActivityIcon },
   { group: ["Safety", "안전"], path: "/security", label: ["Security", "보안"], icon: ShieldCheck },
   { path: "/backups", label: ["Backups", "백업"], icon: Archive },

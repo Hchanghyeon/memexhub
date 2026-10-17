@@ -4,7 +4,7 @@ const USER = "owner";
 const PASSWORD = "a-long-test-password";
 const PAGES: [string, RegExp][] = [
   ["/", /개요/], ["/notes", /노트/], ["/vault", /볼트/], ["/claude", /Claude에서 memexhub 쓰기/], ["/devices", /기기/], ["/connections", /연결/],
-  ["/features", /기능/], ["/recipes", /레시피·대기함/], ["/activity", /활동/], ["/security", /보안/], ["/backups", /백업/], ["/map", /지도/],
+  ["/features", /기능/], ["/recipes", /결제 메시지/], ["/activity", /활동/], ["/security", /보안/], ["/backups", /백업/], ["/map", /지도/],
 ];
 
 /** Fails the test on any uncaught page error or console error. */
@@ -47,7 +47,7 @@ test("moving between screens with the sidebar keeps working", async ({ page, isM
   const errors = watchErrors(page);
   await signIn(page);
   const nav = page.getByRole("navigation");
-  for (const name of ["노트", "볼트", "Claude 앱", "기기", "연결", "기능", "레시피·대기함", "활동", "보안", "백업", "개요"]) {
+  for (const name of ["노트", "볼트", "Claude 앱", "기기", "연결", "기능", "결제 메시지", "활동", "보안", "백업", "개요"]) {
     await nav.getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 }), name).toBeVisible();
   }
@@ -239,4 +239,16 @@ test("claude: ready-made routines with their prompts", async ({ page }) => {
   await page.getByText("프롬프트 보기").first().click();
   await expect(page.getByText(/day_summary 를 부르세요/)).toBeVisible();
   await expect(page.getByRole("button", { name: "복사" }).nth(1)).toBeVisible();
+});
+
+test("payment messages: plain words, the rules tucked under Advanced", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/admin/recipes");
+  await expect(page.getByRole("heading", { name: "결제 메시지", level: 1 })).toBeVisible();
+  await expect(page.getByText("모두 읽었어요. 확인할 메시지가 없어요.")).toBeVisible();
+  await expect(page.getByText(/알아서 읽는 곳 \(\d+\)/)).toBeVisible();
+  await expect(page.getByText("현대카드 문자")).toBeVisible();
+  await expect(page.getByLabel("레시피 (JSON)")).toBeHidden();
+  await page.getByText("레시피 직접 쓰기 (JSON)").click();
+  await expect(page.getByLabel("레시피 (JSON)")).toBeVisible();
 });

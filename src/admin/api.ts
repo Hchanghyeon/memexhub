@@ -810,6 +810,14 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     c.header("content-disposition", 'attachment; filename="memexhub-recipes.json"');
     return c.body(await ledger().exportPack(), 200, { "content-type": "application/json; charset=utf-8" });
   });
+  api.post("/inbox/:id/learn", async (c) => {
+    const f = await body(c, z.object({ merchant: z.string().max(200).optional(), amount: z.string().max(40).optional(), card: z.string().max(100).optional(), time: z.string().max(40).optional() }));
+    try {
+      return c.json(await ledger().learn(c.req.param("id"), f));
+    } catch (e) {
+      throw new Fail("resolve_failed", (e as Error).message.slice(0, 300));
+    }
+  });
   api.post("/inbox/:id", async (c) => {
     const f = await body(c, z.object({ action: z.enum(["record", "ignore"]), merchant: z.string().max(200).optional(), amount: z.string().max(40).optional(), card: z.string().max(100).optional(), time: z.string().max(40).optional() }));
     try {

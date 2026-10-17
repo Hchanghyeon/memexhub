@@ -44,7 +44,7 @@ export function Overview() {
   const attention = [
     ...o.connectionErrors.map((x) => ({ text: t(`Connection "${x.name}" failed: ${x.error ?? ""}`, `연결 "${x.name}" 오류: ${x.error ?? ""}`), to: "/connections", high: true })),
     ...o.moduleErrors.map((x) => ({ text: `${x.id}: ${x.error}`, to: "/features", high: true })),
-    ...(o.payments?.inbox ? [{ text: t(`${o.payments.inbox} message(s) wait in the inbox.`, `읽지 못한 메시지 ${o.payments.inbox}개가 대기함에 있어요.`), to: "/recipes", high: false }] : []),
+    ...(o.payments?.inbox ? [{ text: t(`${o.payments.inbox} payment message(s) to check.`, `확인할 결제 메시지가 ${o.payments.inbox}개 있어요.`), to: "/recipes", high: false }] : []),
     ...o.checks.filter((c) => !c.ok && (!showSteps || c.level === "high")).map((c) => ({ text: checkText(t, c).text, to: checkText(t, c).fix ?? "/security", high: c.level === "high" })),
   ];
   const open = (to: string, label = t("Open", "열기")) => <Link to={to} className={buttonVariants({ variant: "outline", size: "sm" })}>{label}</Link>;
@@ -67,7 +67,7 @@ export function Overview() {
       <Tiles>
         <Tile to="/vault" label={t("Vault", "볼트")} tone={o.vault.connected ? "ok" : "err"} value={o.vault.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} sub={o.vault.preset ?? undefined} />
         <Tile to="/claude" label="Claude" tone={o.claude.used ? "ok" : "idle"} value={o.claude.used ? ago(t, o.claude.last, tz) : t("Not connected", "연결 안 됨")} sub={t(`${o.claude.apps} app(s)`, `앱 ${o.claude.apps}개`)} />
-        {o.payments && <Tile to="/recipes" label={t("Payments", "결제")} tone={o.payments.inbox ? "warn" : undefined} value={ago(t, o.payments.last, tz)} sub={o.payments.inbox ? t(`${o.payments.inbox} in the inbox`, `대기함 ${o.payments.inbox}개`) : t("Inbox empty", "대기함 비어 있음")} />}
+        {o.payments && <Tile to="/recipes" label={t("Payments", "결제")} tone={o.payments.inbox ? "warn" : undefined} value={ago(t, o.payments.last, tz)} sub={o.payments.inbox ? t(`${o.payments.inbox} to check`, `확인할 메시지 ${o.payments.inbox}개`) : t("Nothing to check", "확인할 것 없음")} />}
         {o.location && <Tile to="/features" label={t("Location", "위치")} tone={recent(o.location.last, 6) ? "ok" : "err"} value={ago(t, o.location.last, tz)} sub={o.location.source ?? undefined} />}
         {o.health && <Tile to="/features" label={t("Health", "건강")} value={ago(t, o.health.last, tz)} />}
         <Tile to="/devices" label={t("Devices", "기기")} value={ago(t, o.devices.last, tz)} sub={t(`${o.devices.tokens} token(s)`, `토큰 ${o.devices.tokens}개`)} />

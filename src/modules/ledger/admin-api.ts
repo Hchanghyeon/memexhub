@@ -24,6 +24,8 @@ export interface LedgerAdmin {
   exportPack(): Promise<string>;
   inbox(): Promise<{ id: string; receivedAt: string; channel: string; reason: string; data?: PendingMessage }[]>;
   resolve(id: string, action: "record" | "ignore", fields: Partial<ReadPayment>): Promise<string>;
+  /** Record a waiting message and, from it, make a recipe so the same sender is read by itself next time. */
+  learn(id: string, fields: Partial<ReadPayment>): Promise<{ recorded: string; learned: boolean; name?: string; reason?: string }>;
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -92,12 +94,13 @@ export function ledgerAdmin(d: {
     async draft(m) {
       const g = genericRead(m.text, { tz: d.tz(), now: d.now() });
       const firstLine = m.text.replace(/\[Web발신\]/g, "").split("\n").map((l) => l.trim()).find(Boolean) ?? "";
-      const key = g.cardWord || firstLine.slice(0, 12);
+      // The sender's name: the card word, else the first line without amounts, dates and numbers (they change every time).
+      const key = (g.cardWord || firstLine.replace(/[\d][\d,./:]*\s*원?/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 2).join(" ")).slice(0, 20);
       const recipe = {
-        id: `custom.${slug(g.cardWord ? g.cardWord.replace(/카드$/, "") : "")}.${m.channel ?? "sms"}`,
+        id: `custom.${slug(g.cardWord ? g.cardWord.replace(/카드$/, "") : key)}.${m.channel ?? "sms"}`,
         name: key || "New recipe",
         channels: [m.channel ?? "sms"],
-        match: { any: [esc(key || "?")], all: ["승인|취소"] },
+        match: { any: [esc(key || "?")], ...(/승인|취소/.test(m.text) ? { all: ["승인|취소"] } : {}) },
         set: { card: g.cardWord || key },
         examples: [{ text: m.text, expect: { amount: g.amount, ...(g.merchant ? { merchant: g.merchant } : {}) } }],
       };
@@ -150,6 +153,28 @@ export function ledgerAdmin(d: {
       const r = await d.ledger.record({ merchant: p.merchant, amount: p.amount, card: p.card, time: p.time || it.data.message.time || it.receivedAt, item: p.item, source: it.channel });
       await d.inbox.close("ledger", id, "resolved");
       return `Recorded as ${r.kind}${r.duplicate ? " (same amount within 5 minutes: kept as a duplicate)" : ""}.`;
+    },
+    async learn(id, fields) {
+      const it = await d.inbox.get<PendingMessage>("ledger", id);
+      if (!it?.data || it.status !== "pending") throw new Error("This item is no longer pending.");
+      const m = it.data.message;
+      const p = { ...it.data.guess, ...Object.fromEntries(Object.entries(fields).filter(([, v]) => v)) } as Partial<ReadPayment>;
+      const recorded = await this.resolve(id, "record", fields);
+      try {
+        const raw = JSON.parse(await this.draft({ channel: m.channel ?? "sms", text: m.text, from: m.from, subject: m.subject } as Message)) as Record<string, unknown>;
+        // The owner's values are the truth: the recipe must read this very message the same way.
+        const g = genericRead(m.text, { tz: d.tz(), now: d.now() });
+        // A merchant the reader finds by itself is checked; one that is the sender's own name (a pay service) is set.
+        const fixedMerchant = p.merchant && !g.merchant && String(raw.name ?? "").includes(p.merchant) ? p.merchant : undefined;
+        raw.set = { ...(raw.set as object), ...(p.card ? { card: p.card } : {}), ...(fixedMerchant ? { merchant: fixedMerchant } : {}) };
+        raw.examples = [{ text: m.text, expect: { amount: p.amount, ...(p.merchant && (g.merchant === p.merchant || fixedMerchant) ? { merchant: p.merchant } : {}) } }];
+        const failed = (await loadRecipes([{ id: "check", list: () => [raw] }])).errors;
+        if (failed.length) return { recorded, learned: false, reason: failed[0]!.error };
+        await this.approve(await writeProposal(raw));
+        return { recorded, learned: true, name: String(raw.name ?? raw.id) };
+      } catch (e) {
+        return { recorded, learned: false, reason: (e as Error).message.slice(0, 200) };
+      }
     },
   };
 }

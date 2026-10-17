@@ -75,4 +75,17 @@ describe("admin API: recipes & inbox", () => {
     expect((await (await a.post(`/inbox/${y}`, { action: "ignore" })).json()).message).toBe("Ignored.");
     expect((await a.json("/recipes")).inbox).toHaveLength(0);
   });
+
+  it("records a waiting message and learns its sender, so the next one is read by itself", async () => {
+    const send = async (text: string) =>
+      (await (await ingest.request(`${BASE}/ingest/message`, { method: "POST", headers: { "x-ingest-token": token, "content-type": "application/json" }, body: JSON.stringify({ channel: "sms", text }) })).json()) as { inbox?: string };
+    const first = await send("샘플머니 결제 6,600원");
+    expect(first.inbox).toBeTruthy();
+    const r = await (await a.post(`/inbox/${first.inbox}/learn`, { merchant: "샘플머니", amount: "₩6,600", time: "2026-10-14T11:00:00+09:00" })).json();
+    expect(r).toMatchObject({ learned: true, name: "샘플머니 결제" });
+    expect(r.recorded).toMatch(/Recorded as payment/);
+    const next = await send("샘플머니 결제 7,700원");
+    expect(next.inbox).toBeUndefined();
+    expect((await a.json("/recipes")).inbox).toHaveLength(0);
+  });
 });
