@@ -54,3 +54,7 @@ Scheduled Claude routines keep their instructions in vault notes (e.g. "read `ru
 ## Tool language
 
 Each tool has English and Korean descriptions. Admin UI → Claude connector → *Tool description language*: `en`, `ko` or `both`.
+
+## Ready-made routines
+
+The admin page **Claude app** has three routine prompts to copy into the Claude app's routines (scheduled tasks): **Daily journal** (nightly: scenes from `day_summary`, calendar events attached, to-dos checked only with evidence), **Wiki ingest** (nightly: `wiki_pending` → cited pages → `wiki_check` → re-read sources) and **Weekly check** (Sunday: `week_summary`, `wiki_lint`, drafts waiting; read only). Create the routine in a chat where the memexhub connector is on: the chat's connectors go with the routine. Paths come from `wiki_layout`, so the prompts work with any vault layout.

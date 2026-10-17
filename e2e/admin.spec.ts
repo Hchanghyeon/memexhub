@@ -231,3 +231,12 @@ test("notes: see an earlier version and put it back", async ({ page }) => {
   await expect(page.locator("article").getByText("Sample seed list.")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("claude: ready-made routines with their prompts", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/admin/claude");
+  await expect(page.getByText("하루 일지 · 매일 밤, 예: 23:00")).toBeVisible();
+  await page.getByText("프롬프트 보기").first().click();
+  await expect(page.getByText(/day_summary 를 부르세요/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "복사" }).nth(1)).toBeVisible();
+});

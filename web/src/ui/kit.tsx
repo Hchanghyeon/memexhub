@@ -385,12 +385,12 @@ export function Segmented<V extends string>(p: { value: V; onChange: (v: V) => v
   );
 }
 
-export function Copy({ text, label }: { text: string; label?: string }) {
+export function Copy({ text, label, block }: { text: string; label?: string; block?: boolean }) {
   const { t } = useT();
   const [done, setDone] = useState(false);
   return (
     <div className="bg-muted flex items-center gap-2 rounded-lg py-1.5 pr-1.5 pl-3">
-      <code className="flex-1 bg-transparent p-0 break-all">{text}</code>
+      <code className={cn("flex-1 bg-transparent p-0", block ? "max-h-72 overflow-y-auto py-1 text-xs leading-5 whitespace-pre-wrap" : "break-all")}>{text}</code>
       <UIButton type="button" variant="outline" size="sm" className="bg-background shrink-0" onClick={async () => {
         try { await navigator.clipboard.writeText(text); } catch { /* insecure context: the text stays selectable */ }
         setDone(true);

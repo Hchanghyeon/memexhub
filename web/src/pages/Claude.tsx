@@ -1,6 +1,7 @@
 import { post } from "../api";
 import { ago, useT, when } from "../i18n";
-import { Badge, Button, Card, Copy, Empty, Field, Item, List, Loading, Page, Segmented, Steps, Tags, Toggle, useAction, useConfirm, useData } from "../ui/kit";
+import { Badge, Button, Card, Copy, Empty, Field, Hint, Item, List, Loading, More, Page, Segmented, Steps, Sub, Tags, Toggle, useAction, useConfirm, useData } from "../ui/kit";
+import { ROUTINES } from "./routines";
 
 interface C { url: string; clients: { id: string; name: string; createdAt: string; lastUsed: string | null; revoked: boolean }[]; tools: { name: string; readOnly: boolean; destructive: boolean }[]; toolLanguage: "en" | "ko" | "both"; destructive: { name: string; description: { en: string; ko: string }; enabled: boolean }[] }
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -23,6 +24,16 @@ export function Claude() {
             <p key="4">{t("Try it: “What did I spend today?” or “Summarise my week.”", "써 보기: “오늘 얼마 썼어?”, “이번 주 정리해 줘.”")}</p>,
           ]}
         </Steps>
+      </Card>
+      <Card title={t("Every day, by itself: Claude routines", "매일 알아서: Claude 루틴")} badge={<Badge>{t("Recommended", "추천")}</Badge>}
+        sub={t("Routines are scheduled tasks in the Claude app. In a chat where the memexhub connector is on, create a routine, paste a prompt and pick a time. The connectors of that chat go with it.", "루틴은 Claude 앱의 예약 작업이에요. memexhub 커넥터가 켜진 대화에서 새 루틴을 만들고, 프롬프트를 붙여 넣고 시각을 고르세요. 그 대화의 커넥터가 루틴에 같이 붙어요.")}>
+        {ROUTINES.map((r) => (
+          <section key={r.id} className="flex flex-col gap-2">
+            <Sub>{t(...r.name)} · {t(...r.when)}</Sub>
+            <Hint>{t(...r.what)} {t("Needs:", "필요한 것:")} {t(...r.needs)}.</Hint>
+            <More summary={t("Show the prompt", "프롬프트 보기")}><Copy block text={lang === "ko" ? r.prompt[1] : r.prompt[0]} /></More>
+          </section>
+        ))}
       </Card>
       <Card title={t("Signed-in apps", "로그인한 앱")} sub={t("Each phone, desktop app or browser that added the connector.", "커넥터를 추가한 폰, 데스크톱 앱, 브라우저마다 하나씩이에요.")}>
         {active.length ? (
