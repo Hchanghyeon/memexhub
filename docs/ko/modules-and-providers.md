@@ -68,7 +68,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 |---|---|---|---|---|
 | vault | `list_notes` `read_note` `search_notes` `vault_stats` `note_history` `write_note` `append_note` `delete_note` `move_note` | - | - | ✅ |
 | hub | `hub_status`, `day_summary`, `week_summary` | - | - | ✅ |
-| wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` `wiki_check` `wiki_pending` | - | 목차, 로그 | ✅ |
+| wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` `wiki_check` `wiki_pending` `conversation_save` | `/ingest/share` | 목차, 로그 | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` ✅ | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
 | mail | `mail_folders` `mail_search` `mail_read` `mail_day` | - | - | ✅ ([메일](mail.md)) |
 | location | `location_day` | `/ingest/owntracks` | - | ✅ ([위치](location.md)) |

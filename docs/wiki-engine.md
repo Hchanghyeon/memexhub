@@ -101,6 +101,14 @@ The Claude app has no "end of chat" hook, so memexhub asks for it in the **MCP s
 
 The note is short and goes to the sources folder (`YYYY-MM-DD Conversation - title.md`). Small talk is not saved. A nightly ingest routine takes the lasting parts into the wiki.
 
+## Saving from the phone's share sheet ✅
+
+`POST /ingest/share` (token scope `share`) turns anything shared from a phone app into a source note `<sources>/YYYY-MM-DD Shared - title.md`.
+- **Body:** `{ "url"?, "text"?, "title"?, "note"? }`. It needs a link or some text.
+- **Title:** your title, else the first line of the text, else the site name. The same title twice on one day gets a number.
+- **The link is never opened by the server** (no outbound fetching). The note keeps the link, the shared text and your own note. Claude reads the link when it files the source, and `wiki_pending` lists it until a page cites it.
+- **iPhone:** set it up on Devices → Set up your phone → Share sheet: a Shortcut shown in the share sheet that posts `text` = Shortcut Input. Android: any "HTTP request from share" app (e.g. HTTP Shortcuts).
+
 ## Talking to Claude
 
 - *"Save this article as a source and update the wiki."* → `wiki_layout` → `wiki_save_source` → write/update pages with `write_note` → `wiki_index` → `wiki_log`

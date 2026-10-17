@@ -8,6 +8,7 @@ const SCOPES: [string, string, string, string, string][] = [
   ["ledger", "Payments", "결제", "card messages, Apple Pay", "카드 문자, Apple Pay"],
   ["health", "Health", "건강", "sleep, steps, workouts", "수면, 걸음, 운동"],
   ["location", "Location", "위치", "the OwnTracks app", "OwnTracks 앱"],
+  ["share", "Share sheet", "공유 시트", "links and text from any app", "어느 앱에서든 링크·글"],
   ["dav", "Vault sync", "볼트 동기화", "Obsidian on your devices", "기기의 Obsidian"],
 ];
 
@@ -62,6 +63,7 @@ export function Devices() {
           [t("Wallet payment", "지갑 결제"), <code>{data.publicUrl}/ingest/transaction</code>],
           [t("Health day", "건강 기록"), <code>{data.publicUrl}/ingest/health</code>],
           [t("Location (OwnTracks)", "위치 (OwnTracks)"), <code>{data.publicUrl}/ingest/owntracks</code>],
+          [t("Share sheet", "공유 시트"), <code>{data.publicUrl}/ingest/share</code>],
         ]} />
       </Card>
     </Page>
@@ -85,12 +87,13 @@ export function owntracksLink(publicUrl: string, token: string) {
   return `owntracks:///config?inline=${encodeURIComponent(b64)}`;
 }
 
-/** The two phone setups most people want, each a token plus one scan or one copy. */
+/** The phone setups most people want, each a token plus one scan or one copy. */
 function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: () => void }) {
   const { t } = useT();
   const { busy, run } = useAction();
   const [loc, setLoc] = useState<string>();
   const [card, setCard] = useState<string>();
+  const [share, setShare] = useState<string>();
   const make = (name: string, scopes: string[], set: (v: string) => void) =>
     run(() => post<{ token: string }>("/devices", { name, scopes }), undefined, (r) => { set(r.token); onCreated(); });
   return (
@@ -127,6 +130,23 @@ function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: ()
               <div key="2" className="space-y-2"><p>{t("Add “Get contents of URL”: method POST, this address:", "“URL의 콘텐츠 가져오기”를 추가하고 방법 POST, 주소는:")}</p><Copy text={`${publicUrl}/ingest/message`} /></div>,
               <div key="3" className="space-y-2"><p>{t("Header X-Ingest-Token with this token (shown once):", "헤더 X-Ingest-Token 에 이 토큰 (한 번만 보여요):")}</p><Copy text={card} /></div>,
               <p key="4">{t("Body JSON: text = Shortcut Input. Messages it cannot read wait in Recipes & inbox.", "본문 JSON: text = 단축어 입력. 못 읽은 문자는 레시피·대기함에서 기다려요.")}</p>,
+            ]}
+          </Steps>
+        )}
+      <Sub>{t("Share sheet: save anything to the wiki", "공유 시트: 무엇이든 위키로")}</Sub>
+        {!share ? (
+          <>
+            <Hint>{t("Share a post, video or article from any app (Instagram, YouTube, Safari …) and it is saved as a source. The nightly wiki routine files it.", "인스타그램·유튜브·사파리 등 어느 앱에서든 공유하면 원본 노트로 저장돼요. 밤 위키 수집 루틴이 정리해요.")}</Hint>
+            <div><Button kind="secondary" busy={busy} onClick={() => void make("Share sheet", ["share"], setShare)}>{t("Make a token for the share sheet", "공유 시트용 토큰 만들기")}</Button></div>
+          </>
+        ) : (
+          <Steps>
+            {[
+              <p key="1">{t("Shortcuts → New shortcut “Save to memexhub” → ⓘ → turn on “Show in Share Sheet”, receiving URLs and text.", "단축어 → 새 단축어 “memexhub에 저장” → ⓘ → “공유 시트에서 보기” 켜기, 받는 유형은 URL·텍스트.")}</p>,
+              <p key="2">{t("Optional: add “Ask for Input” for a short note of your own.", "선택: “입력 요청”을 넣으면 내 메모를 한 줄 붙일 수 있어요.")}</p>,
+              <div key="3" className="space-y-2"><p>{t("Add “Get contents of URL”: method POST, this address:", "“URL의 콘텐츠 가져오기”를 추가하고 방법 POST, 주소는:")}</p><Copy text={`${publicUrl}/ingest/share`} /></div>,
+              <div key="4" className="space-y-2"><p>{t("Header X-Ingest-Token with this token (shown once):", "헤더 X-Ingest-Token 에 이 토큰 (한 번만 보여요):")}</p><Copy text={share} /></div>,
+              <p key="5">{t("Body JSON: text = Shortcut Input, note = Provided Input. The server never opens the link; Claude reads it when filing.", "본문 JSON: text = 단축어 입력, note = 입력한 내용. 서버는 링크를 열지 않아요. 정리할 때 Claude가 읽어요.")}</p>,
             ]}
           </Steps>
         )}

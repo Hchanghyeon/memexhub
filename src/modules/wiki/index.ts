@@ -4,7 +4,8 @@ import { z } from "zod";
 import { Layout } from "./layout.js";
 import { LinkGraph } from "./graph.js";
 import { effectiveRules, formatFindings, lint, RULES } from "./lint.js";
-import { addToIndex, appendLog, backlinks, conversationNote, pendingSources, saveSource, today } from "./upkeep.js";
+import { addToIndex, appendLog, backlinks, conversationNote, pendingSources, safeTitle, saveSource, sharedNote, today } from "./upkeep.js";
+import { nowIn } from "../../core/time.js";
 import { normalizeVaultPath } from "../../storage/paths.js";
 
 /** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
@@ -17,6 +18,13 @@ const WORKFLOW = [
   "- answers: when an answer combines several notes, offer to save it as a wiki page (with its sources).",
   "- log every ingest with wiki_log.",
 ].join("\n");
+
+const Shared = z.object({
+  url: z.string().max(2000).optional(),
+  text: z.string().max(20_000).optional(),
+  title: z.string().max(200).optional(),
+  note: z.string().max(2000).optional(),
+});
 
 export default defineModule({
   id: "wiki",
@@ -175,6 +183,33 @@ export default defineModule({
           },
         }),
       ],
+      ingest: layout.sources
+        ? [
+            {
+              // The phone's share sheet (an iOS Shortcut or an Android share target): a link or text becomes a source note.
+              path: "/ingest/share",
+              scope: "share",
+              maxBytes: 64 * 1024,
+              async handle(body, { tokenId }) {
+                const p = Shared.safeParse(body);
+                if (!p.success || !(p.data.url?.trim() || p.data.text?.trim())) throw new Error("invalid payload");
+                const now = platform.now();
+                const w = nowIn(settings.timezone, now);
+                const lang = settings.toolLanguage === "ko" ? "ko" : "en";
+                const n = sharedNote({ ...p.data, time: `${String(w.h).padStart(2, "0")}:${String(w.mi).padStart(2, "0")}` }, lang);
+                const v = vault!.withActor(`share:${tokenId}`);
+                const date = today(settings.timezone, now);
+                // A second share with the same title on the same day gets a number: sources are never overwritten.
+                for (let i = 1; i <= 20; i++) {
+                  const title = i === 1 ? n.title : `${n.title} (${i})`;
+                  if (await v.stat(`${layout.sources}/${date} ${safeTitle(title)}.md`).catch(() => undefined)) continue;
+                  return { saved: await saveSource(v, layout, { title, content: n.content, url: n.url, date }) };
+                }
+                throw new Error("too many notes with this title today");
+              },
+            },
+          ]
+        : [],
     };
   },
 });

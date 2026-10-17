@@ -624,7 +624,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     c.json({ tokens: (await hub.ingestTokens.list()).map((x) => ({ id: x.id, name: x.name, scopes: JSON.parse(x.scopes) as string[], createdAt: x.created_at, lastUsed: x.last_used_at ?? null, revoked: !!x.revoked_at })), publicUrl: hub.env.PUBLIC_URL }),
   );
   api.post("/devices", async (c) => {
-    const f = await body(c, z.object({ name: z.string().trim().min(1).max(60), scopes: z.array(z.enum(["ledger", "health", "location", "dav"])).min(1) }));
+    const f = await body(c, z.object({ name: z.string().trim().min(1).max(60), scopes: z.array(z.enum(["ledger", "health", "location", "dav", "share"])).min(1) }));
     const { token } = await hub.ingestTokens.create(f.name, f.scopes, actor(c));
     return c.json({ token });
   });
@@ -759,7 +759,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     }
   });
   api.post("/import/token", async (c) => {
-    const f = await body(c, z.object({ name: z.string().trim().min(1).max(40), token: z.string().trim().min(24).max(200), scopes: z.array(z.enum(["ledger", "health", "location", "dav"])).min(1) }));
+    const f = await body(c, z.object({ name: z.string().trim().min(1).max(40), token: z.string().trim().min(24).max(200), scopes: z.array(z.enum(["ledger", "health", "location", "dav", "share"])).min(1) }));
     if (await hub.ingestTokens.verify(f.token, f.scopes[0]!)) throw new Fail("token_known");
     await hub.ingestTokens.importExisting(f.name, f.token, f.scopes, actor(c));
     return c.json({ ok: true });

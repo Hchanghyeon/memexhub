@@ -108,3 +108,29 @@ export function conversationNote(a: { decisions: string[]; facts: string[]; todo
     ...(a.todos.length ? [`## ${h.t}`, list(a.todos, true), ""] : []),
   ].join("\n").trimEnd() + "\n";
 }
+
+/**
+ * Something shared from a phone (share sheet): a link and/or text, plus the owner's own note. The server never opens
+ * the link (no outbound fetching); the routine or Claude reads it later. Returns the title and the note body.
+ */
+export function sharedNote(a: { url?: string; text?: string; title?: string; note?: string; time: string }, lang: "ko" | "en") {
+  const text = (a.text ?? "").trim();
+  const url = a.url?.trim() || text.match(/https?:\/\/[^\s<>"]+/)?.[0];
+  const body = url ? text.replace(url, "").trim() : text;
+  let host = "";
+  try {
+    if (url) host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    /* not a URL: kept as text */
+  }
+  const first = body.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  const name = (a.title?.trim() || oneLine(first, 60) || host || (lang === "ko" ? "메모" : "note")).slice(0, 80);
+  const k = lang === "ko"
+    ? { head: `> 폰에서 공유함 (${a.time}). 서버는 링크를 열지 않았다: 내용은 링크에서 확인한다.`, note: "내 메모", link: "링크", text: "공유한 글" }
+    : { head: `> Shared from the phone (${a.time}). The server did not open the link: read it there.`, note: "My note", link: "Link", text: "Shared text" };
+  const out = [k.head, ""];
+  if (a.note?.trim()) out.push(`**${k.note}**: ${oneLine(a.note, 2000)}`, "");
+  if (url) out.push(`**${k.link}**: ${url}`, "");
+  if (body) out.push(`## ${k.text}`, "", body, "");
+  return { title: `${lang === "ko" ? "공유" : "Shared"} - ${name}`, url: url && /^https?:\/\//.test(url) ? url : undefined, content: out.join("\n").trimEnd() + "\n" };
+}
