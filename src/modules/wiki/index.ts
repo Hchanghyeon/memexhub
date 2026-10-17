@@ -22,7 +22,7 @@ export default defineModule({
   id: "wiki",
   title: T("Wiki engine", "위키 엔진"),
   needs: ["vault"],
-  setup: ({ settings, vault }) => {
+  setup: ({ settings, vault, platform }) => {
     const layout = new Layout(settings.wiki.roles);
     const enabledRules = effectiveRules(settings.wiki.lint).filter((x) => x.enabled).map((x) => x.rule.id);
     return {
@@ -71,7 +71,7 @@ export default defineModule({
                   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Defaults to today / 기본은 오늘"),
                 },
                 async run({ title, content, url, date }, ctx) {
-                  const path = await saveSource(vault!.withActor(ctx.actor), layout, { title, content, url, date: date ?? today(settings.timezone) });
+                  const path = await saveSource(vault!.withActor(ctx.actor), layout, { title, content, url, date: date ?? today(settings.timezone, platform.now()) });
                   return `saved source: ${path}`;
                 },
               }),
@@ -84,7 +84,7 @@ export default defineModule({
                 description: T("Append one dated line to the wiki log (append-only).", "위키 로그에 날짜가 붙은 한 줄을 추가한다 (추가만)."),
                 input: { entry: z.string().min(1).max(500) },
                 async run({ entry }, ctx) {
-                  const r = await appendLog(vault!.withActor(ctx.actor), layout, entry, today(settings.timezone));
+                  const r = await appendLog(vault!.withActor(ctx.actor), layout, entry, today(settings.timezone, platform.now()));
                   return `logged in ${r.log}: ${r.line}`;
                 },
               }),
@@ -145,7 +145,7 @@ export default defineModule({
                   if (!decisions.length && !facts.length && !todos.length) return "nothing to save — no decision, fact or to-do (not saved)";
                   const lang = settings.ledger.language;
                   const content = conversationNote({ decisions, facts, todos, context }, lang);
-                  const path = await saveSource(vault!.withActor(ctx.actor), layout, { title: `${lang === "ko" ? "대화" : "Conversation"} - ${title}`, content, date: today(settings.timezone) });
+                  const path = await saveSource(vault!.withActor(ctx.actor), layout, { title: `${lang === "ko" ? "대화" : "Conversation"} - ${title}`, content, date: today(settings.timezone, platform.now()) });
                   return `saved: ${path} (${new TextEncoder().encode(content).length} bytes). The nightly ingest will file the lasting parts into the wiki.`;
                 },
               }),

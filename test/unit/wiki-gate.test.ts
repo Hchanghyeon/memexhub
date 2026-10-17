@@ -86,12 +86,12 @@ describe("wiki write gate", () => {
   });
 
   it("saves a conversation's decisions, facts and to-dos as a short source — and nothing for small talk", async () => {
-    const tools = (await wiki.setup({ settings: SettingsSchema.parse({ wiki: { roles: PRESETS["llm-wiki"] }, ledger: { language: "ko" }, timezone: "Asia/Seoul" }), vault: v } as any)).tools!;
+    const tools = (await wiki.setup({ settings: SettingsSchema.parse({ wiki: { roles: PRESETS["llm-wiki"] }, ledger: { language: "ko" }, timezone: "Asia/Seoul" }), vault: v, platform: { now: () => new Date("2026-10-16T03:00:00Z") } } as any)).tools!;
     const save = tools.find((t) => t.name === "conversation_save")!;
     expect(await save.run({ title: "x", decisions: [], facts: [], todos: [] } as any, { actor: "c" })).toMatch(/not saved/);
     const r = await save.run({ title: "검색 색인", decisions: ["벡터 검색은 보류"], facts: [], todos: ["context 도구"], context: "토큰 걱정" } as any, { actor: "c" });
     const path = r.match(/saved: (\S+ .*?\.md)/)![1]!;
-    expect(path).toMatch(/^raw\/\d{4}-\d{2}-\d{2} 대화 - 검색 색인\.md$/);
+    expect(path).toBe("raw/2026-10-16 대화 - 검색 색인.md");
     const text = (await v.read(path)).text;
     expect(text).toContain("type: source");
     expect(text).toContain("> 맥락: 토큰 걱정\n\n## 결정\n- 벡터 검색은 보류\n\n## 남은 일\n- [ ] context 도구\n");

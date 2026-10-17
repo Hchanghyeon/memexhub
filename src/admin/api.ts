@@ -351,7 +351,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const v = needVault().confirmedByAdmin(`admin:${c.get("adminId")}`);
     try {
       let text = setFrontmatter((await v.read(p)).text, "status", f.status);
-      if (f.status === "stable") text = setFrontmatter(text, "reviewed", today(s.timezone));
+      if (f.status === "stable") text = setFrontmatter(text, "reviewed", today(s.timezone, hub.platform.now()));
       await v.write(p, text);
     } catch (e) {
       const code = (e as { code?: string }).code;
