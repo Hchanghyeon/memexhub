@@ -28,6 +28,7 @@ beforeAll(async () => {
   await hub.admin.createAdmin("owner", "a-long-test-password", "t");
   await hub.settings.set("modules", { ledger: { enabled: true } });
   await hub.settings.set("timezone", "Asia/Seoul");
+  await hub.settings.set("recipePacks", ["kr.hyundai.sms", "kr.samsung.sms", "kr.kcp.mail", "kr.kicc.mail"]);
   await hub.reload();
   token = (await hub.ingestTokens.create("phone", ["ledger"], "t")).token;
   healthToken = (await hub.ingestTokens.create("watch", ["health"], "t")).token;

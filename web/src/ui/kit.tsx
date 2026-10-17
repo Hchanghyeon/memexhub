@@ -241,8 +241,8 @@ export const KeyValue = (p: { rows: [ReactNode, ReactNode][] }) => (
 );
 
 /** Hidden-by-default extra settings. */
-export const More = (p: { summary: ReactNode; children: ReactNode }) => (
-  <details className="group">
+export const More = (p: { summary: ReactNode; children: ReactNode; open?: boolean }) => (
+  <details className="group" open={p.open}>
     <summary className="text-muted-foreground hover:text-foreground flex w-fit cursor-pointer list-none items-center gap-1 font-medium select-none [&::-webkit-details-marker]:hidden">
       <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />{p.summary}
     </summary>

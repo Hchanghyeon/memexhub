@@ -73,7 +73,7 @@ function Ledger({ f, reload }: { f: F; reload: () => void }) {
     mailSources: s.mailSources.split("\n").map((l) => /^\s*([^:]{1,32}?)\s*:\s*(.{1,200}?)\s*$/.exec(l)).filter(Boolean).map((m) => ({ connection: m![1]!, folder: m![2]! })),
   }), t("Payments saved.", "결제 설정을 저장했어요."), reload);
   return (
-    <Card id="ledger" title={t("Payments", "결제")} aside={<Link to="/recipes" className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Payment messages", "결제 메시지")} <ArrowRight /></Link>}
+    <Card id="ledger" title={t("Payments", "결제")} aside={<Link to="/recipes" className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("Messages", "메시지")} <ArrowRight /></Link>}
       footer={<Button busy={busy} onClick={() => void save()}>{t("Save", "저장")}</Button>}>
       <Fields>
         <Input label={t("Payments note", "결제 노트")} hint={t("{year} becomes the year.", "{year}는 연도로 바뀌어요.")} value={s.paymentsNote} onChange={(v) => setS({ ...s, paymentsNote: v })} mono />

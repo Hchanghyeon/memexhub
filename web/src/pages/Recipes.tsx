@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { download, post } from "../api";
 import { useT, when } from "../i18n";
-import { Actions, Badge, Button, Callout, Card, Check, Fields, Hint, Input, Item, KeyValue, List, Loading, More, Page, Segmented, Status, Sub, TextArea, useAction, useConfirm, useData } from "../ui/kit";
+import { Actions, Badge, Button, Callout, Card, Check, Empty, Fields, Hint, Input, Item, KeyValue, List, Loading, More, Page, Segmented, Status, Steps, Sub, TextArea, useAction, useConfirm, useData } from "../ui/kit";
 
 /*
  * Payment messages: card texts, receipt mails and notifications become payments.
@@ -15,6 +15,7 @@ interface R {
   proposed: { file: string; id: string; error: string | null }[];
   active: { id: string; name: string; kind: string; channels: string[]; path: string | null }[];
   errors: { id: string | null; path: string | null; error: string }[];
+  packs: { id: string; name: string; channels: string[]; on: boolean }[];
 }
 interface Read { step: string; recipeId?: string; confident: boolean; kind?: string; reason?: string; payment?: Record<string, string> }
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -24,12 +25,14 @@ export function Recipes() {
   const { t } = useT();
   const { data, error, reload } = useData<R>("/recipes");
   const [editor, setEditor] = useState("");
-  const title = t("Payment messages", "결제 메시지");
+  const title = t("Messages", "메시지");
   if (!data) return <Page title={title}><Loading error={error} reload={reload} /></Page>;
   return (
-    <Page title={title} sub={t("Card texts, receipt mails and notifications become payment records. Most are read by themselves; you are asked only when memexhub is not sure.", "카드 문자, 결제 메일, 알림을 결제 기록으로 바꿔요. 대부분 알아서 읽고, 확신이 없을 때만 여기서 물어봐요.")}>
+    <Page title={title} sub={t("Texts, mails and app notifications are read and turned into records: payments and receipts today, and messages you do not need (ads, codes) are skipped. Most are read by themselves; you are asked only when memexhub is not sure.", "문자, 메일, 앱 알림을 읽어 기록으로 바꿔요. 지금은 결제와 영수증을 기록하고, 광고·인증번호처럼 필요 없는 건 건너뛰어요. 대부분 알아서 읽고, 확신이 없을 때만 물어봐요.")}>
       <ToCheck items={data.inbox} reload={reload} />
       <Senders r={data} reload={reload} />
+      <Collection packs={data.packs} reload={reload} />
+      <Guide onExample={(j) => { setEditor(j); document.getElementById("editor")?.scrollIntoView({ behavior: "smooth" }); }} />
       <Advanced editor={editor} setEditor={setEditor} dir={data.dir} reload={reload} />
     </Page>
   );
@@ -108,9 +111,10 @@ function Senders({ r, reload }: { r: R; reload: () => void }) {
           <Sub>{t("In use", "쓰는 중")}</Sub>
         </>
       )}
+      {!used.length && <Empty>{t("None yet. Switch some on in the collection below, or answer a message above and let memexhub learn it.", "아직 없어요. 아래 레시피 모음에서 켜거나, 위에서 메시지를 확인할 때 배우게 하세요.")}</Empty>}
       <List>
         {used.map((a) => (
-          <Item key={a.id} tone="ok" title={a.name} badges={<>{a.channels.map((c) => <Badge key={c}>{t(...(CHANNEL[c] ?? [c, c]))}</Badge>)}{!a.path && <Badge tone="basic">{t("built-in", "기본")}</Badge>}</>}
+          <Item key={a.id} tone="ok" title={a.name} badges={<>{a.channels.map((c) => <Badge key={c}>{t(...(CHANNEL[c] ?? [c, c]))}</Badge>)}{!a.path && <Badge tone="basic">{t("from the collection", "모음")}</Badge>}</>}
             actions={<Button size="sm" kind="ghost" disabled={busy} onClick={() => confirm(t(`Stop reading “${a.name}” by itself? Its messages will be asked about.`, `“${a.name}”을 알아서 읽지 않을까요? 이곳 메시지는 앞으로 물어봐요.`)) && run(() => post("/recipes/disable", { id: a.id }), t("Turned off.", "껐어요."), reload)}>{t("Turn off", "끄기")}</Button>} />
         ))}
       </List>
@@ -120,6 +124,64 @@ function Senders({ r, reload }: { r: R; reload: () => void }) {
           <ul className="list-disc pl-5">{r.errors.map((e, i) => <li key={i}><code>{e.path ?? e.id ?? "?"}</code>: {e.error}</li>)}</ul>
         </Callout>
       )}
+    </Card>
+  );
+}
+
+/** The bundled recipes (/recipes): off until the owner picks the senders they use. */
+function Collection({ packs, reload }: { packs: R["packs"]; reload: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  return (
+    <Card title={t("Recipe collection", "레시피 모음")} sub={t("Ready-made recipes for common senders. Switch on only the ones you use. Anyone can add one to the collection with a JSON file on GitHub.", "자주 쓰는 곳의 레시피를 모아 둔 거예요. 내가 쓰는 카드사·서비스만 켜세요. 모음에 새 레시피를 넣고 싶으면 GitHub에 JSON 파일 하나로 보내면 돼요.")}>
+      <List>
+        {packs.map((p) => (
+          <Item key={p.id} tone={p.on ? "ok" : "idle"} title={p.name} badges={p.channels.map((c) => <Badge key={c}>{t(...(CHANNEL[c] ?? [c, c]))}</Badge>)}
+            actions={<Button size="sm" kind={p.on ? "ghost" : "secondary"} disabled={busy} onClick={() => run(() => post("/recipes/pack", { id: p.id, on: !p.on }), p.on ? t("Turned off.", "껐어요.") : t("Turned on.", "켰어요."), reload)}>{p.on ? t("Turn off", "끄기") : t("Turn on", "켜기")}</Button>} />
+        ))}
+      </List>
+    </Card>
+  );
+}
+
+const EXAMPLE = JSON.stringify({
+  id: "custom.samplepay.sms",
+  name: "샘플페이 문자",
+  channels: ["sms"],
+  match: { any: ["샘플페이"] },
+  extract: ["(?<merchant>\\S+)에서 (?<amount>[\\d,]+)원"],
+  set: { card: "샘플페이" },
+  examples: [{ text: "[샘플페이] 샘플카페에서 4,500원 결제\n10/18 12:30", expect: { merchant: "샘플카페", amount: "₩4,500", card: "샘플페이" } }],
+}, null, 2);
+
+/** What a recipe is and how to write one, in plain words. */
+function Guide({ onExample }: { onExample: (json: string) => void }) {
+  const { t } = useT();
+  return (
+    <Card title={t("What is a recipe?", "레시피란?")} sub={t("A short rule that tells memexhub how to read messages from one sender. No code: a few patterns and an example.", "한 곳(카드사·서비스)에서 오는 메시지를 어떻게 읽을지 적은 짧은 규칙이에요. 코드가 아니라 글자 패턴 몇 개와 예시예요.")}>
+      <Steps>
+        {[
+          <p key="1">{t("A message arrives. memexhub tries the recipes that are on; the first whose ", "메시지가 오면 켜진 레시피를 차례로 봐요. ")}<b>match</b>{t(" fits (sender, subject, words in the text) takes it.", "(보낸 곳, 제목, 본문의 글자)가 맞는 첫 레시피가 맡아요.")}</p>,
+          <p key="2">{t("Its ", "그 레시피의 ")}<b>extract</b>{t(" patterns pull out the values: amount, merchant, card, time. Anything missing is filled in by the general reader.", " 패턴이 값을 뽑아요: 금액, 가게, 카드, 시각. 빠진 값은 기본 읽기가 채워요.")}</p>,
+          <p key="3"><b>set</b>{t(" adds fixed values (say, the card's name), and ", "은 고정값을 붙이고(예: 카드 이름), ")}<b>kind</b>{t(" decides what happens: record a payment, attach a receipt's item to a payment, or skip the message.", "가 할 일을 정해요: 결제로 기록, 영수증이면 그 결제에 품목 붙이기, 또는 건너뛰기.")}</p>,
+          <p key="4">{t("Before it is used, its ", "쓰기 전에 ")}<b>examples</b>{t(" are run. A recipe that reads its own example wrong is never switched on.", "로 시험해요. 자기 예시를 틀리게 읽는 레시피는 켜지지 않아요.")}</p>,
+        ]}
+      </Steps>
+      <Hint>{t("Usually you never write one: answer “It's a payment” with “read messages like this by themselves”, or ask Claude to propose one.", "보통은 직접 쓸 일이 없어요. “결제 맞아요”를 누를 때 “다음부터 알아서 읽기”를 켜 두거나, Claude에게 레시피를 제안해 달라고 하면 돼요.")}</Hint>
+      <More summary={t("An example, key by key", "예시와 항목 설명")}>
+        <pre className="bg-muted overflow-x-auto rounded-lg p-3 font-mono text-xs leading-5">{EXAMPLE}</pre>
+        <KeyValue rows={[
+          [<code>id</code>, t("A unique name: letters, numbers, dots.", "겹치지 않는 이름. 영문 소문자·숫자·점.")],
+          [<code>channels</code>, t("Which messages to look at: sms, mail, notification, text.", "볼 메시지: sms(문자), mail(메일), notification(알림), text(붙여 넣은 글).")],
+          [<code>match</code>, t("When it applies. any: one of these words; all: every one; none: none of them; from / subject for mail.", "언제 맡을지. any: 이 중 하나가 있으면, all: 모두 있으면, none: 하나도 없으면. 메일은 from(보낸 곳)·subject(제목)도.")],
+          [<code>extract</code>, t("Patterns with named parts: (?<amount>…) (?<merchant>…) (?<card>…) (?<item>…), date and time parts.", "이름 붙은 부분이 있는 패턴: (?<amount>…) 금액, (?<merchant>…) 가게, (?<card>…) 카드, (?<item>…) 품목, 날짜·시각.")],
+          [<code>set</code>, t("Fixed values; {name} puts in an extracted part.", "고정값. {이름}을 쓰면 뽑은 값이 들어가요.")],
+          [<code>kind</code>, t("payment (default), item (a receipt's item for a payment), ignore (skip).", "payment(기본, 결제), item(영수증 품목을 결제에 붙임), ignore(건너뜀).")],
+          [<code>examples</code>, t("A message and what should come out. Use fake names and numbers.", "메시지 하나와 나와야 할 값. 이름·숫자는 가짜로.")],
+        ]} />
+        <Actions><Button size="sm" kind="secondary" onClick={() => onExample(EXAMPLE)}>{t("Start from this example", "이 예시로 시작하기")}</Button></Actions>
+        <Hint>{t("Full reference, safety limits and Claude's recipe tools: docs/recipes.md", "전체 설명, 안전 제한, Claude 레시피 도구: docs/ko/recipes.md")}</Hint>
+      </More>
     </Card>
   );
 }
@@ -150,7 +212,7 @@ function Advanced({ editor, setEditor, dir, reload }: { editor: string; setEdito
           </Callout>
         )}
       </More>
-      <More summary={t("Write a recipe (JSON)", "레시피 직접 쓰기 (JSON)")}>
+      <More open={!!editor} summary={t("Write a recipe (JSON)", "레시피 직접 쓰기 (JSON)")}>
         <Hint>{t("Saved as a proposal; turn it on above. If you share it, change names and numbers in the example to fake ones. Format: docs/recipes.md", "제안으로 저장되고, 위에서 켜면 쓰여요. 공유할 때는 예시의 이름과 숫자를 가짜로 바꾸세요. 형식: docs/recipes.md")}</Hint>
         <TextArea label={t("Recipe (JSON)", "레시피 (JSON)")} value={editor} onChange={setEditor} rows={12} mono />
         <Actions><Button size="sm" busy={busy} disabled={!editor.trim()} onClick={() => run(() => post("/recipes/save", { json: editor }), t("Saved as a proposal.", "제안으로 저장했어요."), () => { setEditor(""); reload(); })}>{t("Save as proposal", "제안으로 저장")}</Button></Actions>

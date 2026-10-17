@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { MessageReader, loadRecipes, testRecipe } from "../../src/modules/ledger/messages/reader.js";
 import { BUILTIN_RECIPES, builtinSource } from "../../src/modules/ledger/messages/builtin.js";
+const ALL = () => BUILTIN_RECIPES.map((r) => (r as { id: string }).id);
 import { compileRecipe, unsafePattern, type CompiledRecipe } from "../../src/modules/ledger/messages/recipe.js";
 import { zonedIso } from "../../src/core/time.js";
 
@@ -68,7 +69,7 @@ describe("generic parser without a recipe", () => {
 describe("recipes", () => {
   it("every built-in recipe passes its own examples", async () => {
     for (const c of builtins) expect(await testRecipe(c), c.recipe.id).toEqual([]);
-    expect((await loadRecipes([builtinSource])).errors).toEqual([]);
+    expect((await loadRecipes([builtinSource(ALL)])).errors).toEqual([]);
   });
 
   it("rejects dangerous or broken patterns", () => {
@@ -99,7 +100,7 @@ describe("recipes", () => {
     const ads = compileRecipe({ id: "kr.ads", match: { any: ["\\(광고\\)"] }, kind: "ignore" });
     expect((await reader([ads, ...builtins]).read(sms("(광고) 현대카드 승인 이벤트 10,000원"))).kind).toBe("ignore");
     const broken = { id: "kr.broken", match: { any: ["샘플"] }, set: { card: "샘플카드" }, examples: [{ text: "샘플 승인 1,000원 10/14 12:00 가게", expect: { card: "다른카드" } }] };
-    const { active, errors } = await loadRecipes([builtinSource, { id: "vault", list: () => [broken, { id: "kr.samsung.sms", enabled: false, match: { any: ["삼성"] } }] }]);
+    const { active, errors } = await loadRecipes([builtinSource(ALL), { id: "vault", list: () => [broken, { id: "kr.samsung.sms", enabled: false, match: { any: ["삼성"] } }] }]);
     expect(errors.map((e) => e.id)).toEqual(["kr.broken"]);
     expect(active.map((c) => c.recipe.id)).toContain("kr.hyundai.sms");
     expect(active.map((c) => c.recipe.id)).not.toContain("kr.samsung.sms"); // the vault note switched samsung off

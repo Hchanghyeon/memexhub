@@ -41,6 +41,7 @@ beforeAll(async () => {
   await hub.settings.set("timezone", "Asia/Seoul");
   await hub.settings.set("ledger", { ...s.ledger, language: "ko", mailSources: [{ connection: "kakao", folder: "Payments" }] });
   await hub.settings.set("modules", { ledger: { enabled: true } });
+  await hub.settings.set("recipePacks", ["kr.hyundai.sms", "kr.samsung.sms", "kr.kcp.mail", "kr.kicc.mail"]);
   await hub.reload();
 });
 

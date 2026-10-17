@@ -89,6 +89,15 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
       `CREATE INDEX map_tiles_at ON map_tiles (at)`,
     ],
   },
+  {
+    id: 8,
+    sql: [
+      // Bundled recipes became opt-in. An install that already had an admin keeps the four it was using.
+      `INSERT INTO settings (key, value, updated_at)
+       SELECT 'recipePacks', '["kr.hyundai.sms","kr.samsung.sms","kr.kcp.mail","kr.kicc.mail"]', '2026-10-18T00:00:00Z'
+       WHERE EXISTS (SELECT 1 FROM admins) AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'recipePacks')`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

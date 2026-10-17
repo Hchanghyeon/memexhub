@@ -75,6 +75,8 @@ export const SettingsSchema = z.object({
   notion: z
     .object({ connection: z.string().optional(), ledger: z.boolean().default(false), health: z.boolean().default(false) })
     .default({ ledger: false, health: false }),
+  /** Recipes from the bundled collection (/recipes) that are switched on. Off by default: each install picks its own. */
+  recipePacks: z.array(z.string().max(64)).max(200).default([]),
   /** First-run wizard finished (or skipped). */
   onboarded: z.boolean().default(false),
   admin: z

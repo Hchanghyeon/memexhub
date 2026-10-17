@@ -129,7 +129,7 @@ function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: ()
               <p key="1">{t("Shortcuts → Automation → New → Message → “Message contains” 승인 (your card company's sender) → Run immediately.", "단축어 → 자동화 → 새로 만들기 → 메시지 → “메시지에 포함” 승인 (카드사 발신번호) → 즉시 실행.")}</p>,
               <div key="2" className="space-y-2"><p>{t("Add “Get contents of URL”: method POST, this address:", "“URL의 콘텐츠 가져오기”를 추가하고 방법 POST, 주소는:")}</p><Copy text={`${publicUrl}/ingest/message`} /></div>,
               <div key="3" className="space-y-2"><p>{t("Header X-Ingest-Token with this token (shown once):", "헤더 X-Ingest-Token 에 이 토큰 (한 번만 보여요):")}</p><Copy text={card} /></div>,
-              <p key="4">{t("Body JSON: text = Shortcut Input. Messages it is not sure about are asked on Payment messages.", "본문 JSON: text = 단축어 입력. 확신이 없는 문자는 결제 메시지 화면에서 물어봐요.")}</p>,
+              <p key="4">{t("Body JSON: text = Shortcut Input. Messages it is not sure about are asked on Messages.", "본문 JSON: text = 단축어 입력. 확신이 없는 문자는 메시지 화면에서 물어봐요.")}</p>,
             ]}
           </Steps>
         )}

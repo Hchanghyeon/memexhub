@@ -69,7 +69,7 @@ export default defineModule({
     let loaded: { sig: string; result: ReturnType<typeof loadRecipes> } | undefined;
     const recipes = async () => {
       const sig = await vaultRecipes.signature();
-      if (loaded?.sig !== sig) loaded = { sig, result: loadRecipes([builtinSource, vaultRecipes]) };
+      if (loaded?.sig !== sig) loaded = { sig, result: loadRecipes([builtinSource(() => settings.recipePacks), vaultRecipes]) };
       return loaded.result;
     };
     const reader = new MessageReader(async () => (await recipes()).active, { tz: () => settings.timezone, now: () => platform.now() });

@@ -42,6 +42,14 @@ describe("admin API: recipes & inbox", () => {
     expect((await a.post("/recipes/save", { json: "{}" }, { "x-csrf": "wrong" })).status).toBe(403);
   });
 
+  it("offers the bundled recipes off by default; switching one on uses it", async () => {
+    const before = await a.json("/recipes");
+    expect(before.active).toEqual([]);
+    expect(before.packs.map((p: { id: string; on: boolean }) => [p.id, p.on])).toContainEqual(["kr.hyundai.sms", false]);
+    for (const id of ["kr.hyundai.sms", "kr.samsung.sms"]) expect((await a.post("/recipes/pack", { id, on: true })).status).toBe(200);
+    expect((await a.post("/recipes/pack", { id: "kr.nope", on: true })).status).toBe(404);
+  });
+
   it("tries a message and lists built-in recipes", async () => {
     const r = await (await a.post("/recipes/try", { channel: "sms", text: "[Web발신]\n현대카드 M 승인\n김*수\n1,000원 일시불\n10/14 12:30\n샘플카페" })).json();
     expect(r).toMatchObject({ step: "recipe", recipeId: "kr.hyundai.sms", confident: true, payment: { merchant: "샘플카페" } });
@@ -57,7 +65,8 @@ describe("admin API: recipes & inbox", () => {
     expect((await (await a.post("/recipes/approve", { file: "memexhub/recipes/../CLAUDE.md" })).json()).detail).toMatch(/not a proposal/);
     expect((await (await a.post("/recipes/approve", { file: "memexhub/recipes/proposed/custom.sample.sms.md" })).json()).message).toMatch(/now active/);
     expect((await (await a.post("/recipes/try", { channel: "sms", text: SAMPLE })).json()).recipeId).toBe("custom.sample.sms");
-    expect((await (await a.post("/recipes/disable", { id: "kr.samsung.sms" })).json()).message).toMatch(/Disabled built-in/);
+    expect((await (await a.post("/recipes/disable", { id: "kr.samsung.sms" })).json()).message).toBe("Turned off kr.samsung.sms.");
+    expect((await a.json("/recipes")).packs.find((p: { id: string }) => p.id === "kr.samsung.sms").on).toBe(false);
     expect((await a.json("/recipes")).active.map((x: { id: string }) => x.id)).not.toContain("kr.samsung.sms");
     const pack = await (await a.get("/recipes/export")).json();
     expect((pack as { id: string }[]).map((r) => r.id)).toContain("custom.sample.sms");

@@ -1,9 +1,10 @@
 # Message recipes
 
-> **In plain words:** the admin page **Payment messages** shows this as:
+> **In plain words:** the admin page **Messages** shows this as:
 > - **Read by themselves:** card companies and pay services that have a recipe. Recorded without asking.
 > - **Please check:** messages memexhub was not sure about (the inbox). When you answer "It's a payment" with **read messages like this by themselves** on, a recipe is made from that message and your answer right away.
-> - Seeing or writing recipes by hand is under **Advanced**.
+> - **Recipe collection:** the recipes in `recipes/` (Hyundai and Samsung card texts, KCP and KICC receipt mails …). Off by default; switch on the senders you use. Servers installed before 2026-10-18 keep the four switched on.
+> - **What is a recipe?** explains them; writing one by hand is under **Advanced**.
 
 How memexhub turns **messages**: card SMS, receipt mails, app notifications · into ledger records **without code per card company or shop**. ✅
 
@@ -50,7 +51,7 @@ Recipes are **vault notes**, because they are rules of your wiki: readable in Ob
 |---|---|---|
 | `<recipes>/` | ✅ active | you (Obsidian, or **Approve** in the admin UI). **Claude cannot write here**: the folder is a protected path for MCP tools. |
 | `<recipes>/proposed/` | ❌ only tested | Claude (`ledger_recipe_propose`), you |
-| built-in (`recipes/` in the repository) | ✅ | contributors, by pull request (JSON, no code) |
+| the collection (`recipes/` in the repository) | the ones switched on ✅ (admin **Messages → Recipe collection**) | contributors, by pull request (JSON, no code) |
 
 `<recipes>` is a vault role (see [wiki engine](wiki-engine.md)). The default is `memexhub/recipes`, and presets set their own. A vault note with the same `id` as a built-in recipe overrides it. Setting `enabled: false` in a note switches a built-in recipe off.
 

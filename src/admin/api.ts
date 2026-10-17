@@ -18,6 +18,7 @@ import { importLedgerLines } from "../modules/ledger/import.js";
 import { importHealthDays } from "../modules/health/import.js";
 import type { LedgerAdmin } from "../modules/ledger/admin-api.js";
 import { CHANNELS } from "../modules/ledger/messages/types.js";
+import { BUILTIN_RECIPES } from "../modules/ledger/messages/builtin.js";
 
 type Vars = { Variables: { ip: string; adminId: string; csrf: string } };
 export const SESSION_COOKIE = "mx_admin";
@@ -775,14 +776,24 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   const message = z.object({ channel: channel.default("sms"), text: z.string().min(1).max(16_000), from: z.string().max(300).optional(), subject: z.string().max(300).optional() });
   api.get("/recipes", async (c) => {
     const a = ledger();
-    const [rec, inbox] = await Promise.all([a.recipes(), a.inbox()]);
+    const [rec, inbox, s] = await Promise.all([a.recipes(), a.inbox(), hub.settings.get()]);
     return c.json({
       dir: a.recipesDir,
       inbox: inbox.map((i) => ({ id: i.id, receivedAt: i.receivedAt, channel: i.channel, reason: i.reason, from: i.data?.message.from ?? null, subject: i.data?.message.subject ?? null, text: i.data?.message.text ?? "", guess: i.data?.guess ?? null })),
       proposed: rec.proposed.files.map((f) => ({ file: f, id: f.split("/").pop()!.replace(/\.md$/, ""), error: rec.proposed.errors.find((e) => e.path === f)?.error ?? null })),
       active: rec.active.map((r) => ({ id: r.recipe.id, name: r.recipe.name ?? r.recipe.id, kind: r.recipe.kind, channels: r.recipe.channels, path: r.path ?? null })),
       errors: rec.errors.map((e) => ({ id: e.id ?? null, path: e.path ?? null, error: e.error })),
+      // The bundled collection (/recipes): what can be switched on, and what is.
+      packs: BUILTIN_RECIPES.map((r) => r as { id: string; name?: string; channels?: string[]; kind?: string }).map((r) => ({ id: r.id, name: r.name ?? r.id, channels: r.channels ?? ["sms"], on: s.recipePacks.includes(r.id) })),
     });
+  });
+  api.post("/recipes/pack", async (c) => {
+    const f = await body(c, z.object({ id: z.string().max(64), on: z.boolean() }));
+    if (!BUILTIN_RECIPES.some((r) => (r as { id: string }).id === f.id)) throw new Fail("not_found", undefined, 404);
+    const s = await hub.settings.get();
+    await hub.settings.set("recipePacks", f.on ? [...new Set([...s.recipePacks, f.id])] : s.recipePacks.filter((x) => x !== f.id));
+    await hub.reload();
+    return c.json({ ok: true });
   });
   api.post("/recipes/try", async (c) => c.json(await ledger().read((await body(c, message)) as never)));
   api.post("/recipes/draft", async (c) => c.json({ json: await ledger().draft((await body(c, message)) as never) }));
@@ -804,7 +815,18 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   };
   api.post("/recipes/save", act((a, f) => a.saveProposal(f.json!), z.object({ json: z.string().max(50_000) })));
   api.post("/recipes/approve", act((a, f) => a.approve(f.file!), z.object({ file: z.string().max(500) })));
-  api.post("/recipes/disable", act((a, f) => a.disable(f.id!), z.object({ id: z.string().max(80) })));
+  api.post("/recipes/disable", async (c) => {
+    const f = await body(c, z.object({ id: z.string().max(80) }));
+    const s = await hub.settings.get();
+    const fromVault = (await ledger().recipes()).active.some((r) => r.recipe.id === f.id && r.path);
+    // A recipe from the collection is simply switched off again; one in the vault gets enabled: false.
+    if (s.recipePacks.includes(f.id) && !fromVault) {
+      await hub.settings.set("recipePacks", s.recipePacks.filter((x) => x !== f.id));
+      await hub.reload();
+      return c.json({ message: `Turned off ${f.id}.` });
+    }
+    return act((a, x) => a.disable(x.id!), z.object({ id: z.string().max(80) }))(c);
+  });
   api.post("/recipes/import", act((a, f) => a.importPack(f.json!), z.object({ json: z.string().max(200_000) })));
   api.get("/recipes/export", async (c) => {
     c.header("content-disposition", 'attachment; filename="memexhub-recipes.json"');
