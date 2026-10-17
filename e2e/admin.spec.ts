@@ -159,12 +159,17 @@ test("first-run setup: three steps, waits for Claude, can finish later", async (
   expect(errors).toEqual([]);
 });
 
-test("connections: developer-app services are marked advanced, with the easier path", async ({ page }) => {
+test("connections: short service names; what it needs and the easier path show when opened", async ({ page }) => {
   await signIn(page);
   await page.goto("/admin/connections");
   const google = page.getByRole("button", { name: /Google 캘린더/ });
   await expect(google.getByText("고급")).toBeVisible();
-  await expect(google.getByText(/Claude 앱의 Google Calendar 커넥터가 더 쉬워요/)).toBeVisible();
+  await expect(page.getByText(/Claude 앱의 Google Calendar 커넥터가 더 쉬워요/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Last.fm", exact: true })).toBeVisible();
+  await google.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Claude 앱의 Google Calendar 커넥터가 더 쉬워요/)).toBeVisible();
+  await expect(dialog.getByText(/Google Cloud의 OAuth 클라이언트/)).toBeVisible();
 });
 test("devices: one QR sets up OwnTracks with a fresh location token", async ({ page }) => {
   const errors = watchErrors(page);

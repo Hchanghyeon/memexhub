@@ -18,7 +18,7 @@ const KINDS: { kind: string; icon: LucideIcon; name: [string, string]; what: [st
   { kind: "geocoder", icon: MapIcon, name: ["Place names", "지명"], what: ["Turns coordinates into neighbourhood names.", "좌표를 동네 이름으로 바꿔요."] },
   { kind: "maptiles", icon: MapIcon, name: ["Map background", "지도 바탕"], what: ["Pictures behind the route on the Map screen, fetched and kept by this server.", "지도 화면의 경로 뒤에 깔리는 지도. 이 서버가 받아 보관해요."] },
   { kind: "weather", icon: CloudSun, name: ["Weather", "날씨"], what: ["The day's weather at a place you choose.", "고른 장소의 그날 날씨."] },
-  { kind: "home", icon: House, name: ["Home", "집"], what: ["Smart-home states and the day's logbook. Read-only — nothing is switched.", "스마트홈 상태와 그날 기록. 읽기 전용이라 아무것도 켜고 끄지 않아요."] },
+  { kind: "home", icon: House, name: ["Home", "집"], what: ["Smart-home states and the day's logbook. Read-only: nothing is switched.", "스마트홈 상태와 그날 기록. 읽기 전용이라 아무것도 켜고 끄지 않아요."] },
   { kind: "music", icon: Music, name: ["Music", "음악"], what: ["What you listened to, for the journal. Read-only.", "들은 음악을 일지에. 읽기 전용."] },
   { kind: "notion", icon: NotebookText, name: ["Notion", "Notion"], what: ["Copies records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."] },
 ];
@@ -31,8 +31,8 @@ const NEEDS: Record<string, [string, string]> = {
   "tasks:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],
   "location:owntracks": ["The OwnTracks app sends to memexhub with a device token.", "OwnTracks 앱이 기기 토큰으로 memexhub에 보내요."],
   "location:dawarich": ["Your Dawarich server address and API key.", "Dawarich 서버 주소와 API 키."],
-  "geocoder:nominatim": ["Nothing — the public OpenStreetMap server works.", "필요 없음 — 공개 OpenStreetMap 서버를 써요."],
-  "maptiles:osm": ["Nothing — the public OpenStreetMap tile server works.", "필요 없음 — 공개 OpenStreetMap 지도 서버를 써요."],
+  "geocoder:nominatim": ["Nothing. The public OpenStreetMap server works.", "필요 없음. 공개 OpenStreetMap 서버를 써요."],
+  "maptiles:osm": ["Nothing. The public OpenStreetMap tile server works.", "필요 없음. 공개 OpenStreetMap 지도 서버를 써요."],
   "weather:open-meteo": ["A place name and its latitude/longitude. No key.", "장소 이름과 위도·경도. 키 없음."],
   "home:home-assistant": ["The Home Assistant address and a long-lived token.", "홈 어시스턴트 주소와 장기 액세스 토큰."],
   "music:lastfm": ["Your Last.fm user name and an API key.", "Last.fm 사용자 이름과 API 키."],
@@ -45,10 +45,13 @@ const NEEDS: Record<string, [string, string]> = {
  * "Advanced" badge, and with the easier path when Claude already has its own connector for it.
  */
 const ADVANCED: Record<string, [string, string] | null> = {
-  "calendar:google": ["Only want Claude to see your Google Calendar? The Claude app's own Google Calendar connector is easier — use this for several accounts or daily summaries.", "Claude가 구글 캘린더만 보면 된다면 Claude 앱의 Google Calendar 커넥터가 더 쉬워요. 여러 계정을 쓰거나 하루 요약에 넣을 때 쓰세요."],
+  "calendar:google": ["Only want Claude to see your Google Calendar? The Claude app's own Google Calendar connector is easier. Use this for several accounts or daily summaries.", "Claude가 구글 캘린더만 보면 된다면 Claude 앱의 Google Calendar 커넥터가 더 쉬워요. 여러 계정을 쓰거나 하루 요약에 넣을 때 쓰세요."],
   "tasks:google": null,
   "music:spotify": ["Last.fm is easier: a user name and an API key.", "Last.fm이 더 쉬워요: 사용자 이름과 API 키만 있으면 돼요."],
 };
+
+/** The name without the parenthesised or dashed extra ("IMAP mail (Kakao, …) — read-only" → "IMAP mail"); the rest is shown when it is opened. */
+export const shortName = (title: string) => title.replace(/\s+[—-]\s+.*$/, "").replace(/\s*\([^)]*\)\s*$/, "").trim() || title;
 
 export function Connections() {
   const { t, lang } = useT();
@@ -60,13 +63,15 @@ export function Connections() {
   const [anotherName, setAnotherName] = useState("");
   if (!data) return <Page title={t("Connections", "연결")}><Loading error={error} reload={reload} /></Page>;
   const tx = (x: Text) => (lang === "ko" ? x.ko : x.en);
+  const kindOf = (kind: string) => kinds.find((k) => k.kind === kind);
+  const pick = adding ? data.addable.find((a) => a.key === adding) : undefined;
   const known = KINDS.map((k) => k.kind);
   const kinds = [...KINDS, ...[...new Set([...data.items, ...data.addable].map((x) => x.kind))].filter((k) => !known.includes(k)).map((k) => ({ kind: k, icon: Plug, name: [k, k] as [string, string], what: ["", ""] as [string, string] }))];
   const status = (x: Item) =>
     !x.enabled ? t("Off", "꺼짐") : x.status === "ok" ? t(`Working · checked ${ago(t, x.lastOkAt, "UTC")}`, `정상 · ${ago(t, x.lastOkAt, "UTC")} 확인`) : x.status === "error" ? <span className="text-destructive">{x.lastError}</span> : t("Checking soon", "곧 확인해요");
   const used = kinds.filter((k) => data.items.some((x) => x.kind === k.kind));
   return (
-    <Page title={t("Connections", "연결")} sub={t("Outside services memexhub reads for you. All optional — connect only what you want Claude to see. Each one is checked every 6 hours.", "memexhub가 대신 읽어 오는 바깥 서비스예요. 모두 선택이에요. Claude가 볼 것만 연결하세요. 6시간마다 상태를 확인해요.")}>
+    <Page title={t("Connections", "연결")} sub={t("Services memexhub collects from. All optional.", "memexhub가 모아 오는 서비스예요. 모두 선택이에요.")}>
       <Card title={t(`Connected (${data.items.length})`, `연결된 것 (${data.items.length})`)}>
         {!data.items.length && <Empty>{t("Nothing connected yet. Pick a service below.", "아직 연결한 것이 없어요. 아래에서 골라 보세요.")}</Empty>}
         {used.map((k) => (
@@ -75,7 +80,7 @@ export function Connections() {
             <List>
               {data.items.filter((x) => x.kind === k.kind).map((x) => (
                 <Item key={x.id} tone={!x.enabled ? "idle" : x.status === "ok" ? "ok" : x.status === "error" ? "err" : "idle"}
-                  title={tx(x.providerTitle)} badges={<Badge>{x.name}</Badge>}
+                  title={shortName(tx(x.providerTitle))} badges={<Badge>{x.name}</Badge>}
                   meta={<>{status(x)}{x.email ? ` · ${x.email}` : ""}</>}
                   actions={<>
                     {x.signIn && x.email && <Button size="sm" kind="secondary" onClick={() => setAnother(x)}><Plus />{t("Add account", "계정 추가")}</Button>}
@@ -88,19 +93,16 @@ export function Connections() {
           </section>
         ))}
       </Card>
-      <Card title={t("Add a connection", "연결 추가")} sub={t("Pick a service. It is tested when you save.", "서비스를 고르세요. 저장하면서 바로 시험해요.")}>
+      <Card title={t("Add a connection", "연결 추가")} sub={t("Pick one to see what it needs.", "누르면 무엇이 필요한지 보여요.")}>
         {kinds.filter((k) => data.addable.some((a) => a.kind === k.kind)).map((k) => (
-          <section key={k.kind} className="flex flex-col gap-3">
-            <KindHeading icon={k.icon} name={t(...k.name)} what={k.what[0] ? t(...k.what) : undefined} />
-            <div className="grid gap-2 sm:grid-cols-2">
+          <section key={k.kind} className="flex flex-col gap-2">
+            <KindHeading icon={k.icon} name={t(...k.name)} />
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {data.addable.filter((a) => a.kind === k.kind).sort((x, y) => Number(x.key in ADVANCED) - Number(y.key in ADVANCED)).map((a) => (
-                <button key={a.key} type="button" onClick={() => setAdding(a.key)} className="hover:bg-accent/60 flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors">
-                  <Plus className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
-                  <span className="min-w-0 space-y-0.5">
-                    <span className="flex flex-wrap items-center gap-2 font-medium">{tx(a.title)}{a.key in ADVANCED && <Badge>{t("Advanced", "고급")}</Badge>}</span>
-                    {NEEDS[a.key] && <span className="text-muted-foreground block text-[0.8125rem] leading-5">{t(...NEEDS[a.key]!)}</span>}
-                    {ADVANCED[a.key] && <span className="text-muted-foreground block text-[0.8125rem] leading-5">💡 {t(...ADVANCED[a.key]!)}</span>}
-                  </span>
+                <button key={a.key} type="button" onClick={() => setAdding(a.key)} title={tx(a.title)} className="hover:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors">
+                  <Plus className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                  <span className="min-w-0 truncate">{shortName(tx(a.title))}</span>
+                  {a.key in ADVANCED && <Badge>{t("Advanced", "고급")}</Badge>}
                 </button>
               ))}
             </div>
@@ -114,21 +116,25 @@ export function Connections() {
           <Actions><Button type="submit" busy={busy}>{t(`Continue to ${another?.signIn ?? ""}`, `${another?.signIn ?? ""} 로그인으로`)}</Button></Actions>
         </form>
       </Dialog>
-      <Dialog open={!!adding} onClose={() => setAdding(null)} title={adding ? tx(data.addable.find((a) => a.key === adding)!.title) : t("Add a connection", "연결 추가")} sub={adding && NEEDS[adding] ? t(...NEEDS[adding]!) : undefined}>
+      <Dialog open={!!adding} onClose={() => setAdding(null)} title={pick ? shortName(tx(pick.title)) : t("Add a connection", "연결 추가")} sub={pick && kindOf(pick.kind)?.what[0] ? t(...kindOf(pick.kind)!.what) : undefined}>
+        {pick && (
+          <div className="text-muted-foreground mb-5 space-y-1.5 text-sm">
+            {shortName(tx(pick.title)) !== tx(pick.title) && <p>{tx(pick.title)}</p>}
+            {NEEDS[pick.key] && <p><span className="text-foreground font-medium">{t("Needs", "필요한 것")}</span> · {t(...NEEDS[pick.key]!)}</p>}
+            {ADVANCED[pick.key] && <Callout><p>💡 {t(...ADVANCED[pick.key]!)}</p></Callout>}
+          </div>
+        )}
         {adding && <AddForm provider={adding} onDone={() => { setAdding(null); reload(); }} />}
       </Dialog>
     </Page>
   );
 }
 
-function KindHeading(p: { icon: LucideIcon; name: string; what?: string }) {
+function KindHeading(p: { icon: LucideIcon; name: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="bg-muted grid size-8 shrink-0 place-items-center rounded-lg"><p.icon className="size-4" aria-hidden /></span>
-      <div className="min-w-0">
-        <h3 className="font-semibold leading-8">{p.name}</h3>
-        {p.what && <p className="text-muted-foreground -mt-1 text-[0.8125rem] leading-5">{p.what}</p>}
-      </div>
+    <div className="flex items-center gap-2">
+      <p.icon className="text-muted-foreground size-4" aria-hidden />
+      <h3 className="text-sm font-semibold">{p.name}</h3>
     </div>
   );
 }
