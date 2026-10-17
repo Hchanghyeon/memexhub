@@ -71,6 +71,7 @@ export function errorText(t: T, e: unknown): string {
     restore_failed: [`Could not restore${d}.`, `되돌리지 못했어요${d}.`],
     sync_failed: [`Sync failed${d}.`, `동기화하지 못했어요${d}.`],
     unknown_connection: ["That connection no longer exists. Reload the page.", "그 연결이 없어요. 화면을 새로고침하세요."],
+    choices_failed: [`Could not load the list from the service${d}.`, `서비스에서 목록을 불러오지 못했어요${d}.`],
     unknown_preset: ["Unknown layout.", "모르는 구조예요."],
     unknown_provider: ["Unknown service.", "모르는 서비스예요."],
     enrol_first: ["Set up the authenticator app first.", "먼저 인증 앱을 등록하세요."],

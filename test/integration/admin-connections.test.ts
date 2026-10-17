@@ -23,6 +23,13 @@ const fake = (async (u: string | URL, init?: RequestInit) => {
     if (init?.method === "PROPFIND") return ms(`<d:response><d:href>/cal/home/</d:href><d:propstat><d:prop><d:resourcetype><c:calendar/></d:resourcetype><d:displayname>Home</d:displayname></d:prop></d:propstat></d:response>`);
     return ms(`<d:response><d:href>/cal/home/a.ics</d:href><d:propstat><d:prop><c:calendar-data>BEGIN:VEVENT\nDTSTART;TZID=Asia/Seoul:20261016T190000\nDTEND;TZID=Asia/Seoul:20261016T210000\nSUMMARY:Dinner\nEND:VEVENT</c:calendar-data></d:prop></d:propstat></d:response>`);
   }
+  if (url.hostname === "ha.example.com") {
+    if (url.pathname === "/api/") return new Response(JSON.stringify({ message: "API running." }));
+    if (url.pathname === "/api/states") return new Response(JSON.stringify([
+      { entity_id: "person.me", state: "home", attributes: { friendly_name: "Me" } },
+      { entity_id: "binary_sensor.front_door", state: "off", attributes: { friendly_name: "Front door" } },
+    ]));
+  }
   throw new Error(`unexpected request to ${url.hostname}`);
 }) as unknown as typeof fetch;
 
@@ -72,5 +79,18 @@ describe("adding a connection from the admin API", () => {
     expect((await a.post(`/connections/${add.id}/remove`, {})).status).toBe(200);
     expect(await hub.connections.byId(add.id)).toBeUndefined();
     expect((await a.post(`/connections/${add.id}/remove`, {})).status).toBe(404);
+  });
+
+  it("offers Home Assistant entities to pick for the daily summary, once the connection is saved", async () => {
+    const form = await a.json("/connections/form?provider=home:home-assistant");
+    expect(form.choices).toEqual(["entities"]);
+    const add = await (await a.post("/connections", { provider: "home:home-assistant", name: "house", config: { url: "https://ha.example.com" }, secrets: { token: "t".repeat(40) } })).json();
+    expect(add.test).toEqual({ ok: true });
+    const r = await a.json(`/connections/${add.id}/choices/entities`);
+    expect(r.choices).toEqual([
+      { value: "person.me", label: "Me", group: "person", note: "home" },
+      { value: "binary_sensor.front_door", label: "Front door", group: "binary_sensor", note: "off" },
+    ]);
+    expect((await a.get(`/connections/${add.id}/choices/nope`)).status).toBe(404);
   });
 });

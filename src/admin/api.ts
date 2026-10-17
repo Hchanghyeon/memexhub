@@ -446,7 +446,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     if (!def) throw new Fail("unknown_provider", undefined, 404);
     return c.json({
       key: `${def.kind}:${def.id}`, kind: def.kind, title: def.title,
-      fields: fieldsOf(def.config), secrets: fieldsOf(def.secrets, true),
+      fields: fieldsOf(def.config), secrets: fieldsOf(def.secrets, true), choices: Object.keys(def.choices ?? {}),
       googleRedirect: hub.signIns.get(def.id)?.redirectUri ?? null,
       signIn: hub.signIns.get(def.id)?.spec.title ?? null,
       // Connections whose app (client ID + secret) can be reused: same service, already set up.
@@ -506,6 +506,19 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const def = hub.providers.find((p) => p.kind === con.kind && p.id === con.provider);
     const shape = (def?.config.shape ?? {}) as Record<string, { description?: string }>;
     return c.json({ provider: `${con.kind}:${con.provider}`, name: con.name, config: Object.fromEntries(Object.entries(con.config).filter(([k]) => k in shape && shape[k]!.description !== INTERNAL)) });
+  });
+  api.get("/connections/:id/choices/:field", async (c) => {
+    const con = await hub.connections.byId(c.req.param("id"));
+    const def = con && hub.providers.find((p) => p.kind === con.kind && p.id === con.provider);
+    const pick = def?.choices?.[c.req.param("field")];
+    if (!con || !pick) throw new Fail("not_found", undefined, 404);
+    try {
+      const inst = await hub.provider(con.kind, con.name);
+      if (!inst) throw new Error("the connection is off");
+      return c.json({ choices: (await pick(inst as never)).slice(0, 3000) });
+    } catch (e) {
+      throw new Fail("choices_failed", (e as Error).message.slice(0, 200));
+    }
   });
   api.post("/connections/:id/remove", async (c) => {
     const con = await hub.connections.byId(c.req.param("id"));

@@ -41,6 +41,14 @@ export interface ProviderDef<K extends string = string, C = any, S = any> {
   allowPrivate?(config: C): boolean;
   create(ctx: ProviderContext<C, S>): KindMap[K] | Promise<KindMap[K]>;
   test?(instance: KindMap[K]): Promise<void>;
+  /**
+   * Values a config field can be picked from, read from the connected service (e.g. Home Assistant entities).
+   * Offered in the admin form once the connection is saved; the picked values are written into the field.
+   */
+  choices?: Record<string, (instance: any) => Promise<Choice[]>>;
 }
+
+/** One pickable value: `group` sorts them (a device type), `note` shows the current state or a detail. */
+export interface Choice { value: string; label: string; group?: string; note?: string }
 
 export const defineProvider = <K extends string>(p: ProviderDef<K, any, any>) => p;

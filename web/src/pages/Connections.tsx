@@ -3,12 +3,12 @@ import { post } from "../api";
 import { ago, useT } from "../i18n";
 import { explain } from "../explain";
 import { CalendarDays, CloudSun, House, ListChecks, Mail, Map as MapIcon, MapPin, Music, NotebookText, Plug, Plus, type LucideIcon } from "lucide-react";
-import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Item, List, Loading, Page, Select, useAction, useConfirm, useData } from "../ui/kit";
+import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Hint, Input, Item, List, Loading, Page, Select, Sub, useAction, useConfirm, useData } from "../ui/kit";
 
 type Text = { en: string; ko: string };
 interface Item { id: string; kind: string; name: string; provider: string; providerTitle: Text; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null; signIn: string | null }
 interface Field { key: string; label: string; labelKo?: string; hint?: { en: string; ko: string }; type: "text" | "password" | "checkbox" | "number" | "select"; options?: string[]; optional: boolean; defaultValue?: unknown }
-interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null; signIn: string | null; reuse: { id: string; name: string; kind: string; account: string | null }[] }
+interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; choices: string[]; googleRedirect: string | null; signIn: string | null; reuse: { id: string; name: string; kind: string; account: string | null }[] }
 
 /** Kinds in the order they are shown, with an icon, a name and what the connection is for. */
 const KINDS: { kind: string; icon: LucideIcon; name: [string, string]; what: [string, string] }[] = [
@@ -153,10 +153,73 @@ function KindHeading(p: { icon: LucideIcon; name: string }) {
 /** Loads a saved connection (no secrets) and opens the same form, filled in. */
 function EditForm({ id, onDone }: { id: string; onDone: () => void }) {
   const { data, error, reload } = useData<{ provider: string; name: string; config: Record<string, unknown> }>(`/connections/${id}`);
-  return data ? <AddForm provider={data.provider} edit={data} onDone={onDone} /> : <Loading error={error} reload={reload} />;
+  return data ? <AddForm provider={data.provider} edit={{ ...data, id }} onDone={onDone} /> : <Loading error={error} reload={reload} />;
 }
 
-function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => void; edit?: { name: string; config: Record<string, unknown> } }) {
+interface Choice { value: string; label: string; group?: string; note?: string }
+/** Home Assistant domains in plain words, the ones worth a journal line first. */
+const GROUP: [string, string, string][] = [
+  ["person", "People (home or away)", "사람 (집에 있음·없음)"],
+  ["binary_sensor", "Door, window and motion sensors", "문·창문·움직임 감지"],
+  ["lock", "Door locks", "도어락"],
+  ["alarm_control_panel", "Alarm", "경보"],
+  ["device_tracker", "Device location", "기기 위치"],
+  ["vacuum", "Robot vacuum", "로봇청소기"],
+  ["cover", "Curtains, blinds, garage door", "커튼·블라인드·차고문"],
+  ["climate", "Heating and cooling", "냉난방"],
+  ["light", "Lights", "조명"],
+  ["switch", "Switches and plugs", "스위치·플러그"],
+  ["fan", "Fans", "선풍기"],
+  ["media_player", "TV and speakers", "TV·스피커"],
+  ["camera", "Cameras", "카메라"],
+  ["sensor", "Sensor values (temperature, power …): change often", "센서 값 (온도·전력 등): 자주 바뀜"],
+  ["input_boolean", "Helpers (on/off)", "도우미 (켜기·끄기)"],
+  ["automation", "Automations", "자동화"],
+  ["scene", "Scenes", "장면"],
+  ["script", "Scripts", "스크립트"],
+];
+
+/** Pick values for a field from the connected service (e.g. Home Assistant entities), as a comma list. */
+function Picker({ id, field, value, onChange, onClose }: { id: string; field: string; value: string; onChange: (v: string) => void; onClose: () => void }) {
+  const { t } = useT();
+  const { data, error, reload } = useData<{ choices: Choice[] }>(`/connections/${id}/choices/${field}`);
+  const [q, setQ] = useState("");
+  const picked = new Set(value.split(",").map((x) => x.trim()).filter(Boolean));
+  if (!data) return <Loading error={error} reload={reload} />;
+  const set = (v: string, on: boolean) => {
+    const next = new Set(picked);
+    if (on) next.add(v);
+    else next.delete(v);
+    onChange([...next].join(", "));
+  };
+  const ql = q.trim().toLowerCase();
+  const shown = data.choices.filter((c) => !ql || c.value.toLowerCase().includes(ql) || c.label.toLowerCase().includes(ql));
+  const order = (g = "") => { const i = GROUP.findIndex((x) => x[0] === g); return i < 0 ? GROUP.length : i; };
+  const groups = [...new Set(shown.map((c) => c.group ?? ""))].sort((a, b) => order(a) - order(b) || a.localeCompare(b));
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border p-4">
+      <Hint>{t("Pick what is worth a line in your journal: people at home, the front door, locks, the robot vacuum. Sensor values change often and fill the log.", "일지에 한 줄 남길 만한 것만 고르세요: 집에 있는지(사람), 현관문, 도어락, 로봇청소기 같은 것. 온도 같은 센서 값은 자주 바뀌어서 기록이 많아져요.")}</Hint>
+      <Input label={t(`Search ${data.choices.length}`, `${data.choices.length}개 중 찾기`)} value={q} onChange={setQ} placeholder={t("name or id", "이름이나 id")} />
+      <div className="flex max-h-80 flex-col gap-4 overflow-y-auto">
+        {groups.map((g) => {
+          const label = GROUP.find((x) => x[0] === g);
+          return (
+            <section key={g} className="flex flex-col gap-2">
+              <Sub>{label ? t(label[1], label[2]) : g || t("Other", "기타")}</Sub>
+              {shown.filter((c) => (c.group ?? "") === g).slice(0, 200).map((c) => (
+                <Check key={c.value} checked={picked.has(c.value)} onChange={(on) => set(c.value, on)} label={c.label} hint={<><code>{c.value}</code>{c.note ? ` · ${t("now", "지금")} ${c.note}` : ""}</>} />
+              ))}
+            </section>
+          );
+        })}
+        {!shown.length && <Empty>{t("Nothing matches.", "맞는 게 없어요.")}</Empty>}
+      </div>
+      <Actions><Button size="sm" kind="secondary" onClick={onClose}>{t(`Done (${picked.size} picked)`, `다 골랐어요 (${picked.size}개)`)}</Button></Actions>
+    </div>
+  );
+}
+
+function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => void; edit?: { id: string; name: string; config: Record<string, unknown> } }) {
   const { t, lang } = useT();
   const { data: form } = useData<Form>(`/connections/form?provider=${encodeURIComponent(provider)}`);
   const { busy, run } = useAction();
@@ -164,6 +227,7 @@ function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => v
   const [config, setConfig] = useState<Record<string, unknown>>(edit?.config ?? {});
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [copyFrom, setCopyFrom] = useState<string>();
+  const [picking, setPicking] = useState<string>();
   if (!form) return <Loading />;
   const label = (f: Field) => (lang === "ko" && f.labelKo ? f.labelKo : f.label);
   const hint = (f: Field) => (f.hint ? (lang === "ko" ? f.hint.ko : f.hint.en) : undefined);
@@ -193,6 +257,15 @@ function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => v
           <Check key={f.key} checked={!!val(f)} onChange={(v) => setConfig({ ...config, [f.key]: v })} label={label(f)} hint={hint(f)} />
         ) : f.type === "select" ? (
           <Select key={f.key} label={label(f)} hint={hint(f)} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} options={(f.options ?? []).map((o) => ({ value: o, label: OPTION[o] ? t(...OPTION[o]!) : o }))} />
+        ) : form.choices?.includes(f.key) ? (
+          <div key={f.key} className="flex flex-col gap-2">
+            <Input label={`${label(f)}${f.optional ? "" : " *"}`} hint={hint(f)} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} required={!f.optional} />
+            {edit ? (
+              picking === f.key
+                ? <Picker id={edit.id} field={f.key} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} onClose={() => setPicking(undefined)} />
+                : <div><Button size="sm" kind="secondary" onClick={() => setPicking(f.key)}>{t("Pick from the list", "목록에서 고르기")}</Button></div>
+            ) : <Hint>{t("After saving, Edit lets you pick these from a list.", "저장한 뒤 수정에서 목록으로 고를 수 있어요.")}</Hint>}
+          </div>
         ) : (
           <Input key={f.key} label={`${label(f)}${f.optional ? "" : " *"}`} hint={hint(f)} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} inputMode={f.type === "number" ? "numeric" : undefined} required={!f.optional} />
         ),

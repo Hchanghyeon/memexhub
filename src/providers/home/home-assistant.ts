@@ -65,4 +65,8 @@ export const homeAssistantProvider = defineProvider({
   test: async (h) => {
     await (h as HomeAssistant).ping();
   },
+  choices: {
+    // Entities for the daily summary: people and doors first, the things worth a line in a journal.
+    entities: async (h) => (await (h as HomeAssistant).states()).map((s) => ({ value: s.entity, label: s.name, group: s.entity.split(".")[0]!, note: s.state })),
+  },
 });
