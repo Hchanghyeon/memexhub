@@ -24,7 +24,7 @@ export class GoogleToken {
   ) {}
 
   async get(force = false) {
-    if (!this.o.refreshToken) throw new GoogleError("not signed in — admin UI → Connections → Sign in with Google");
+    if (!this.o.refreshToken) throw new GoogleError("not signed in: admin UI → Connections → Sign in with Google");
     if (!force && this.access && this.access.until > this.now() + 60_000) return this.access.token;
     const r = await this.f(GOOGLE.token, {
       method: "POST",
@@ -32,7 +32,7 @@ export class GoogleToken {
       body: new URLSearchParams({ client_id: this.o.clientId, client_secret: this.o.clientSecret, refresh_token: this.o.refreshToken, grant_type: "refresh_token" }),
     });
     const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
-    if (!r.ok || !j.access_token) throw new GoogleError(`Google sign-in expired or revoked (${j.error ?? r.status}) — sign in again`);
+    if (!r.ok || !j.access_token) throw new GoogleError(`Google sign-in expired or revoked (${j.error ?? r.status}): sign in again`);
     this.access = { token: j.access_token, until: this.now() + (j.expires_in ?? 3600) * 1000 };
     return j.access_token;
   }

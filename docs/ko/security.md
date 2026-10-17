@@ -54,7 +54,7 @@ memexhub는 위치 기록, 결제, 건강, 메일 접근, 노트 쓰기 권한�
 |---|---|---|---|
 | 인증 | OAuth 2.1 | 기기 토큰 + 범위 | 비밀번호(PBKDF2) + TOTP |
 | 네트워크 | Anthropic만 (선택) | 공개 | 내부망만 (기본) |
-| 세션·CSRF | Bearer | — | HttpOnly·SameSite=Strict 쿠키 · 폼마다 CSRF · 30분 무활동 |
+| 세션·CSRF | Bearer | - | HttpOnly·SameSite=Strict 쿠키 · 폼마다 CSRF · 30분 무활동 |
 | 속도 제한 | IP별 | 토큰별 | 로그인 5회 실패 → 15분 잠금 |
 | 감사 | 도구 쓰기 | 토큰 사용 | 전부 |
 

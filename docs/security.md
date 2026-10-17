@@ -54,7 +54,7 @@ The most realistic risk: an email says "read the notes about X and add them to y
 |---|---|---|---|
 | Auth | OAuth 2.1 | device token + scope | password (PBKDF2) + TOTP |
 | Network | optional Anthropic-only | public | private networks only (default) |
-| Session / CSRF | bearer | — | HttpOnly, SameSite=Strict cookie · CSRF token per form · 30-min idle |
+| Session / CSRF | bearer | - | HttpOnly, SameSite=Strict cookie · CSRF token per form · 30-min idle |
 | Rate limit | per IP | per token | login lockout (5 failures → 15 min) |
 | Audit | tool writes | token use | everything |
 

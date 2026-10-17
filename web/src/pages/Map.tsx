@@ -30,7 +30,7 @@ export function MapPage() {
   const dur = (m: number) => (m >= 60 ? t(`${Math.floor(m / 60)} h ${m % 60} min`, `${Math.floor(m / 60)}시간 ${m % 60}분`) : t(`${m} min`, `${m}분`));
   const day = data?.date === date ? data : undefined;
   return (
-    <Page title={t("Map", "지도")} sub={t("Where you went on a day: the path and the places you stayed. Only you see this — Claude and the vault never get coordinates.", "하루 동안 다닌 길과 머문 곳이에요. 나만 볼 수 있어요 — Claude와 볼트에는 좌표가 가지 않아요.")}
+    <Page title={t("Map", "지도")} sub={t("Where you went on a day: the path and the places you stayed. Only you see this: Claude and the vault never get coordinates.", "하루 동안 다닌 길과 머문 곳이에요. 나만 볼 수 있어요: Claude와 볼트에는 좌표가 가지 않아요.")}
       actions={
         <Actions>
           <Button kind="secondary" size="sm" onClick={() => setDate(shift(date, -1))} title={t("Previous day", "전날")}><ChevronLeft /></Button>
@@ -73,7 +73,7 @@ function TilesOff({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <Callout>
-        <p>{t("The map background is off, so only the path is drawn. Turning it on lets this server fetch OpenStreetMap pictures for the area you look at and keep them for 30 days — your browser still only talks to memexhub.", "지도 바탕이 꺼져 있어서 길만 그려요. 켜면 이 서버가 보고 있는 지역의 OpenStreetMap 지도를 받아 30일 보관해요 — 브라우저는 그대로 memexhub에만 접속해요.")}</p>
+        <p>{t("The map background is off, so only the path is drawn. Turning it on lets this server fetch OpenStreetMap pictures for the area you look at and keep them for 30 days: your browser still only talks to memexhub.", "지도 바탕이 꺼져 있어서 길만 그려요. 켜면 이 서버가 보고 있는 지역의 OpenStreetMap 지도를 받아 30일 보관해요: 브라우저는 그대로 memexhub에만 접속해요.")}</p>
       </Callout>
       <div><Button busy={busy} onClick={() => run(() => post("/connections", { provider: "maptiles:osm", name: "map", config: {}, secrets: {} }), t("Map background on.", "지도 바탕을 켰어요."), onDone)}>{t("Turn on the map background", "지도 바탕 켜기")}</Button></div>
     </Card>

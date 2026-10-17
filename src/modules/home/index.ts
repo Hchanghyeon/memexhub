@@ -25,7 +25,7 @@ export default defineModule({
       }
       return out;
     };
-    const none = "no smart-home connection — admin UI → Connections → Home Assistant";
+    const none = "no smart-home connection: admin UI → Connections → Home Assistant";
     return {
       summary: {
         async day(date) {

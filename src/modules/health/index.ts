@@ -73,8 +73,8 @@ export default defineModule({
           name: "health_day",
           readOnly: true,
           description: T(
-            "One day of health records: last night's sleep, steps, activity, heart rate, workouts — one compact line.",
-            "하루치 건강 기록: 지난밤 잠, 걸음, 활동, 심박, 운동 — 한 줄로.",
+            "One day of health records: last night's sleep, steps, activity, heart rate, workouts: one compact line.",
+            "하루치 건강 기록: 지난밤 잠, 걸음, 활동, 심박, 운동: 한 줄로.",
           ),
           input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },
           async run(a) {

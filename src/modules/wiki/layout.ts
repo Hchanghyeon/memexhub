@@ -123,14 +123,14 @@ export class Layout {
     const r = this.roles;
     const ix = r.index.style === "index-file" ? `index-file (${r.index.file})` : r.index.style;
     return [
-      `sources: ${r.sources ?? "(off)"}${r.sources ? " — write-once" : ""}`,
+      `sources: ${r.sources ?? "(off)"}${r.sources ? ": write-once" : ""}`,
       `wiki: ${r.wiki === undefined ? "(off)" : r.wiki === "" ? "(whole vault)" : r.wiki}`,
       `index: ${ix}`,
       `log: ${r.log ?? "(off)"}`,
       `daily: ${r.daily ?? "(off)"}`,
       `rules (protected): ${r.rules.join(", ") || "(none)"}`,
       `archive: ${r.archive ?? "(off)"}`,
-      `recipes: ${this.recipes}/ (protected) — proposals: ${this.recipes}/proposed/`,
+      `recipes: ${this.recipes}/ (protected): proposals: ${this.recipes}/proposed/`,
     ].join("\n");
   }
 }

@@ -1,15 +1,15 @@
 # Wiki engine
 
 > Sources stay untouched. The LLM maintains wiki pages. The engine keeps indexes, links and rules in order.
-> — the LLM Wiki pattern (after Andrej Karpathy)
+>: the LLM Wiki pattern (after Andrej Karpathy)
 
 ## Vocabulary
 
 | Term | Meaning |
 |---|---|
 | Vault | Your whole Obsidian folder: your notes, automatic logs, the wiki layer, rule notes |
-| LLM Wiki | The goal. Narrowly: the wiki layer — sources → LLM-written pages → index & log |
-| Source | Never edited. Articles you saved — and your own life logs can be sources too (e.g. weekly reviews → a page about your spending habits) |
+| LLM Wiki | The goal. Narrowly: the wiki layer: sources → LLM-written pages → index & log |
+| Source | Never edited. Articles you saved: and your own life logs can be sources too (e.g. weekly reviews → a page about your spending habits) |
 | Engine | memexhub |
 
 ## Roles, not folders ✅
@@ -36,20 +36,20 @@ An empty role switches the related feature off (its tools are not shown to Claud
 | `llm-wiki` | `raw` | `wiki` | `index.md` | `wiki/log.md` |
 | `para` | `Resources/Sources` | `Resources/Wiki` | folder note | `Resources/Wiki/log.md` |
 | `para-ko` | `30-자료/원본` | `30-자료/위키` | folder note | `30-자료/위키/로그.md` |
-| `zettelkasten` | `sources` | whole vault | none | — |
-| `flat` | — | whole vault | none | — |
+| `zettelkasten` | `sources` | whole vault | none | - |
+| `flat` | - | whole vault | none | - |
 
 ## Tools
 
 | Tool | Does | Shown when |
 |---|---|---|
-| `wiki_layout` ✅ | describes roles and enabled lint rules — Claude calls it before filing notes | always |
+| `wiki_layout` ✅ | describes roles and enabled lint rules: Claude calls it before filing notes | always |
 | `wiki_lint` ✅ | runs the lint rules, findings grouped by rule | always |
 | `wiki_save_source` ✅ | stores an original as `<sources>/YYYY-MM-DD title.md`, body unchanged, frontmatter added/merged, never overwrites | `sources` set |
 | `wiki_log` ✅ | appends `- YYYY-MM-DD entry` to the log | `log` set |
-| `wiki_index` ✅ | adds `- [[page]] — description` to the page's index, once, optionally under `## section` | index style ≠ `none` |
+| `wiki_index` ✅ | adds `- [[page]]: description` to the page's index, once, optionally under `## section` | index style ≠ `none` |
 | `wiki_backlinks` ✅ | notes linking to a note, with the line | always |
-| `wiki_check` ✅ | one page, checked exactly like the engine does — `PASS` or what to fix | always |
+| `wiki_check` ✅ | one page, checked exactly like the engine does: `PASS` or what to fix | always |
 | `wiki_pending` ✅ | sources no wiki page cites yet (what is left to ingest) | `sources` set |
 | `conversation_save` ✅ | what a conversation decided (decisions · facts · to-dos, short) saved as a source; the nightly ingest files the lasting parts | `sources` set |
 
@@ -58,15 +58,15 @@ An empty role switches the related feature off (its tools are not shown to Claud
 | Rule | Default | Options | Finds |
 |---|---|---|---|
 | `broken-links` | on | `ignore` (globs) | `[[links]]` that resolve to nothing (code is ignored; attachments count) |
-| `orphans` | on | — | wiki pages no other note links to |
-| `missing-index-entry` | on | — | wiki pages not listed in their index (or the index note is missing) |
+| `orphans` | on | - | wiki pages no other note links to |
+| `missing-index-entry` | on | - | wiki pages not listed in their index (or the index note is missing) |
 | `oversized-pages` | on | `maxBytes` (4096) | wiki pages to split |
 | `index-too-long` | on | `maxEntries` (50) | indexes to split into sub-indexes |
 | `frontmatter-required` | off | `keys`, `scope` (`wiki` / `all`) | notes missing required keys |
 | `unregistered-tags` | off | `allowed` | tags not in your registry |
-| `wiki-page-without-source` | off | — | wiki pages that cite no source note |
-| `page-status` | off | — | wiki pages without `status: draft · stable · deprecated` |
-| `bad-filenames` | on | — | names with `[ ] # ^ \| : ? * " < > \` |
+| `wiki-page-without-source` | off | - | wiki pages that cite no source note |
+| `page-status` | off | - | wiki pages without `status: draft · stable · deprecated` |
+| `bad-filenames` | on | - | names with `[ ] # ^ \| : ? * " < > \` |
 
 Links resolve like Obsidian: exact path → path relative to the linking note → basename (nearest folder first).
 

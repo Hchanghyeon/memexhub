@@ -1,6 +1,6 @@
 # Message recipes
 
-How memexhub turns **messages** — card SMS, receipt mails, app notifications — into ledger records **without code per card company or shop**. ✅
+How memexhub turns **messages**: card SMS, receipt mails, app notifications · into ledger records **without code per card company or shop**. ✅
 
 ## Why
 
@@ -121,10 +121,10 @@ JavaScript regexes cannot be interrupted, so recipes are checked before use:
 
 | Tool | Does | Writes |
 |---|---|---|
-| `ledger_inbox` ✅ | pending messages with reason and guess. Text is marked **untrusted**. | — |
+| `ledger_inbox` ✅ | pending messages with reason and guess. Text is marked **untrusted**. | - |
 | `ledger_inbox_resolve(id, record \| ignore, fields?)` ✅ | records the message (optionally with corrected fields) or drops it | ledger event |
 | `ledger_recipe_propose(recipe_json, description?, samples?)` ✅ | validates a recipe, refuses examples copied from real inbox messages, tests it against its own examples and the inbox samples, writes it to `<recipes>/proposed/`, returns per-sample results | vault, proposed folder only |
-| `ledger_recipes` ✅ | active, proposed and broken recipes (with the reason), and the inbox count | — |
+| `ledger_recipes` ✅ | active, proposed and broken recipes (with the reason), and the inbox count | - |
 
 Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active recipe notes as examples, records what is clear, and proposes a recipe for a new sender. The next message from that sender is then parsed by the engine without Claude.
 

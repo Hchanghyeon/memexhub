@@ -67,7 +67,7 @@ export class SafeVault {
       throw new StorageError("forbidden", `"${p}" is protected and can only be changed outside of tools`);
     }
     if (op === "change" && matchesAny(p, this.policy.writeOncePaths ?? []))
-      throw new StorageError("forbidden", `"${p}" is a source note — sources are never edited, moved or deleted`);
+      throw new StorageError("forbidden", `"${p}" is a source note: sources are never edited, moved or deleted`);
   }
 
   async read(path: string) {

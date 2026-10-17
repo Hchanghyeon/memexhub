@@ -49,7 +49,7 @@ export class NotionClient {
       if (!r.ok) throw new NotionError(`Notion ${r.status}: ${String(j.code ?? "")} ${String(j.message ?? "").slice(0, 160)}`.trim());
       return j;
     }
-    throw new NotionError("Notion keeps rate-limiting — try again later");
+    throw new NotionError("Notion keeps rate-limiting: try again later");
   }
 
   async createDatabase(title: string, properties: NotionProps): Promise<{ databaseId: string; dataSourceId: string }> {
@@ -82,7 +82,7 @@ export const notionProvider = defineProvider({
   id: "notion",
   title: T("Notion", "Notion"),
   config: z.object({
-    parentPage: z.string().min(32).max(300).describe("Page where memexhub creates its databases (link or id) — share it with your integration"),
+    parentPage: z.string().min(32).max(300).describe("Page where memexhub creates its databases (link or id): share it with your integration"),
     version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").describe("Notion API version"),
   }),
   secrets: z.object({ token: z.string().min(20).describe("Internal integration secret (notion.so/my-integrations)") }),

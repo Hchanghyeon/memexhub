@@ -19,7 +19,7 @@
 | `tasks_accounts` | 연결된 계정 |
 | `tasklists(account)` | 계정의 목록들 |
 | `tasks_list(account, tasklist?, show_completed?, limit?)` | 할 일, 안 한 것부터 마감 순 |
-| `task_add(account, title, notes?, due?, tasklist?)` | 추가 (마감은 날짜만 — Google Tasks는 시각을 안 저장해요) |
+| `task_add(account, title, notes?, due?, tasklist?)` | 추가 (마감은 날짜만: Google Tasks는 시각을 안 저장해요) |
 | `task_update(account, task_id, title?, notes?, due?)` | 바꾸기, `due: "none"`이면 마감 지움 |
 | `task_complete(account, task_id, undo?)` | 완료 / 되돌리기 |
-| `task_delete(account, task_id)` | **위험 — 기본은 숨김**, 설정에서 켜야 보여요 |
+| `task_delete(account, task_id)` | **위험: 기본은 숨김**, 설정에서 켜야 보여요 |

@@ -28,21 +28,21 @@ const S = {
     intro: [
       "기기·자동화가 결제 순간 보낸 기록을 엔진이 날짜별로 정리한다 (카드 문자 · Apple Pay · 교통카드 · 결제 메일).",
       "합계는 원화 승인 − 취소. 빠짐없는 기준은 카드사 명세서. 🌐 온라인·정기 결제 · 🚕 택시 · 🚇 교통 태그 · 🏢 회사 출입.",
-      "**이 노트는 엔진이 매번 다시 그린다 — 손으로 고치면 다음 기록 때 사라진다.**",
+      "**이 노트는 엔진이 매번 다시 그린다: 손으로 고치면 다음 기록 때 사라진다.**",
     ],
     m: {
-      head: (t: string) => `## 자동 정리 — ${t} 기준\n`, none: "아직 원화 결제 기록이 없다.\n", month: (k: string) => `### 이번 달 (${k})\n`,
+      head: (t: string) => `## 자동 정리: ${t} 기준\n`, none: "아직 원화 결제 기록이 없다.\n", month: (k: string) => `### 이번 달 (${k})\n`,
       total: (v: string, n: number) => `- **₩${v}** · ${n}건`,
       vsPrev: (pt: string, sign: string, d: string) => ` · 지난달 전체 ₩${pt} 대비 ${sign}₩${d} (이번 달은 아직 진행 중)`,
       perDay: (v: string, d: number) => `- 하루 평균 ₩${v} (기록 ${d}일)`, split: (a: string, b: string) => `- 현장 ₩${a} · 온라인·정기 ₩${b}`,
       top: "### 많이 쓴 곳 (이번 달)\n", topHead: "| 가맹점 | 합계 | 횟수 |", byCard: "카드별: ", unknownCard: "카드 미상",
       monthly: "### 월별\n", monthlyHead: "| 월 | 합계 | 건수 | 온라인·정기 |",
       recurring: "### 반복 결제 (구독·고정비 후보)\n",
-      subs: "**구독·고정비** — 두 달 이상, 금액이 매달 거의 같은 결제\n", subsHead: "| 가맹점 | 금액 | 최근 결제 | 결제한 달 | 대략 매달 |",
+      subs: "**구독·고정비**: 두 달 이상, 금액이 매달 거의 같은 결제\n", subsHead: "| 가맹점 | 금액 | 최근 결제 | 결제한 달 | 대략 매달 |",
       months: (n: number) => `${n}개월`, dayOf: (d: number) => `${d}일쯤`, times: (n: number) => `${n}회`,
       subsTotal: (v: string) => `카드로 나가는 구독·고정비 ≈ **₩${v} / 월** (+ 위 '수동 고정비')\n`,
-      often: "**자주 가는 곳** — 두 달 이상 찍혔지만 금액이 매번 다름\n", oftenHead: "| 가맹점 | 최근 금액 | 최근 결제 | 결제한 달 | 횟수 |",
-      tooEarly: (d: string) => `아직 판단할 수 없다 — 결제 기록이 ${d} 부터라 같은 곳이 두 달 이상 찍힌 결제가 없다. 다음 달부터 잡히기 시작한다.\n`,
+      often: "**자주 가는 곳**: 두 달 이상 찍혔지만 금액이 매번 다름\n", oftenHead: "| 가맹점 | 최근 금액 | 최근 결제 | 결제한 달 | 횟수 |",
+      tooEarly: (d: string) => `아직 판단할 수 없다: 결제 기록이 ${d} 부터라 같은 곳이 두 달 이상 찍힌 결제가 없다. 다음 달부터 잡히기 시작한다.\n`,
       foot: "_원화 승인 − 취소 기준. 외화 결제·금액 없는 교통 태그는 뺀다._",
     },
   },
@@ -54,21 +54,21 @@ const S = {
     intro: [
       "Records sent by your devices and automations at payment time, grouped by day by the engine (card SMS · Apple Pay · transit card · receipt mails).",
       "Totals are KRW approvals minus cancellations; your card statement is the complete source. 🌐 online/recurring · 🚕 taxi · 🚇 transit tap · 🏢 office gate.",
-      "**The engine redraws this note on every record — manual edits will be lost.**",
+      "**The engine redraws this note on every record: manual edits will be lost.**",
     ],
     m: {
-      head: (t: string) => `## Summary — as of ${t}\n`, none: "No KRW payments yet.\n", month: (k: string) => `### This month (${k})\n`,
+      head: (t: string) => `## Summary: as of ${t}\n`, none: "No KRW payments yet.\n", month: (k: string) => `### This month (${k})\n`,
       total: (v: string, n: number) => `- **₩${v}** · ${n} payments`,
       vsPrev: (pt: string, sign: string, d: string) => ` · last month ₩${pt}, ${sign}₩${d} (month in progress)`,
       perDay: (v: string, d: number) => `- ₩${v} per day (${d} days recorded)`, split: (a: string, b: string) => `- in person ₩${a} · online/recurring ₩${b}`,
       top: "### Top merchants (this month)\n", topHead: "| Merchant | Total | Count |", byCard: "By card: ", unknownCard: "unknown card",
       monthly: "### By month\n", monthlyHead: "| Month | Total | Count | Online/recurring |",
       recurring: "### Recurring payments\n",
-      subs: "**Subscriptions & fixed costs** — two or more months, nearly the same amount\n", subsHead: "| Merchant | Amount | Last | Months | Day of month |",
+      subs: "**Subscriptions & fixed costs**: two or more months, nearly the same amount\n", subsHead: "| Merchant | Amount | Last | Months | Day of month |",
       months: (n: number) => `${n} months`, dayOf: (d: number) => `~${d}`, times: (n: number) => `${n}×`,
       subsTotal: (v: string) => `Card-paid subscriptions & fixed costs ≈ **₩${v} / month** (+ manual fixed costs above)\n`,
-      often: "**Frequent places** — two or more months, varying amounts\n", oftenHead: "| Merchant | Last amount | Last | Months | Count |",
-      tooEarly: (d: string) => `Too early to tell — records start ${d}; nothing has repeated across two months yet.\n`,
+      often: "**Frequent places**: two or more months, varying amounts\n", oftenHead: "| Merchant | Last amount | Last | Months | Count |",
+      tooEarly: (d: string) => `Too early to tell: records start ${d}; nothing has repeated across two months yet.\n`,
       foot: "_KRW approvals minus cancellations. Foreign-currency payments and transit taps without amounts are excluded._",
     },
   },
@@ -141,13 +141,13 @@ export function renderPaymentsBody(rows: LedgerRow[], year: number, o: { tz: str
   }
   for (const [mk, mes] of months) {
     const s = summary(mes);
-    out.push(`## ${mk}` + (s ? ` — ${s}` : "") + "\n");
+    out.push(`## ${mk}` + (s ? ` · ${s}` : "") + "\n");
     const days = new Map<string, Ent[]>();
     for (const e of mes) days.set(`${pad(e.w.m)}-${pad(e.w.d)}`, [...(days.get(`${pad(e.w.m)}-${pad(e.w.d)}`) ?? []), e]);
     for (const [dk, des] of days) {
       const s2 = summary(des);
       const f = des[0]!.w;
-      out.push(`### ${dk} (${dowOf(f.y, f.m, f.d, o.lang)})` + (s2 ? ` — ${s2}` : ` — ${t.noPayments}`) + "\n");
+      out.push(`### ${dk} (${dowOf(f.y, f.m, f.d, o.lang)})` + (s2 ? ` · ${s2}` : ` · ${t.noPayments}`) + "\n");
       const pays = des.filter((e) => e.kind2 === "pay");
       if (pays.length) {
         out.push(`| ${t.head.join(" | ")} |`, "|---|---|---|---|");
@@ -281,8 +281,8 @@ export function moneySkeleton(lang: Lang, paymentsLink: string, today: string): 
     `---\ntitle: ${ko ? "돈" : "Money"}\ncreated: ${today}\nupdated: ${today}\ntype: note\ntags: []\n---\n`,
     `# ${ko ? "돈" : "Money"}\n`,
     ko
-      ? `월 지출 · 많이 쓴 곳 · 구독·고정비. 결제 기록(${paymentsLink})에서 엔진이 자동으로 계산한다.\n카드 문자·Apple Pay·결제 메일로 들어온 것만 잡힌다 — **계좌 자동이체와 문자 알림 없는 카드는 빠진다.** 그런 건 아래 '수동 고정비' 에 직접 적는다.\n`
-      : `Monthly spending, top merchants, subscriptions — computed by the engine from ${paymentsLink}.\nOnly card SMS, Apple Pay and receipt mails are seen — **bank transfers and cards without SMS alerts are missing.** Add those under "Manual fixed costs".\n`,
+      ? `월 지출 · 많이 쓴 곳 · 구독·고정비. 결제 기록(${paymentsLink})에서 엔진이 자동으로 계산한다.\n카드 문자·Apple Pay·결제 메일로 들어온 것만 잡힌다: **계좌 자동이체와 문자 알림 없는 카드는 빠진다.** 그런 건 아래 '수동 고정비' 에 직접 적는다.\n`
+      : `Monthly spending, top merchants, subscriptions: computed by the engine from ${paymentsLink}.\nOnly card SMS, Apple Pay and receipt mails are seen · **bank transfers and cards without SMS alerts are missing.** Add those under "Manual fixed costs".\n`,
     ko ? "## 수동 고정비 (직접 적기)\n\n| 항목 | 금액 | 언제·어떻게 | 메모 |\n|---|---|---|---|\n" : "## Manual fixed costs\n\n| Item | Amount | When / how | Note |\n|---|---|---|---|\n",
     ko ? "## 메모\n\n" : "## Notes\n\n",
     `${AUTO_START}\n${AUTO_END}\n`,

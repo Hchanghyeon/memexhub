@@ -19,7 +19,7 @@ Security: authorization code + PKCE, a one-time `state` that expires in 10 minut
 | `tasks_accounts` | connected accounts |
 | `tasklists(account)` | lists of an account |
 | `tasks_list(account, tasklist?, show_completed?, limit?)` | tasks, open first by due date |
-| `task_add(account, title, notes?, due?, tasklist?)` | add (due is a date — Google Tasks keeps no time) |
+| `task_add(account, title, notes?, due?, tasklist?)` | add (due is a date: Google Tasks keeps no time) |
 | `task_update(account, task_id, title?, notes?, due?)` | change; `due: "none"` removes the date |
 | `task_complete(account, task_id, undo?)` | mark done or reopen |
-| `task_delete(account, task_id)` | **destructive — hidden** unless enabled in settings |
+| `task_delete(account, task_id)` | **destructive: hidden** unless enabled in settings |

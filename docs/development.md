@@ -11,7 +11,7 @@ develop   ← integration, default branch, target of every PR
 ```
 
 - `main` and `develop` are protected: PR required, required checks (`test`, `secrets`, `analyze`) must pass, linear history, no force pushes, no deletion, conversations resolved.
-- Branch names: `<type>/<short-kebab-description>` — `feat/wiki-lint`, `fix/oauth-redirect-match`.
+- Branch names: `<type>/<short-kebab-description>`: `feat/wiki-lint`, `fix/oauth-redirect-match`.
 
 ## Commits
 
@@ -25,7 +25,7 @@ develop   ← integration, default branch, target of every PR
 
 Types: `feat` `fix` `docs` `refactor` `test` `chore` `perf` `ci` `build`. Scopes follow folders: `core` `storage` `auth` `http` `admin` `wiki` `ledger` …
 
-## Commit identity — privacy
+## Commit identity: privacy
 
 The repository is public and history is permanent.
 

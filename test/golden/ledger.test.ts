@@ -16,14 +16,14 @@ describe("ledger rendering (golden)", () => {
   it("renders English and a full note with frontmatter", () => {
     const en = renderPaymentsNote(rows, 2026, { ...o, lang: "en" });
     expect(en).toContain("title: 2026 payments");
-    expect(en).toContain("## 2026-10 — 6 paid · ₩74,710 · 2 cancelled");
+    expect(en).toContain("## 2026-10 · 6 paid · ₩74,710 · 2 cancelled");
     expect(en).toContain("🏢 09:04 – 18:20 · 2 gate taps");
     expect(renderMoney(rows, { ...o, lang: "en" })).toContain("**Subscriptions & fixed costs**");
   });
   it("renders one month when the note pattern is monthly", () => {
     const oct = renderPaymentsNote(rows, 2026, o, 10);
     expect(oct).toContain("title: 2026-10 결제 기록");
-    expect(oct).toContain("## 2026-10 —");
+    expect(oct).toContain("## 2026-10 ·");
     expect(oct).not.toMatch(/^## 2026-0[1-9]/m);
     expect(renderPaymentsBody(rows, 2026, o, 3).trim()).toBe("");
   });

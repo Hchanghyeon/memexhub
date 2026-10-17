@@ -55,7 +55,7 @@ export default defineModule({
             const from = date ?? localDate(tz, platform.now());
             const to = addDays(from, days - 1);
             const ws = await all();
-            if (!ws.length) return "no weather connection — admin UI → Connections → Open-Meteo";
+            if (!ws.length) return "no weather connection: admin UI → Connections → Open-Meteo";
             const out: string[] = [];
             for (const w of ws) {
               out.push(`${w.place}:`);

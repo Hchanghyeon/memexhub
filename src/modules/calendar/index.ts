@@ -64,7 +64,7 @@ export default defineModule({
           description: T("Connected calendar accounts and their calendars.", "연결된 캘린더 계정과 그 안의 캘린더들."),
           input: {},
           async run() {
-            if (!accounts.length) return "no calendar connected — admin UI → Connections → Calendar";
+            if (!accounts.length) return "no calendar connected: admin UI → Connections → Calendar";
             const out: string[] = [];
             for (const a of accounts) {
               try {
@@ -89,7 +89,7 @@ export default defineModule({
             account: z.string().max(32).optional().describe(`Account / 계정: ${accounts.join(", ") || "-"}`),
           },
           async run({ date, days, account }) {
-            if (!accounts.length) return "no calendar connected — admin UI → Connections → Calendar";
+            if (!accounts.length) return "no calendar connected: admin UI → Connections → Calendar";
             const from = date ?? localDate(tz, platform.now());
             const to = addDays(from, days - 1);
             const res = await events(from, to, account);

@@ -24,4 +24,4 @@ export function ago(t: T, when: string | null | undefined, tz: string, now = Dat
   return new Intl.DateTimeFormat("sv-SE", { timeZone: tz, dateStyle: "short" }).format(d);
 }
 export const when = (v: string | null | undefined, tz: string) =>
-  v ? new Intl.DateTimeFormat("sv-SE", { timeZone: tz, dateStyle: "short", timeStyle: "short" }).format(new Date(v)) : "—";
+  v ? new Intl.DateTimeFormat("sv-SE", { timeZone: tz, dateStyle: "short", timeStyle: "short" }).format(new Date(v)) : "-";

@@ -11,7 +11,7 @@ develop   ← 통합. 기본 브랜치이자 모든 PR의 대상
 ```
 
 - `main`, `develop`는 보호돼요: PR 필수, 필수 검사(`test`, `secrets`, `analyze`) 통과, 일직선 기록, 강제 푸시·삭제 금지, 대화 해결 필수.
-- 브랜치 이름: `<종류>/<짧은-설명>` — `feat/wiki-lint`, `fix/oauth-redirect-match`
+- 브랜치 이름: `<종류>/<짧은-설명>`: `feat/wiki-lint`, `fix/oauth-redirect-match`
 
 ## 커밋
 
@@ -25,7 +25,7 @@ develop   ← 통합. 기본 브랜치이자 모든 PR의 대상
 
 종류: `feat` `fix` `docs` `refactor` `test` `chore` `perf` `ci` `build`. 범위는 폴더 이름: `core` `storage` `auth` `http` `admin` `wiki` `ledger` …
 
-## 커밋 신원 — 개인 정보
+## 커밋 신원: 개인 정보
 
 저장소는 공개이고 기록은 영원히 남아요.
 

@@ -58,26 +58,26 @@ export interface ProviderDef<K extends Kind, C, S> {
 | health | 수집 본문 → 표준 기록 | 단축어 ✅ · Health Auto Export ✅ | Health Connect, 앱 |
 | tasks | `lists · list · add · update · complete · delete` | google ✅ | todoist, 미리 알림 |
 | calendar | `calendars · events` | 인터페이스만 | google, CalDAV |
-| weather | `place · days(from, to)` | Open-Meteo ✅ | — |
-| home | `states · logbook(from, to, entity?)` (read-only) | Home Assistant ✅ | — |
-| music | `plays(from, to)` · `history` | Last.fm ✅ · Spotify ✅ (recent 50, collected every 30 min) | — |
+| weather | `place · days(from, to)` | Open-Meteo ✅ | - |
+| home | `states · logbook(from, to, entity?)` (read-only) | Home Assistant ✅ | - |
+| music | `plays(from, to)` · `history` | Last.fm ✅ · Spotify ✅ (recent 50, collected every 30 min) | - |
 
 ## 모듈
 
 | 모듈 | 도구 | 수집 | 노트 | 상태 |
 |---|---|---|---|---|
-| vault | `list_notes` `read_note` `search_notes` `vault_stats` `note_history` `write_note` `append_note` `delete_note` `move_note` | — | — | ✅ |
-| hub | `hub_status`, `day_summary`, `week_summary` | — | — | ✅ |
-| wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` `wiki_check` `wiki_pending` | — | 목차, 로그 | ✅ |
+| vault | `list_notes` `read_note` `search_notes` `vault_stats` `note_history` `write_note` `append_note` `delete_note` `move_note` | - | - | ✅ |
+| hub | `hub_status`, `day_summary`, `week_summary` | - | - | ✅ |
+| wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` `wiki_check` `wiki_pending` | - | 목차, 로그 | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` ✅ | `/ingest/message` `/ingest/transaction` | 결제, 돈 | ✅ |
-| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | — | — | ✅ ([메일](mail.md)) |
-| location | `location_day` | `/ingest/owntracks` | — | ✅ ([위치](location.md)) |
+| mail | `mail_folders` `mail_search` `mail_read` `mail_day` | - | - | ✅ ([메일](mail.md)) |
+| location | `location_day` | `/ingest/owntracks` | - | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
-| tasks | `task_*` | — | — | ✅ ([할 일](tasks.md)) |
-| calendar | `calendar_list` `calendar_events` | — | — | ✅ ([calendar](calendar.md)) |
-| weather | `weather_days` | — | — | ✅ |
-| home | `home_states` `home_day` | — | — | ✅ ([home](home.md)) |
-| music | `music_day` | — | — | ✅ ([music](music.md)) |
+| tasks | `task_*` | - | - | ✅ ([할 일](tasks.md)) |
+| calendar | `calendar_list` `calendar_events` | - | - | ✅ ([calendar](calendar.md)) |
+| weather | `weather_days` | - | - | ✅ |
+| home | `home_states` `home_day` | - | - | ✅ ([home](home.md)) |
+| music | `music_day` | - | - | ✅ ([music](music.md)) |
 
 ## 결제: 메시지 레시피 ✅
 
@@ -87,7 +87,7 @@ interface Extractor { id: string; extract(m: Message): Extraction | null }   // 
 // 못 읽음 → 대기함(암호화) → Claude가 처리하거나 레시피 노트를 제안
 ```
 
-카드사·가게 추가 = 가짜 예시가 들어 있는 **레시피 하나**(볼트 노트의 JSON, 또는 저장소 `recipes/*.json`). 코드는 필요 없어요 — [메시지 레시피](recipes.md). 공통 처리(중복, 취소, 교통·출입 구분, 온라인 판별, 늦게 온 문자)는 모듈에서 한 번만 해요. 집·회사 같은 내 장소는 코드가 아니라 설정이에요.
+카드사·가게 추가 = 가짜 예시가 들어 있는 **레시피 하나**(볼트 노트의 JSON, 또는 저장소 `recipes/*.json`). 코드는 필요 없어요: [메시지 레시피](recipes.md). 공통 처리(중복, 취소, 교통·출입 구분, 온라인 판별, 늦게 온 문자)는 모듈에서 한 번만 해요. 집·회사 같은 내 장소는 코드가 아니라 설정이에요.
 
 ## 노트 그리기: 데이터 → 출력
 

@@ -13,7 +13,7 @@ interface V {
 }
 
 const PRESET_TEXT: Record<string, [string, string]> = {
-  "llm-wiki": ["Sources in raw/, pages Claude writes in wiki/ — for a new vault", "원본은 raw/, Claude가 쓰는 페이지는 wiki/ — 새 볼트에 추천"],
+  "llm-wiki": ["Sources in raw/, pages Claude writes in wiki/: for a new vault", "원본은 raw/, Claude가 쓰는 페이지는 wiki/: 새 볼트에 추천"],
   para: ["Projects, Areas, Resources, Archives", "Projects, Areas, Resources, Archives (영어 폴더)"],
   "para-ko": ["PARA with Korean folder names", "한국어 폴더 이름의 PARA"],
   zettelkasten: ["One folder of linked notes", "연결된 노트 한 폴더"],
@@ -139,7 +139,7 @@ function Sync({ v, reload }: { v: V; reload: () => void }) {
           <Steps>
             {[
               <p key="1">{t("In Obsidian install Remotely Save and choose WebDAV.", "Obsidian에서 Remotely Save를 설치하고 WebDAV를 고르세요.")}</p>,
-              <p key="2">{t("Address: your memexhub address + /dav/ — any username.", "주소: memexhub 주소 + /dav/ — 아이디는 아무거나.")}</p>,
+              <p key="2">{t("Address: your memexhub address + /dav/: any username.", "주소: memexhub 주소 + /dav/: 아이디는 아무거나.")}</p>,
               <p key="3">{t("Password: a device token that may use “Vault sync” (Devices).", "비밀번호: “볼트 동기화” 권한의 기기 토큰 (기기 화면).")}</p>,
             ]}
           </Steps>
@@ -156,7 +156,7 @@ function SearchIndexLine({ s, reload }: { s: NonNullable<V["search"]>; reload: (
   const { busy, run } = useAction();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const text = !s.available
-    ? t("Search index: not available here — search scans the notes.", "검색 색인: 이 환경에서는 못 써요 — 검색할 때 노트를 훑어요.")
+    ? t("Search index: not available here: search scans the notes.", "검색 색인: 이 환경에서는 못 써요: 검색할 때 노트를 훑어요.")
     : !s.ready
       ? t("Search index: building…", "검색 색인: 만드는 중…")
       : t(`Search index: ${s.notes} notes · updated ${ago(t, s.updated, tz)}`, `검색 색인: 노트 ${s.notes}개 · ${ago(t, s.updated, tz)} 갱신`);

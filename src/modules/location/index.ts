@@ -124,15 +124,15 @@ export default defineModule({
           name: "location_day",
           readOnly: true,
           description: T(
-            "One day of location as stays (where and how long), with named places, nearby places and areas — never coordinates or street numbers.",
-            "하루 위치를 '체류'(어디에 얼마나)로 — 등록된 장소, 가까운 장소, 동네 이름. 좌표·번지는 주지 않는다.",
+            "One day of location as stays (where and how long), with named places, nearby places and areas: never coordinates or street numbers.",
+            "하루 위치를 '체류'(어디에 얼마나)로: 등록된 장소, 가까운 장소, 동네 이름. 좌표·번지는 주지 않는다.",
           ),
           input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },
           async run(a) {
             const date = a.date ?? localDate(tz(), platform.now());
             const t = L[s().language];
             const { loc, geo } = await get();
-            if (!loc) return "no location source connected — admin UI → Connections";
+            if (!loc) return "no location source connected: admin UI → Connections";
             const [y, m, d] = date.split("-").map(Number) as [number, number, number];
             const start = new Date(zonedIso(tz(), y, m, d, 0, 0));
             const next = new Date(+start + 36 * 3600_000);

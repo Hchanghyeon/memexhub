@@ -1,14 +1,14 @@
 # 위키 엔진
 
 > 원본은 고치지 않는다. 위키 페이지는 LLM이 다듬는다. 목차·링크·규칙은 엔진이 정리한다.
-> — LLM Wiki 패턴 (Andrej Karpathy)
+>: LLM Wiki 패턴 (Andrej Karpathy)
 
 ## 용어
 
 | 말 | 뜻 |
 |---|---|
 | 볼트 | Obsidian 폴더 전체. 내 노트, 자동 기록, 위키 층, 규칙 노트 |
-| LLM Wiki | 목표. 좁게는 위키 층 — 원본 → LLM이 쓰는 페이지 → 목차와 로그 |
+| LLM Wiki | 목표. 좁게는 위키 층: 원본 → LLM이 쓰는 페이지 → 목차와 로그 |
 | 원본 | 고치지 않는 출처. 저장한 글, 그리고 **내 생활 기록도** 원본이 될 수 있어요 (주간 회고 → "내 소비 패턴" 페이지) |
 | 엔진 | memexhub |
 
@@ -36,8 +36,8 @@
 | `llm-wiki` | `raw` | `wiki` | `index.md` | `wiki/log.md` |
 | `para` | `Resources/Sources` | `Resources/Wiki` | 폴더 노트 | `Resources/Wiki/log.md` |
 | `para-ko` | `30-자료/원본` | `30-자료/위키` | 폴더 노트 | `30-자료/위키/로그.md` |
-| `zettelkasten` | `sources` | 볼트 전체 | 없음 | — |
-| `flat` | — | 볼트 전체 | 없음 | — |
+| `zettelkasten` | `sources` | 볼트 전체 | 없음 | - |
+| `flat` | - | 볼트 전체 | 없음 | - |
 
 ## 도구
 
@@ -47,9 +47,9 @@
 | `wiki_lint` ✅ | 점검 규칙을 돌리고 규칙별로 묶어 보여 줘요 | 항상 |
 | `wiki_save_source` ✅ | 원본을 `<원본>/YYYY-MM-DD 제목.md`로 저장. 본문은 그대로, 프론트매터만 추가·병합, 덮어쓰기 없음 | `sources` 설정 시 |
 | `wiki_log` ✅ | 로그에 `- YYYY-MM-DD 내용` 한 줄 추가 | `log` 설정 시 |
-| `wiki_index` ✅ | 페이지를 목차에 `- [[페이지]] — 설명`으로 한 번만, `## 섹션` 아래에도 | 목차 방식 ≠ `none` |
+| `wiki_index` ✅ | 페이지를 목차에 `- [[페이지]]: 설명`으로 한 번만, `## 섹션` 아래에도 | 목차 방식 ≠ `none` |
 | `wiki_backlinks` ✅ | 이 노트를 가리키는 노트와 그 줄 | 항상 |
-| `wiki_check` ✅ | 페이지 하나를 엔진과 똑같이 점검 — `PASS` 또는 고칠 것 | 항상 |
+| `wiki_check` ✅ | 페이지 하나를 엔진과 똑같이 점검: `PASS` 또는 고칠 것 | 항상 |
 | `conversation_save` ✅ | 대화에서 정한 것(결정·사실·남은 일, 짧게)을 원본으로 저장. 오래 쓸 부분은 밤 수집이 위키에 | `sources` 설정 시 |
 | `wiki_pending` ✅ | 아직 어떤 위키 페이지도 인용하지 않은 원본 (정리할 차례) | `sources` 설정 시 |
 
@@ -58,15 +58,15 @@
 | 규칙 | 기본 | 옵션 | 찾는 것 |
 |---|---|---|---|
 | `broken-links` | 켬 | `ignore` (glob) | 아무것도 가리키지 않는 `[[링크]]` (코드 안은 무시, 첨부 파일은 인정) |
-| `orphans` | 켬 | — | 다른 노트가 아무도 링크하지 않는 위키 페이지 |
-| `missing-index-entry` | 켬 | — | 목차에 없는 위키 페이지 (목차 노트가 없어도) |
+| `orphans` | 켬 | - | 다른 노트가 아무도 링크하지 않는 위키 페이지 |
+| `missing-index-entry` | 켬 | - | 목차에 없는 위키 페이지 (목차 노트가 없어도) |
 | `oversized-pages` | 켬 | `maxBytes` (4096) | 쪼갤 위키 페이지 |
 | `index-too-long` | 켬 | `maxEntries` (50) | 하위 목차로 쪼갤 목차 |
 | `frontmatter-required` | 끔 | `keys`, `scope` (`wiki` / `all`) | 필수 키가 빠진 노트 |
 | `unregistered-tags` | 끔 | `allowed` | 등록 안 된 태그 |
-| `wiki-page-without-source` | 끔 | — | 원본을 하나도 인용하지 않는 위키 페이지 |
-| `page-status` | 꺼짐 | — | `status: draft · stable · deprecated` 가 없는 위키 페이지 |
-| `bad-filenames` | 켬 | — | `[ ] # ^ \| : ? * " < > \`가 들어간 이름 |
+| `wiki-page-without-source` | 끔 | - | 원본을 하나도 인용하지 않는 위키 페이지 |
+| `page-status` | 꺼짐 | - | `status: draft · stable · deprecated` 가 없는 위키 페이지 |
+| `bad-filenames` | 켬 | - | `[ ] # ^ \| : ? * " < > \`가 들어간 이름 |
 
 링크는 Obsidian처럼 해석해요: 정확한 경로 → 링크한 노트 기준 상대 경로 → 파일 이름 (가까운 폴더 먼저).
 

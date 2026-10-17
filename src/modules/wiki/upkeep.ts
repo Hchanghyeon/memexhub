@@ -60,7 +60,7 @@ export async function addToIndex(vault: SafeVault, layout: Layout, a: { path: st
   if (!ix) throw new StorageError("invalid", "indexes are off for this vault or this folder has no index note");
   if (ix === page) throw new StorageError("invalid", "a note cannot index itself");
   const name = page.split("/").pop()!.replace(/\.md$/, "");
-  const line = `- [[${name}]] — ${oneLine(a.description, 80)}`;
+  const line = `- [[${name}]]: ${oneLine(a.description, 80)}`;
   const g = await LinkGraph.build(vault);
   const index = g.notes.get(ix);
   if (index?.links.some((l) => g.resolve(l.target, ix) === page)) return { index: ix, added: false };

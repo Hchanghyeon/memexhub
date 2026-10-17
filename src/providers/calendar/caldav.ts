@@ -30,7 +30,7 @@ export class CalDav implements CalendarProvider {
       headers: { authorization: `Basic ${basic}`, depth, "content-type": "application/xml; charset=utf-8" },
       body,
     });
-    if (r.status === 401 || r.status === 403) throw new Error("CalDAV sign-in refused — check the username and (app) password");
+    if (r.status === 401 || r.status === 403) throw new Error("CalDAV sign-in refused: check the username and (app) password");
     if (r.status !== 207 && !r.ok) throw new Error(`CalDAV ${method} ${r.status}`);
     return r.text();
   }

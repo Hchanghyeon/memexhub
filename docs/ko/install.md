@@ -23,7 +23,7 @@ docker compose logs memexhub | grep -i "setup code"
 |---|---|---|
 | 8787 | Claude용 MCP (+ OAuth, Google 로그인 콜백) | 예, `PUBLIC_URL`의 HTTPS 뒤로 |
 | 8790 | 기기 수집, `/dav/` 볼트 동기화 | 예, HTTPS 뒤로 (다른 호스트 이름이나 경로) |
-| 8791 | 관리 화면 | **아니오** — 내부망만 (compose 파일이 127.0.0.1에만 열어요) |
+| 8791 | 관리 화면 | **아니오**: 내부망만 (compose 파일이 127.0.0.1에만 열어요) |
 
 HTTPS 리버스 프록시나 터널이면 뭐든 돼요 (Caddy, Nginx, 시놀로지 역방향 프록시, Cloudflare Tunnel). 포트 하나로 쓰려면 `LISTEN=single` (관리 화면은 `/admin`, 여전히 내부망만).
 
@@ -46,7 +46,7 @@ gh attestation verify oci://ghcr.io/hchanghyeon/memexhub:0.1.0 --repo Hchanghyeo
 
 1. 관리 화면 → Backups → **Download a backup now**
 2. `compose.yml`의 이미지 태그를 바꾸기 (`latest` 말고 `0.2.0`처럼 버전 고정)
-3. `docker compose pull && docker compose up -d` — DB 마이그레이션은 시작할 때 자동으로 돌아요
+3. `docker compose pull && docker compose up -d`: DB 마이그레이션은 시작할 때 자동으로 돌아요
 
 ## compose 예시의 보안 설정
 

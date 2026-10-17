@@ -76,7 +76,7 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
     defineTool({
       name: "vault_stats",
       readOnly: true,
-      description: T("Vault summary: file count, note count, total size.", "볼트 요약 — 파일 수, 노트 수, 전체 크기."),
+      description: T("Vault summary: file count, note count, total size.", "볼트 요약: 파일 수, 노트 수, 전체 크기."),
       input: {},
       async run() {
         const files = await vault.list();

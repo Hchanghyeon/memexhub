@@ -24,7 +24,7 @@ export function Security() {
       <Card title={t("Two-factor sign-in", "2단계 인증")} badge={recommended} sub={t("A code from an authenticator app on top of the password. Needed to open this page from outside.", "비밀번호에 더해 인증 앱의 코드를 넣어요. 밖에서 이 화면을 열려면 필요해요.")}>
         {data.totp ? (
           <>
-            <Status tone="ok">{t("On — asked only from outside your home network", "켜져 있어요 — 집 네트워크 밖에서만 물어요")}</Status>
+            <Status tone="ok">{t("On: asked only from outside your home network", "켜져 있어요: 집 네트워크 밖에서만 물어요")}</Status>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Hint>{t(`${data.trustedDevices} browser(s) remembered for 30 days.`, `30일 동안 기억한 기기 ${data.trustedDevices}개.`)}</Hint>
               {data.trustedDevices > 0 && <Button kind="secondary" size="sm" busy={busy} onClick={() => run(() => post("/forget-devices"), t("Every browser will be asked again.", "모든 기기에서 다시 코드를 물어요."), reload)}>{t("Forget them all", "모두 잊기")}</Button>}

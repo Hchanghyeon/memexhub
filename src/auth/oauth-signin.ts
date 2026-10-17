@@ -66,7 +66,7 @@ export class OAuthSignIn {
     const key = `${this.spec.provider}.signin:${await sha256Hex(state)}`;
     const pending = await this.cursors.get<{ connectionId: string; verifier: string; exp: number }>(key);
     await this.cursors.set(key, { used: true }); // one-time, even if the rest fails
-    if (!pending?.verifier || pending.exp < +this.now()) throw new Error("this sign-in link expired — start again from the admin UI");
+    if (!pending?.verifier || pending.exp < +this.now()) throw new Error("this sign-in link expired: start again from the admin UI");
     const c = await this.connections.byId(pending.connectionId);
     if (!c) throw new Error("the connection no longer exists");
     const { clientSecret } = await this.connections.secretsOf(c.id);
@@ -78,7 +78,7 @@ export class OAuthSignIn {
     const r = await this.fetch(this.spec.token, { method: "POST", headers, body: form });
     const tok = (await r.json().catch(() => ({}))) as { access_token?: string; refresh_token?: string; error?: string };
     if (!r.ok || !tok.access_token) throw new Error(`${this.spec.title} refused the sign-in (${tok.error ?? r.status})`);
-    if (!tok.refresh_token) throw new Error(`${this.spec.title} sent no refresh token — remove memexhub from your account's connected apps, then sign in again`);
+    if (!tok.refresh_token) throw new Error(`${this.spec.title} sent no refresh token: remove memexhub from your account's connected apps, then sign in again`);
     const label = (await this.spec.who(tok.access_token, this.fetch).catch(() => "")).slice(0, 200);
     await this.connections.patch(c.id, { config: { [this.spec.whoField]: label }, secrets: { refreshToken: tok.refresh_token } }, `${this.spec.provider}-signin`);
     return { connectionId: c.id, email: label };

@@ -47,7 +47,7 @@ export default defineModule({
         readOnly: true,
         description: T(
           "Health of memexhub: connections, last received records, vault mode. Never shows secrets or settings values.",
-          "memexhub 상태 — 연결 상태, 마지막 수신, 볼트 모드. 비밀값이나 설정값은 보여 주지 않는다.",
+          "memexhub 상태: 연결 상태, 마지막 수신, 볼트 모드. 비밀값이나 설정값은 보여 주지 않는다.",
         ),
         input: {},
         async run() {
@@ -60,9 +60,9 @@ export default defineModule({
             [since],
           );
           const warn: Record<string, string> = {
-            "vault.protected_write_refused": "attempts to change protected notes (rules / active recipes) — check what asked for it",
-            "oauth.client_registered": "new Claude connector registrations — expected only when you add a connector",
-            "oauth.refresh_reuse_detected": "a reused refresh token (possible token theft) — that connector was signed out",
+            "vault.protected_write_refused": "attempts to change protected notes (rules / active recipes): check what asked for it",
+            "oauth.client_registered": "new Claude connector registrations: expected only when you add a connector",
+            "oauth.refresh_reuse_detected": "a reused refresh token (possible token theft): that connector was signed out",
           };
           return [
             ...(signals.length ? ["⚠ last 24 h:", ...signals.map((x) => `- ${x.n} ${warn[x.action]}`), ""] : []),

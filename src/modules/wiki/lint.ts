@@ -102,7 +102,7 @@ export const RULES: LintRule[] = [
     defaults: { maxBytes: 4096 },
     run(g, l, o) {
       const max = num(o.maxBytes, 4096);
-      return [...g.notes.values()].filter((n) => l.isWikiPage(n.path) && n.bytes > max).map((n) => ({ rule: "oversized-pages", path: n.path, message: `${n.bytes} bytes > ${max} — split into sub-pages` }));
+      return [...g.notes.values()].filter((n) => l.isWikiPage(n.path) && n.bytes > max).map((n) => ({ rule: "oversized-pages", path: n.path, message: `${n.bytes} bytes > ${max}: split into sub-pages` }));
     },
   },
   {
@@ -115,7 +115,7 @@ export const RULES: LintRule[] = [
         .filter((n) => l.isIndex(n.path) || (l.isWikiPage(n.path) && isHub(n.frontmatter)))
         .map((n) => ({ n, entries: n.text.split("\n").filter((x) => /^\s*[-*]\s+.*\[\[/.test(x)).length }))
         .filter((x) => x.entries > max)
-        .map((x) => ({ rule: "index-too-long", path: x.n.path, message: `${x.entries} entries > ${max} — split into sub-indexes` }));
+        .map((x) => ({ rule: "index-too-long", path: x.n.path, message: `${x.entries} entries > ${max}: split into sub-indexes` }));
     },
   },
   {

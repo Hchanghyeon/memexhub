@@ -48,14 +48,14 @@ export async function gateWikiWrite(vault: SafeVault, layout: Layout, path: stri
   const p = normalizeVaultPath(path);
   if (!layout.isWikiPage(p)) return { text, notes: [] };
   const fm = parseFrontmatter(text);
-  if (!fm.present) throw new StorageError("invalid", `wiki page ${p} needs frontmatter (---) with title, sources and dates — see wiki_layout`);
+  if (!fm.present) throw new StorageError("invalid", `wiki page ${p} needs frontmatter (---) with title, sources and dates: see wiki_layout`);
   // Hub pages that only list other pages (sub-indexes, maps of content) cite no source and carry no status.
   if (isHub(fm.data)) return { text, notes: [] };
   const n = parseNote(text);
   const resolve = resolver((await vault.list()).map((f) => f.path));
   const targets = n.links.map((l) => ({ t: l.target, to: resolve(l.target) }));
   if (layout.sources && !targets.some((x) => x.to && layout.isSource(x.to)))
-    throw new StorageError("invalid", `wiki page ${p} cites no existing source note in ${layout.sources}/ — save the original with wiki_save_source and link it ([[…]]) first`);
+    throw new StorageError("invalid", `wiki page ${p} cites no existing source note in ${layout.sources}/: save the original with wiki_save_source and link it ([[…]]) first`);
   const status = fm.data.status === "deprecated" ? "deprecated" : "draft";
   const broken = [...new Set(targets.filter((x) => !x.to && x.t !== p.replace(/\.md$/, "")).map((x) => x.t))];
   return {

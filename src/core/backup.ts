@@ -34,11 +34,11 @@ export async function importBackup(db: Db, secret: string, blob: string): Promis
   try {
     parsed = JSON.parse(await decrypt(secret, PURPOSE, body, AAD));
   } catch {
-    throw new Error("cannot decrypt — this backup was made with a different MEMEXHUB_SECRET, or the file is damaged");
+    throw new Error("cannot decrypt: this backup was made with a different MEMEXHUB_SECRET, or the file is damaged");
   }
   if (parsed.format !== "memexhub-backup" || !parsed.tables) throw new Error("not a memexhub backup file");
   const current = (await db.get<{ id: number }>(`SELECT MAX(id) id FROM schema_migrations`))?.id ?? 0;
-  if ((parsed.migration ?? 0) > current) throw new Error("this backup is from a newer memexhub — upgrade first");
+  if ((parsed.migration ?? 0) > current) throw new Error("this backup is from a newer memexhub: upgrade first");
   const known = new Set(await tables(db));
   const stmts: { sql: string; params?: unknown[] }[] = [];
   let rows = 0;

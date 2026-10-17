@@ -41,7 +41,7 @@ export function ledgerAdmin(d: {
 }): LedgerAdmin {
   const admin = () => {
     const v = d.vault();
-    if (!v) throw new Error("Connect a vault first — recipes are stored as notes.");
+    if (!v) throw new Error("Connect a vault first: recipes are stored as notes.");
     return v.confirmedByAdmin("admin");
   };
   const proposedDir = `${d.recipesDir}/proposed`;
@@ -149,7 +149,7 @@ export function ledgerAdmin(d: {
       if (!p.amount || !/^-?(₩[\d,]+|[A-Z]{3} [\d,.]+)$/.test(p.amount)) throw new Error("Amount must look like ₩12,500 (or -₩8,000 for a cancellation).");
       const r = await d.ledger.record({ merchant: p.merchant, amount: p.amount, card: p.card, time: p.time || it.data.message.time || it.receivedAt, item: p.item, source: it.channel });
       await d.inbox.close("ledger", id, "resolved");
-      return `Recorded as ${r.kind}${r.duplicate ? " (same amount within 5 minutes — kept as a duplicate)" : ""}.`;
+      return `Recorded as ${r.kind}${r.duplicate ? " (same amount within 5 minutes: kept as a duplicate)" : ""}.`;
     },
   };
 }

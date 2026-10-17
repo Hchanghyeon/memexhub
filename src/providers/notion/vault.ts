@@ -123,9 +123,9 @@ export class NotionVault implements VaultStorage {
 export const notionVaultProvider = defineProvider({
   kind: "storage",
   id: "notion",
-  title: T("Notion (beta — small vaults)", "Notion (베타 — 작은 볼트용)"),
+  title: T("Notion (beta: small vaults)", "Notion (베타: 작은 볼트용)"),
   config: z.object({
-    parentPage: z.string().min(32).max(300).describe("Page that will hold the vault database (link or id) — share it with your integration"),
+    parentPage: z.string().min(32).max(300).describe("Page that will hold the vault database (link or id): share it with your integration"),
     version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").describe("Notion API version"),
   }),
   secrets: z.object({ token: z.string().min(20).describe("Internal integration secret") }),

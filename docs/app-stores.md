@@ -5,10 +5,10 @@ All three run the same signed image (`ghcr.io/hchanghyeon/memexhub`, see [instal
 ## Home Assistant add-on
 
 1. Settings → Add-ons → Add-on store → ⋮ → **Repositories** → add `https://github.com/Hchanghyeon/memexhub`.
-2. Install **memexhub**, fill in `memexhub_secret` (48+ random characters — keep a copy), `public_url` (the https address Claude uses) and `timezone`.
+2. Install **memexhub**, fill in `memexhub_secret` (48+ random characters: keep a copy), `public_url` (the https address Claude uses) and `timezone`.
 3. Start it, copy the setup code from the **Log** tab, open `http://<home assistant>:8791` and follow the wizard.
 
-Data is in the add-on's `/data` and goes into Home Assistant backups. Put port 8787 (and 8790 for devices) behind HTTPS — for example a Cloudflare Tunnel or your reverse proxy.
+Data is in the add-on's `/data` and goes into Home Assistant backups. Put port 8787 (and 8790 for devices) behind HTTPS: for example a Cloudflare Tunnel or your reverse proxy.
 
 ## Synology (Container Manager)
 

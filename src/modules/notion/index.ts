@@ -9,7 +9,7 @@ import { dayLine, mergeDays } from "../health/render.js";
 import type { DayUpdate } from "../health/parse.js";
 
 const text = (s: string) => ({ rich_text: s ? [{ type: "text", text: { content: s.slice(0, 2000) } }] : [] });
-const title = (s: string) => ({ title: [{ type: "text", text: { content: (s || "—").slice(0, 2000) } }] });
+const title = (s: string) => ({ title: [{ type: "text", text: { content: (s || "-").slice(0, 2000) } }] });
 
 const SCHEMAS = {
   ledger: {
@@ -83,7 +83,7 @@ export default defineModule({
       const kinds = (["ledger", "health"] as Kind[]).filter((k) => s()[k]);
       if (!kinds.length) return [];
       const n = await provider<NotionClient>("notion", s().connection);
-      if (!n) throw new Error("no Notion connection — admin UI → Connections");
+      if (!n) throw new Error("no Notion connection: admin UI → Connections");
       const out: NotionSyncResult[] = [];
       for (const kind of kinds) {
         const key = `notion.db:${kind}`;

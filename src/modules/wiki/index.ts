@@ -10,7 +10,7 @@ import { normalizeVaultPath } from "../../storage/paths.js";
 /** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
 const WORKFLOW = [
   "how to work:",
-  "- ingest: save an original with wiki_save_source (never edited), then update or create every wiki page it touches — one source can change many pages. Each claim links its source note ([[…]]). wiki_pending lists sources no page cites yet.",
+  "- ingest: save an original with wiki_save_source (never edited), then update or create every wiki page it touches: one source can change many pages. Each claim links its source note ([[…]]). wiki_pending lists sources no page cites yet.",
   "- conflicts: when sources disagree, keep both in a '> [!warning] Conflict' callout naming each source and date; follow the trust order in the vault's rule notes (official documents > what the owner wrote > notes and chats > your own inference).",
   "- status: pages you write are saved as status: draft until the owner confirms them in the admin UI (stable). Mark outdated pages status: deprecated instead of deleting them.",
   "- check: after writing, run wiki_check on each page and fix it until it passes; then read the cited sources again and make sure every sentence is really in them.",
@@ -32,12 +32,12 @@ export default defineModule({
           readOnly: true,
           description: T(
             "How this vault is organized: where sources, wiki pages, indexes, the log, daily notes and protected rule notes live, and which lint rules are on. Call this before filing notes.",
-            "이 볼트의 구조 — 원본, 위키 페이지, 목차, 로그, 일지, 보호된 규칙 노트의 위치와 켜진 점검 규칙. 노트를 넣기 전에 먼저 부른다.",
+            "이 볼트의 구조: 원본, 위키 페이지, 목차, 로그, 일지, 보호된 규칙 노트의 위치와 켜진 점검 규칙. 노트를 넣기 전에 먼저 부른다.",
           ),
           input: {},
           async run() {
             const gate = settings.wiki.gate ?? !!layout.sources;
-            return `${layout.describe()}\npreset: ${settings.wiki.preset ?? "(custom)"}\nlint rules on: ${enabledRules.join(", ") || "(none)"}\nwrite check: ${gate ? "on — wiki pages need frontmatter and an existing source, and are saved as draft" : "off"}\n\n${WORKFLOW}`;
+            return `${layout.describe()}\npreset: ${settings.wiki.preset ?? "(custom)"}\nlint rules on: ${enabledRules.join(", ") || "(none)"}\nwrite check: ${gate ? "on: wiki pages need frontmatter and an existing source, and are saved as draft" : "off"}\n\n${WORKFLOW}`;
           },
         }),
         defineTool({
@@ -45,7 +45,7 @@ export default defineModule({
           readOnly: true,
           description: T(
             "Check the vault: broken links, orphan pages, missing index entries, oversized pages, long indexes, required frontmatter, unregistered tags, pages without a source, bad file names. Exact, no guessing. Report findings to the user before fixing.",
-            "볼트 점검 — 깨진 링크, 고아 페이지, 목차 누락, 큰 페이지, 긴 목차, 필수 프론트매터, 등록 안 된 태그, 원본 없는 페이지, 잘못된 파일명. 정확한 검사. 고치기 전에 결과를 먼저 사용자에게 보고한다.",
+            "볼트 점검: 깨진 링크, 고아 페이지, 목차 누락, 큰 페이지, 긴 목차, 필수 프론트매터, 등록 안 된 태그, 원본 없는 페이지, 잘못된 파일명. 정확한 검사. 고치기 전에 결과를 먼저 사용자에게 보고한다.",
           ),
           input: {
             rules: z.array(z.enum(RULES.map((r) => r.id) as [string, ...string[]])).optional().describe("Only these rules / 이 규칙만"),
@@ -95,8 +95,8 @@ export default defineModule({
               defineTool({
                 name: "wiki_index",
                 description: T(
-                  "List a page in its index note as '- [[page]] — description' (skips if already listed). Optional section heading.",
-                  "페이지를 목차 노트에 '- [[페이지]] — 설명' 으로 올린다 (이미 있으면 건너뜀). 섹션 제목을 줄 수 있다.",
+                  "List a page in its index note as '- [[page]]: description' (skips if already listed). Optional section heading.",
+                  "페이지를 목차 노트에 '- [[페이지]]: 설명' 으로 올린다 (이미 있으면 건너뜀). 섹션 제목을 줄 수 있다.",
                 ),
                 input: { path: z.string(), description: z.string().min(1).max(200), section: z.string().max(60).optional() },
                 async run({ path, description, section }, ctx) {
@@ -111,7 +111,7 @@ export default defineModule({
           readOnly: true,
           description: T(
             "Check one wiki page the exact way the engine does: frontmatter, status, an existing source, broken links, size, index entry and the other lint rules. Returns PASS or what to fix. Run it after writing each page.",
-            "위키 페이지 하나를 엔진 방식 그대로 점검 — 프론트매터, 상태, 실제 원본 인용, 깨진 링크, 크기, 목차, 그 밖의 점검 규칙. 통과(PASS) 또는 고칠 것을 돌려준다. 페이지를 쓴 뒤마다 부른다.",
+            "위키 페이지 하나를 엔진 방식 그대로 점검: 프론트매터, 상태, 실제 원본 인용, 깨진 링크, 크기, 목차, 그 밖의 점검 규칙. 통과(PASS) 또는 고칠 것을 돌려준다. 페이지를 쓴 뒤마다 부른다.",
           ),
           input: { path: z.string().min(1).max(500) },
           async run({ path }) {
@@ -131,8 +131,8 @@ export default defineModule({
               defineTool({
                 name: "conversation_save",
                 description: T(
-                  "Save what this conversation decided — decisions, new facts about the user or their work, to-dos — as a short source note (write-once). The nightly ingest files the lasting parts into the wiki. Ask the user first; skip small talk.",
-                  "이 대화에서 정한 것 — 결정, 사용자나 그 일에 대한 새 사실, 남은 일 — 을 짧은 원본 노트로 저장한다 (한 번만 씀). 오래 쓸 부분은 밤 수집이 위키에 넣는다. 먼저 사용자에게 묻고, 잡담은 저장하지 않는다.",
+                  "Save what this conversation decided: decisions, new facts about the user or their work, to-dos · as a short source note (write-once). The nightly ingest files the lasting parts into the wiki. Ask the user first; skip small talk.",
+                  "이 대화에서 정한 것: 결정, 사용자나 그 일에 대한 새 사실, 남은 일 · 을 짧은 원본 노트로 저장한다 (한 번만 씀). 오래 쓸 부분은 밤 수집이 위키에 넣는다. 먼저 사용자에게 묻고, 잡담은 저장하지 않는다.",
                 ),
                 input: {
                   title: z.string().min(1).max(80).describe("What it was about, a few words / 무엇에 대한 대화인지 몇 단어"),
@@ -142,7 +142,7 @@ export default defineModule({
                   context: z.string().max(400).optional().describe("One line: why this came up / 한 줄: 어떤 상황이었는지"),
                 },
                 async run({ title, decisions, facts, todos, context }, ctx) {
-                  if (!decisions.length && !facts.length && !todos.length) return "nothing to save — no decision, fact or to-do (not saved)";
+                  if (!decisions.length && !facts.length && !todos.length) return "nothing to save: no decision, fact or to-do (not saved)";
                   const lang = settings.ledger.language;
                   const content = conversationNote({ decisions, facts, todos, context }, lang);
                   const path = await saveSource(vault!.withActor(ctx.actor), layout, { title: `${lang === "ko" ? "대화" : "Conversation"} - ${title}`, content, date: today(settings.timezone, platform.now()) });
@@ -153,8 +153,8 @@ export default defineModule({
                 name: "wiki_pending",
                 readOnly: true,
                 description: T(
-                  "Sources no wiki page cites yet — what is left to ingest, oldest first.",
-                  "아직 어떤 위키 페이지도 인용하지 않은 원본 — 정리할 차례인 것, 오래된 순.",
+                  "Sources no wiki page cites yet: what is left to ingest, oldest first.",
+                  "아직 어떤 위키 페이지도 인용하지 않은 원본: 정리할 차례인 것, 오래된 순.",
                 ),
                 input: { limit: z.number().int().min(1).max(200).default(30) },
                 async run({ limit }) {

@@ -46,7 +46,7 @@ export function errorText(t: T, e: unknown): string {
     wrong_setup_code: ["Wrong setup code. Copy it from the server log.", "설정 코드가 맞지 않아요. 서버 로그에서 복사하세요."],
     wrong_code: ["That code did not match. Check the time on your phone and try the newest code.", "코드가 맞지 않아요. 폰 시간을 확인하고 가장 새 코드를 넣어 보세요."],
     two_factor_first: ["Turn on two-factor first.", "먼저 2단계 인증을 켜세요."],
-    vault_unavailable: ["Saved, but the vault could not be opened — check the path or account.", "저장했지만 볼트를 열 수 없어요. 경로나 계정을 확인하세요."],
+    vault_unavailable: ["Saved, but the vault could not be opened: check the path or account.", "저장했지만 볼트를 열 수 없어요. 경로나 계정을 확인하세요."],
     vault_test_failed: [`Could not open the vault${d}.`, `볼트를 열 수 없어요${d}.`],
     invalid_settings: [`Some fields are not valid${d}.`, `올바르지 않은 칸이 있어요${d}.`],
     invalid_input: [`Some fields are not valid${d}.`, `올바르지 않은 칸이 있어요${d}.`],

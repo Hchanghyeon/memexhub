@@ -21,8 +21,8 @@ memexhub creates **"memexhub · Payments"** (merchant, date and time, amount, ca
 
 ## Notion as the vault (beta)
 
-Admin UI → Vault → **Notion**: the page link (shared with your integration) and the integration secret. memexhub creates a **"memexhub vault"** database there — one page per note, the vault path in **Path**.
+Admin UI → Vault → **Notion**: the page link (shared with your integration) and the integration secret. memexhub creates a **"memexhub vault"** database there: one page per note, the vault path in **Path**.
 
 - **Lossless:** reading a note gives back exactly what was written. Headings, `- ` bullets, `- [ ]` to-dos, `> ` quotes, `---`, fenced code and the frontmatter become real Notion blocks; anything else (bold, numbered lists, tables, indentation) stays as literal text in a paragraph. Pages you write in Notion are read as text too.
 - **Small vaults:** Notion allows about 3 requests a second, a note is a few requests, and search reads every note. Fine for a few hundred notes; for big vaults use a folder, WebDAV or S3.
-- Obsidian cannot open this vault directly — use it if you live in Notion and talk to it through Claude.
+- Obsidian cannot open this vault directly: use it if you live in Notion and talk to it through Claude.

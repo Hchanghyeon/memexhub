@@ -14,11 +14,11 @@ flowchart LR
 %%{init: {'theme':'neutral'}}%%
 flowchart TB
   hub["Hub (조립 지점)<br/>모듈을 불러오고 MCP 서버를 만듦"]
-  modules["모듈 — 플러그인<br/>vault · hub · wiki · ledger · mail · location · …"]
+  modules["모듈: 플러그인<br/>vault · hub · wiki · ledger · mail · location · …"]
   core["core<br/>설정 · 연결 · 기록(events) · 감사 · 등록"]
   auth["auth<br/>관리자 · OAuth · 수집 토큰"]
-  storage["storage — 어댑터<br/>SafeVault → VaultStorage: fs · webdav · s3 · git"]
-  platform["platform — node | workers<br/>DB · 비밀 · 시계 · fetch · 로그"]
+  storage["storage: 어댑터<br/>SafeVault → VaultStorage: fs · webdav · s3 · git"]
+  platform["platform: node | workers<br/>DB · 비밀 · 시계 · fetch · 로그"]
   db[("DATA_DIR/memexhub.db<br/>설정 · 암호화된 연결 · 토큰 · 기록 · 감사")]
   hub --> modules
   modules --> core & auth & storage
@@ -47,11 +47,11 @@ flowchart TB
 
 ## 흐름
 
-**카드 문자가 오면** — 폰 자동화(예: iOS 단축어) → `POST /ingest/message`(기기 토큰, 범위 `ledger`) → 레시피·공통 해석기 (못 읽으면 Claude용 대기함) → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
+**카드 문자가 오면**: 폰 자동화(예: iOS 단축어) → `POST /ingest/message`(기기 토큰, 범위 `ledger`) → 레시피·공통 해석기 (못 읽으면 Claude용 대기함) → 중복 확인 → `EventBus.append` → 렌더러가 결제·돈 노트를 다시 그림 → `SafeVault.write` (내용이 같으면 안 씀)
 
-**Claude가 하루를 정리하면** — 밤 루틴 → `day_summary(date)` 한 번 (체류, 결제, 교통, 건강, 메일 수) → Claude가 판단하고 `write_note`로 일지 칸을 씀
+**Claude가 하루를 정리하면**: 밤 루틴 → `day_summary(date)` 한 번 (체류, 결제, 교통, 건강, 메일 수) → Claude가 판단하고 `write_note`로 일지 칸을 씀
 
-**메일 계정을 추가하면** — 관리 화면 → 연결 → IMAP 입력 → [시험] → 비밀번호는 암호화해서 저장 → 재시작 없이 메일 모듈이 반영 → Claude는 `mail_search(account="회사")`
+**메일 계정을 추가하면**: 관리 화면 → 연결 → IMAP 입력 → [시험] → 비밀번호는 암호화해서 저장 → 재시작 없이 메일 모듈이 반영 → Claude는 `mail_search(account="회사")`
 
 ## 쓰는 디자인 패턴
 

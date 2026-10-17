@@ -8,7 +8,7 @@
 2. **memexhub** 설치 → `memexhub_secret`(랜덤 48자 이상, 사본 보관), `public_url`(Claude가 쓸 https 주소), `timezone` 입력
 3. 시작 → **로그** 탭에서 설치 코드 복사 → `http://<홈 어시스턴트>:8791` 열고 마법사 따라가기
 
-데이터는 애드온의 `/data`에 있고 홈 어시스턴트 백업에 함께 들어가요. 8787(기기용은 8790)은 HTTPS 뒤로 여세요 — 예: Cloudflare Tunnel이나 리버스 프록시.
+데이터는 애드온의 `/data`에 있고 홈 어시스턴트 백업에 함께 들어가요. 8787(기기용은 8790)은 HTTPS 뒤로 여세요: 예: Cloudflare Tunnel이나 리버스 프록시.
 
 ## 시놀로지 (Container Manager)
 
@@ -23,6 +23,6 @@
 2. 변수: `MEMEXHUB_SECRET`(랜덤 48자 이상), `ADMIN_PUBLIC=1`, `TZ`. Railway의 `PORT`가 있으면 포트 하나로 동작해요: Claude는 `/mcp`, 기기는 `/ingest/…`, 관리 화면은 `/admin`.
 3. `/data`에 **볼륨** 붙이기
 4. Settings → Networking → 도메인 만들기 → `PUBLIC_URL`을 그 주소로
-5. 배포 로그의 설치 코드로 `https://<도메인>/admin/setup` 열기 — 관리 화면이 인터넷에 있으니 **2단계 인증을 먼저** 켜야 해요
+5. 배포 로그의 설치 코드로 `https://<도메인>/admin/setup` 열기: 관리 화면이 인터넷에 있으니 **2단계 인증을 먼저** 켜야 해요
 
 `ADMIN_PUBLIC=1`은 관리 화면을 인터넷에서 열되 항상 2단계 인증을 요구해요. 계정을 만든 지 24시간 안에는 등록을 위해 로그인할 수 있어요.

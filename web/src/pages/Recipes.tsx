@@ -87,7 +87,7 @@ function Try({ onDraft }: { onDraft: (j: string) => void }) {
       <TextArea label={t("Message", "메시지")} value={text} onChange={setText} rows={5} />
       {r && (
         <Callout tone={r.confident || r.kind === "ignore" ? "info" : "warning"}>
-          <p className="font-medium">{r.kind === "ignore" ? t(`Ignored by recipe ${r.recipeId}.`, `레시피 ${r.recipeId}가 무시해요.`) : r.confident ? t(`Would be recorded — ${r.step === "recipe" ? `recipe ${r.recipeId}` : "general reader"}.`, `기록돼요 — ${r.step === "recipe" ? `레시피 ${r.recipeId}` : "공통 해석기"}.`) : t(`Would wait in the inbox — ${r.reason ?? ""}.`, `대기함으로 가요 — ${r.reason ?? ""}.`)}</p>
+          <p className="font-medium">{r.kind === "ignore" ? t(`Ignored by recipe ${r.recipeId}.`, `레시피 ${r.recipeId}가 무시해요.`) : r.confident ? t(`Would be recorded: ${r.step === "recipe" ? `recipe ${r.recipeId}` : "general reader"}.`, `기록돼요: ${r.step === "recipe" ? `레시피 ${r.recipeId}` : "공통 해석기"}.`) : t(`Would wait in the inbox: ${r.reason ?? ""}.`, `대기함으로 가요: ${r.reason ?? ""}.`)}</p>
           {r.payment && <KeyValue rows={Object.entries(r.payment).filter(([, v]) => v).map(([k, v]) => [k, v])} />}
         </Callout>
       )}

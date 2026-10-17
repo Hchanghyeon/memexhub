@@ -85,15 +85,15 @@ export function inboxTools(d: InboxDeps): { tools: ToolDef<any>[]; jobs: JobDef[
         if (!p.amount || !/^-?(₩[\d,]+|[A-Z]{3} [\d,.]+)$/.test(p.amount)) return `need an amount like ₩12,500 (got ${JSON.stringify(p.amount ?? "")})`;
         const r = await d.ledger.record({ merchant: p.merchant, amount: p.amount, card: p.card, time: p.time || it.data.message.time || it.receivedAt, item: p.item, source: it.channel });
         await d.inbox.close("ledger", id, "resolved");
-        return `recorded ${id} as ${r.kind}${r.duplicate ? " (duplicate of an existing record — kept as skipped)" : ""}`;
+        return `recorded ${id} as ${r.kind}${r.duplicate ? " (duplicate of an existing record: kept as skipped)" : ""}`;
       },
     }),
     defineTool({
       name: "ledger_recipe_propose",
       readOnly: false,
       description: T(
-        "Propose a message recipe (docs/recipes.md) so the engine reads this kind of message by itself next time. Give the recipe as JSON with at least one example whose text is FAKE (rewrite names, merchants, amounts, digits) plus the expected fields. It is validated, tested on its examples and on the inbox samples you name, and saved to the proposed folder — the owner approves it. Read existing recipe notes first and follow their style.",
-        "레시피(docs/recipes.md)를 제안해 다음부터 엔진이 이런 메시지를 혼자 읽게 한다. JSON으로 주고, 예시를 하나 이상 넣되 본문은 가짜로 바꿔 쓴다(이름, 가맹점, 금액, 숫자). 검사하고 예시와 지정한 대기함 메시지로 시험한 뒤 제안 폴더에 저장한다 — 승인은 주인이 한다. 기존 레시피 노트를 먼저 읽고 같은 방식으로 쓴다.",
+        "Propose a message recipe (docs/recipes.md) so the engine reads this kind of message by itself next time. Give the recipe as JSON with at least one example whose text is FAKE (rewrite names, merchants, amounts, digits) plus the expected fields. It is validated, tested on its examples and on the inbox samples you name, and saved to the proposed folder: the owner approves it. Read existing recipe notes first and follow their style.",
+        "레시피(docs/recipes.md)를 제안해 다음부터 엔진이 이런 메시지를 혼자 읽게 한다. JSON으로 주고, 예시를 하나 이상 넣되 본문은 가짜로 바꿔 쓴다(이름, 가맹점, 금액, 숫자). 검사하고 예시와 지정한 대기함 메시지로 시험한 뒤 제안 폴더에 저장한다: 승인은 주인이 한다. 기존 레시피 노트를 먼저 읽고 같은 방식으로 쓴다.",
       ),
       input: {
         recipe_json: z.string().min(2).max(20_000).describe('{"id":"kr.sample.sms","channels":["sms"],"match":{"any":["샘플카드"]},"set":{"card":"샘플카드"},"examples":[{"text":"…","expect":{"amount":"₩1,000"}}]}'),
@@ -102,7 +102,7 @@ export function inboxTools(d: InboxDeps): { tools: ToolDef<any>[]; jobs: JobDef[
       },
       async run({ recipe_json, description, samples }, ctx) {
         const vault = d.vault();
-        if (!vault) return "no vault connected — recipes are stored as vault notes";
+        if (!vault) return "no vault connected: recipes are stored as vault notes";
         let raw: Record<string, unknown>;
         try {
           raw = JSON.parse(recipe_json);
@@ -115,11 +115,11 @@ export function inboxTools(d: InboxDeps): { tools: ToolDef<any>[]; jobs: JobDef[
         } catch (e) {
           return `invalid recipe:\n${(e as Error).message.slice(0, 1500)}`;
         }
-        if (!c.recipe.examples.length) return "add at least one example (fake text + expect) — it is the recipe's test";
+        if (!c.recipe.examples.length) return "add at least one example (fake text + expect): it is the recipe's test";
         const texts = (await pending()).map((p) => norm(p.data!.message.text));
         for (const ex of c.recipe.examples) {
           const t = norm(ex.text);
-          if (texts.some((x) => x === t || (t.length > 20 && x.includes(t)))) return "an example is copied from a real inbox message — rewrite names, merchants, amounts and digits with fake values";
+          if (texts.some((x) => x === t || (t.length > 20 && x.includes(t)))) return "an example is copied from a real inbox message: rewrite names, merchants, amounts and digits with fake values";
         }
         const failed = await testRecipe(c, d.tz(), d.now());
         if (failed.length) return `examples fail:\n${failed.map((f) => `- example ${f.index + 1}: ${f.diff}`).join("\n")}`;
@@ -137,7 +137,7 @@ export function inboxTools(d: InboxDeps): { tools: ToolDef<any>[]; jobs: JobDef[
         const path = `${d.recipesDir}/proposed/${c.recipe.id}.md`;
         const { examples, ...rest } = raw as { examples?: unknown };
         await vault.withActor(ctx.actor).write(path, recipeNote({ ...rest, examples: c.recipe.examples.map((e) => ({ text: e.text, expect: e.expect })) }, description));
-        return [`saved ${path} — the owner approves it in the admin UI or by moving the note into ${d.recipesDir}/.`, "examples pass", ...(lines.length ? ["inbox samples:", ...lines] : [])].join("\n");
+        return [`saved ${path}: the owner approves it in the admin UI or by moving the note into ${d.recipesDir}/.`, "examples pass", ...(lines.length ? ["inbox samples:", ...lines] : [])].join("\n");
       },
     }),
     defineTool({
@@ -151,11 +151,11 @@ export function inboxTools(d: InboxDeps): { tools: ToolDef<any>[]; jobs: JobDef[
       async run() {
         const { active, errors } = await d.recipes();
         const proposed = await loadRecipes([vaultRecipeSource(d.vault, () => d.recipesDir, "proposed")]);
-        const row = (c: CompiledRecipe) => `- ${c.recipe.id} — ${c.recipe.name ?? ""} · ${c.recipe.kind} · ${c.recipe.channels.join("/")} · ${c.path ?? c.source}`;
+        const row = (c: CompiledRecipe) => `- ${c.recipe.id}: ${c.recipe.name ?? ""} · ${c.recipe.kind} · ${c.recipe.channels.join("/")} · ${c.path ?? c.source}`;
         return [
           `active (${active.length}):`, ...active.map(row),
-          `proposed (${proposed.active.length + proposed.errors.length}) in ${d.recipesDir}/proposed/:`, ...proposed.active.map(row), ...proposed.errors.map((e) => `- ${e.id} — ✗ ${e.error}`),
-          ...(errors.length ? [`broken (${errors.length}):`, ...errors.map((e) => `- ${e.id} (${e.path ?? e.source}) — ${e.error}`)] : []),
+          `proposed (${proposed.active.length + proposed.errors.length}) in ${d.recipesDir}/proposed/:`, ...proposed.active.map(row), ...proposed.errors.map((e) => `- ${e.id}: ✗ ${e.error}`),
+          ...(errors.length ? [`broken (${errors.length}):`, ...errors.map((e) => `- ${e.id} (${e.path ?? e.source}): ${e.error}`)] : []),
           `inbox: ${await d.inbox.count("ledger")} pending`,
         ].join("\n");
       },

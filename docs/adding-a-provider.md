@@ -13,9 +13,9 @@ Example: a new storage adapter.
 
 ## A new card company or shop (ledger) ✅
 
-No code. Add a **recipe** — see [message recipes](recipes.md):
+No code. Add a **recipe**: see [message recipes](recipes.md):
 
 - for yourself: a recipe note in your vault (or let Claude propose one from the ledger inbox and approve it);
 - for everyone: `recipes/<country>.<sender>.<channel>.json` in this repository with fake `examples`. CI tests it.
 
-Never paste a real message — rewrite names, merchants, amounts and balances.
+Never paste a real message: rewrite names, merchants, amounts and balances.

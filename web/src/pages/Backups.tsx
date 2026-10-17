@@ -37,11 +37,11 @@ export function Backups() {
   if (!data) return <Page title={t("Backups", "백업")}><Loading error={error} reload={reload} /></Page>;
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return (
-    <Page title={t("Backups", "백업")} sub={t("Settings, connections (secrets stay encrypted), tokens, records and logs — encrypted with your MEMEXHUB_SECRET. Vault notes are not included; your sync or storage keeps them.", "설정, 연결(비밀값은 암호화된 채), 토큰, 기록, 로그가 MEMEXHUB_SECRET으로 암호화돼 들어가요. 볼트 노트는 들어가지 않아요. 노트는 동기화나 저장소가 지켜요.")}>
+    <Page title={t("Backups", "백업")} sub={t("Settings, connections (secrets stay encrypted), tokens, records and logs: encrypted with your MEMEXHUB_SECRET. Vault notes are not included; your sync or storage keeps them.", "설정, 연결(비밀값은 암호화된 채), 토큰, 기록, 로그가 MEMEXHUB_SECRET으로 암호화돼 들어가요. 볼트 노트는 들어가지 않아요. 노트는 동기화나 저장소가 지켜요.")}>
       <Card title={t("Download a backup", "백업 내려받기")} badge={<Badge tone="recommended">{t("Recommended", "추천")}</Badge>} sub={t("Keep one somewhere other than this server now and then.", "가끔 하나씩 이 서버가 아닌 곳에 보관하세요.")}
         footer={<Button busy={busy} onClick={() => void run(() => download("/backups/download", "memexhub.mxb"), t("Downloaded.", "내려받았어요."))}>{t("Download now", "지금 내려받기")}</Button>} />
       <Card title={t("Automatic daily copies", "매일 자동 백업")}>
-        {!data.available ? <Muted>{t("Not available here — download backups instead.", "이 환경에서는 안 돼요. 내려받기를 쓰세요.")}</Muted> : data.list.length ? (
+        {!data.available ? <Muted>{t("Not available here: download backups instead.", "이 환경에서는 안 돼요. 내려받기를 쓰세요.")}</Muted> : data.list.length ? (
           <List>{data.list.map((b) => <Item key={b.name} tone="ok" title={when(b.created, tz)} meta={b.name} actions={<span className="text-muted-foreground text-[0.8125rem]">{Math.ceil(b.size / 1024)} KB</span>} />)}</List>
         ) : <Empty>{t("The first copy is made within an hour. The newest 14 are kept.", "첫 백업은 한 시간 안에 만들어지고 최근 14개를 남겨요.")}</Empty>}
       </Card>

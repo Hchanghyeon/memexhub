@@ -65,7 +65,7 @@ export function Start({ onDone }: { onDone: () => void }) {
               <Choice value={preset || data.preset || "llm-wiki"} onChange={setPreset} options={data.presets.map((p) => ({ value: p, label: p }))} />
             </Field>
           )}
-          {!askLayout && !data.vault && <Hint>{t("A new vault starts with sources in raw/ and wiki pages in wiki/ — Claude keeps it tidy.", "새 볼트는 원본은 raw/, 위키는 wiki/ 로 시작해요. 정리는 Claude가 해요.")}</Hint>}
+          {!askLayout && !data.vault && <Hint>{t("A new vault starts with sources in raw/ and wiki pages in wiki/: Claude keeps it tidy.", "새 볼트는 원본은 raw/, 위키는 wiki/ 로 시작해요. 정리는 Claude가 해요.")}</Hint>}
         </Card>
       )}
       {step === 3 && <ConnectClaude url={data.mcpUrl} busy={busy} finish={() => void finish()} />}
@@ -84,9 +84,9 @@ function ConnectClaude({ url, busy, finish }: { url: string; busy: boolean; fini
     return () => clearInterval(id);
   }, [connected, reload]);
   return (
-    <Card title={t("Add memexhub to the Claude app", "Claude 앱에 memexhub 추가")} sub={t("The last step. Afterwards just ask Claude — “save this to my wiki”, “what did I do this week?”", "마지막 단계예요. 그다음부터는 Claude에게 말하면 돼요 — “이거 위키에 정리해 줘”, “이번 주 뭐 했지?”")}
+    <Card title={t("Add memexhub to the Claude app", "Claude 앱에 memexhub 추가")} sub={t("The last step. Afterwards just ask Claude: “save this to my wiki”, “what did I do this week?”", "마지막 단계예요. 그다음부터는 Claude에게 말하면 돼요: “이거 위키에 정리해 줘”, “이번 주 뭐 했지?”")}
       footer={<>
-        <Button busy={busy} kind={connected ? "primary" : "secondary"} onClick={finish}>{connected ? t("Finish", "마치기") : t("Finish — I'll do this later", "나중에 할게요 — 마치기")}</Button>
+        <Button busy={busy} kind={connected ? "primary" : "secondary"} onClick={finish}>{connected ? t("Finish", "마치기") : t("Finish: I'll do this later", "나중에 할게요: 마치기")}</Button>
       </>}>
       <Steps>
         {[

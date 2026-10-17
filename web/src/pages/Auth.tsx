@@ -73,7 +73,7 @@ export function TwoFactorSetup({ onDone }: { onDone: () => void }) {
     <div className="flex flex-col gap-4">
       <Steps>
         {[
-          <div key="1" className="space-y-2"><p>{t("Scan this with your authenticator app — or copy the key, or on a phone open the link.", "인증 앱으로 이 QR을 찍으세요. 키를 복사하거나, 폰이라면 링크를 열어도 돼요.")}</p><QrCode text={key.uri} label={t("Two-factor QR code", "2단계 인증 QR 코드")} size={176} /><Copy text={key.secret} /><a href={key.uri} className="text-sm font-medium underline">{t("Open in authenticator", "인증 앱에서 열기")}</a></div>,
+          <div key="1" className="space-y-2"><p>{t("Scan this with your authenticator app: or copy the key, or on a phone open the link.", "인증 앱으로 이 QR을 찍으세요. 키를 복사하거나, 폰이라면 링크를 열어도 돼요.")}</p><QrCode text={key.uri} label={t("Two-factor QR code", "2단계 인증 QR 코드")} size={176} /><Copy text={key.secret} /><a href={key.uri} className="text-sm font-medium underline">{t("Open in authenticator", "인증 앱에서 열기")}</a></div>,
           <div key="2" className="space-y-2">
             <p>{t("Type the 6-digit code it shows.", "앱에 나온 6자리 코드를 넣으세요.")}</p>
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void run(() => post("/totp/confirm", { code }), t("Two-factor is on.", "2단계 인증을 켰어요."), onDone); }}>

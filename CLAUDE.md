@@ -1,6 +1,6 @@
-# CLAUDE.md — guide for AI coding agents
+# CLAUDE.md: guide for AI coding agents
 
-memexhub is a self-hosted **LLM Wiki engine**: a vault (a Markdown folder — Obsidian, local, WebDAV, S3, Git; Notion later) stores the wiki, Claude reads/writes it through one MCP connector, and the engine keeps the wiki tidy and pulls in new sources (saved articles, life logs from devices and services). Read `docs/architecture.md` before larger changes.
+memexhub is a self-hosted **LLM Wiki engine**: a vault (a Markdown folder: Obsidian, local, WebDAV, S3, Git; Notion later) stores the wiki, Claude reads/writes it through one MCP connector, and the engine keeps the wiki tidy and pulls in new sources (saved articles, life logs from devices and services). Read `docs/architecture.md` before larger changes.
 
 ## Layout
 
@@ -14,8 +14,8 @@ src/admin/      admin JSON API (api.ts), serving the web app (app.ts), OAuth con
 web/            admin web app: React + Vite → dist-web/ (docs/design.md)
 src/modules/    feature plugins: vault, wiki (layout, lint, upkeep), ledger, mail, hub, (location, health, tasks …)
 src/providers/  external services behind interfaces (webdav, imap …)
-recipes/        built-in message recipes (JSON data, not code) — docs/recipes.md
-src/hub.ts      composition root — loads modules, builds the MCP server per request
+recipes/        built-in message recipes (JSON data, not code): docs/recipes.md
+src/hub.ts      composition root: loads modules, builds the MCP server per request
 src/main.ts     Node entry point (listeners)
 test/unit · test/contract · test/integration · test/golden · test/fixtures
 docs/           English docs, docs/ko Korean
@@ -68,6 +68,7 @@ npm run build
 ## UI (details: docs/design.md)
 
 Convenience first: one task per screen, recommended option first, plain words, results always confirmed. Clean and quiet: neutral grays, one accent color for the primary action, red only for errors/destructive, green only for ok. React app over a JSON API, bilingual, accessible.
+No em dash (U+2014) anywhere: UI text, notes the engine writes, tool messages, docs, commits. Use `:` for a label and its text, ` · ` for lists, `→` for flow, `-` for an empty table cell.
 Pages use only the parts in `web/src/ui/kit.tsx` (spacing, type and component rules: docs/design.md → Design system); no page-level margins or ad-hoc CSS classes.
 
 Before you commit: `npm run typecheck && npm test`, check `git diff` for anything personal or secret, and run `gitleaks protect --staged` if available.

@@ -18,7 +18,7 @@ The admin UI is used rarely and in a hurry: set it up once, fix a connection, re
 - **Clean and quiet.** One column, lots of white space, hairline borders instead of shadows.
 - **Few colors.** Neutral grays for everything; the near-black primary only for the main action; red only for errors and destructive actions; green only for "ok"; amber only for "look at this". No gradients, no decorative color.
 - **Components**: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind CSS v4) copied into `web/src/components/ui/`. Icons (lucide) in navigation and where they add meaning.
-- **Consistent wording**: *Connect*, *Test connection*, *Save*, *Revoke*, *Create token* — the same verb for the same action everywhere.
+- **Consistent wording**: *Connect*, *Test connection*, *Save*, *Revoke*, *Create token*: the same verb for the same action everywhere.
 
 ## Design system
 
@@ -70,7 +70,7 @@ Pages are built **only** from the parts in `web/src/ui/kit.tsx`. A page never se
 
 ## Screens
 
-The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/` and served by the server under `/admin` — by the Node entry from disk, on Cloudflare Workers from static assets. It talks to the JSON API at `/admin/api` (`src/admin/api.ts`): session cookie (HttpOnly, SameSite=Strict), CSRF token in the `X-CSRF` header, private network only unless opened with two-factor. The CSP allows only the app's own scripts, styles and fonts (inline styles are allowed for Radix positioning).
+The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/` and served by the server under `/admin`: by the Node entry from disk, on Cloudflare Workers from static assets. It talks to the JSON API at `/admin/api` (`src/admin/api.ts`): session cookie (HttpOnly, SameSite=Strict), CSRF token in the `X-CSRF` header, private network only unless opened with two-factor. The CSP allows only the app's own scripts, styles and fonts (inline styles are allowed for Radix positioning).
 
 | Screen | What it is for |
 |---|---|

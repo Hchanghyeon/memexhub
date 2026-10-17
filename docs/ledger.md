@@ -6,20 +6,20 @@ Your devices report payments the moment they happen (a phone automation, an app 
 
 | Endpoint | Typical sender | Body |
 |---|---|---|
-| `POST /ingest/message` | **raw text to read** — card SMS (iOS Shortcuts *Message* automation, Android Tasker / MacroDroid), app notifications, pasted text | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
-| `POST /ingest/transaction` | **already structured** payments — wallet transactions — iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/message` | **raw text to read**: card SMS (iOS Shortcuts *Message* automation, Android Tasker / MacroDroid), app notifications, pasted text | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
+| `POST /ingest/transaction` | **already structured** payments: wallet transactions · iOS Shortcuts *Transaction* automation (Apple Pay, transit cards), or any app | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
 Header `X-Ingest-Token: <device token with scope ledger>`. `POST /ingest/sms` with `{ "text", "lat"?, "lon"? }` is a short form of `/ingest/message` with `"channel": "sms"`. Bodies are limited to 4 KB (`/ingest/message`: 20 KB), unknown fields are rejected, and rejected requests are logged without their values.
 
-Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card SMS; NHN KCP receipt mails). Anything unreadable waits in an inbox for Claude, who can propose a recipe — see [message recipes](recipes.md).
+Card SMS are read by a generic parser plus small **recipes** stored as vault notes (built-in: Hyundai Card, Samsung Card SMS; NHN KCP receipt mails). Anything unreadable waits in an inbox for Claude, who can propose a recipe: see [message recipes](recipes.md).
 
 ## iPhone setup (iOS Shortcuts)
 
 1. Admin UI → *Device tokens* → create a token with scope `ledger`. Copy it (shown once).
-2. **Card SMS** — Shortcuts → Automation → *Message* → *Sender* is your card company → *Run immediately* → add *Get Contents of URL*:
+2. **Card SMS**: Shortcuts → Automation → *Message* → *Sender* is your card company → *Run immediately* → add *Get Contents of URL*:
    URL `https://<your ingest host>/ingest/message`, Method `POST`, Header `X-Ingest-Token`, Request body *JSON* with `channel` = `sms` and `text` = *Shortcut Input → Content*.
-   Optional: add *Get Current Location* and send `lat` / `lon` — used only to name the place, never stored.
-3. **Apple Pay / transit** — Automation → *Transaction* → choose cards → *Run immediately* → *Get Contents of URL* to `/ingest/transaction` with `merchant`, `amount`, `card`, `name` from the *Transaction* variables.
+   Optional: add *Get Current Location* and send `lat` / `lon`: used only to name the place, never stored.
+3. **Apple Pay / transit**: Automation → *Transaction* → choose cards → *Run immediately* → *Get Contents of URL* to `/ingest/transaction` with `merchant`, `amount`, `card`, `name` from the *Transaction* variables.
 
 ## Android setup
 
@@ -39,7 +39,7 @@ header `X-Ingest-Token`, JSON body `{"channel": "sms", "text": "<SMS body>"}`. A
 
 | Note | Default path | Content |
 |---|---|---|
-| Payments | `ledger/payments/{year}.md` (or `{year}-{month}.md` for one note per month — smaller, cheaper for routines to read) | month and day headings with totals, payment table, 🚇 transit line, 🏢 office line. **Redrawn on every record — don't edit by hand.** |
+| Payments | `ledger/payments/{year}.md` (or `{year}-{month}.md` for one note per month: smaller, cheaper for routines to read) | month and day headings with totals, payment table, 🚇 transit line, 🏢 office line. **Redrawn on every record · don't edit by hand.** |
 | Money | `ledger/money.md` | your sections (*Manual fixed costs*, *Notes*) + an **auto section**: this month, top merchants, by card, by month, recurring payments (subscriptions vs frequent places) |
 
 Paths, note language (`en` / `ko`) and office places: Admin UI → *Features* → *Ledger*.
@@ -48,6 +48,6 @@ Paths, note language (`en` / `ko`) and office places: Admin UI → *Features* �
 
 | Tool | Does |
 |---|---|
-| `payments_day(date)` ✅ | one day's payments, totals, transit and office taps — compact |
+| `payments_day(date)` ✅ | one day's payments, totals, transit and office taps: compact |
 | `payments_from_mail(since?, until?)` ✅ | read the receipt-mail folders now (normally every 15 minutes), through the same recipes; each mail once |
-| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | unreadable messages and recipes — see [message recipes](recipes.md) |
+| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | unreadable messages and recipes: see [message recipes](recipes.md) |

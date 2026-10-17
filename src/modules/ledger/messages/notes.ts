@@ -47,7 +47,7 @@ export function recipeNote(recipe: Record<string, unknown>, description = ""): s
   return [
     "---\ntype: recipe\n---",
     `# ${title}`,
-    description.trim() || "Message recipe for memexhub — see docs/recipes.md.",
+    description.trim() || "Message recipe for memexhub: see docs/recipes.md.",
     "```json memexhub-recipe\n" + JSON.stringify(rest, null, 2) + "\n```",
     ...(ex ? ["## Examples", ex] : []),
   ].join("\n\n") + "\n";

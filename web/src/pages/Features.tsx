@@ -40,14 +40,14 @@ export function Features() {
   const on = (id: string) => !!data.modules.find((m) => m.id === id)?.enabled;
   const toggle = (id: string, v: boolean) => run(() => post("/modules", { on: data.modules.filter((m) => (m.id === id ? v : m.enabled)).map((m) => m.id) }), v ? t("Turned on.", "켰어요.") : t("Turned off.", "껐어요."), reload);
   return (
-    <Page title={t("Features", "기능")} sub={t("Basic features are always on. Turn on the optional ones you need — their settings appear below.", "기본 기능은 항상 켜져 있어요. 필요한 선택 기능만 켜면 아래에 설정이 나와요.")}>
+    <Page title={t("Features", "기능")} sub={t("Basic features are always on. Turn on the optional ones you need: their settings appear below.", "기본 기능은 항상 켜져 있어요. 필요한 선택 기능만 켜면 아래에 설정이 나와요.")}>
       <Card title={t("Features", "기능")}>
         {data.modules.map((m) => {
           const n = MOD[m.id] ?? [m.id, m.id, "", ""];
           const basic = BASIC.includes(m.id);
           return (
             <Toggle key={m.id} checked={m.enabled} disabled={basic || busy} onChange={(v) => void toggle(m.id, v)} label={t(n[0], n[1])} badge={<Badge tone={basic ? "basic" : "optional"}>{basic ? t("Basic", "기본") : t("Optional", "선택")}</Badge>}
-              hint={<>{t(n[2], n[3])}{m.error && <span className="text-destructive"> — {m.error}</span>}</>} />
+              hint={<>{t(n[2], n[3])}{m.error && <span className="text-destructive">: {m.error}</span>}</>} />
           );
         })}
       </Card>

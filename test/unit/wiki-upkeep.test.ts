@@ -55,7 +55,7 @@ describe("wiki upkeep", () => {
     expect((await addToIndex(v, L, { path: "wiki/redis.md", description: "cache" })).index).toBe("wiki/index.md");
     expect((await addToIndex(v, L, { path: "wiki/redis.md", description: "cache" })).added).toBe(false);
     await addToIndex(v, L, { path: "wiki/ttl.md", description: "expiry", section: "Redis" });
-    expect((await v.read("wiki/index.md")).text).toBe("# wiki\n- [[redis]] — cache\n\n## Redis\n\n- [[ttl]] — expiry\n");
+    expect((await v.read("wiki/index.md")).text).toBe("# wiki\n- [[redis]]: cache\n\n## Redis\n\n- [[ttl]]: expiry\n");
     await v.write("Resources/Wiki/Topic.md", "t");
     expect((await addToIndex(v, F, { path: "Resources/Wiki/Topic.md", description: "x" })).index).toBe("Resources/Wiki/Wiki.md");
     await expect(addToIndex(v, L, { path: "wiki/missing.md", description: "x" })).rejects.toMatchObject({ code: "not_found" });

@@ -40,7 +40,7 @@ export class GoogleTasks implements TaskProvider {
     if (!list) return "@default";
     const all = await this.lists();
     const hit = all.find((l) => l.id === list || l.title === list);
-    if (!hit) throw new GoogleError(`no task list "${list}" — lists: ${all.map((l) => l.title).join(", ")}`);
+    if (!hit) throw new GoogleError(`no task list "${list}": lists: ${all.map((l) => l.title).join(", ")}`);
     return encodeURIComponent(hit.id);
   }
   async list(list: string, o: { showCompleted: boolean; limit: number }) {

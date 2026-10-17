@@ -6,20 +6,20 @@
 
 | 주소 | 보통 보내는 쪽 | 본문 |
 |---|---|---|
-| `POST /ingest/message` | **해석할 원문** — 카드 문자(iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid), 앱 알림, 붙여 넣은 글 | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
-| `POST /ingest/transaction` | **이미 정리된** 결제 — 지갑 결제 — iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
+| `POST /ingest/message` | **해석할 원문**: 카드 문자(iOS 단축어 *메시지* 자동화, Android Tasker·MacroDroid), 앱 알림, 붙여 넣은 글 | `{ "channel": "sms" \| "notification" \| "mail" \| "text", "text", "from"?, "subject"?, "time"?, "lat"?, "lon"? }` |
+| `POST /ingest/transaction` | **이미 정리된** 결제: 지갑 결제 · iOS 단축어 *거래* 자동화 (Apple Pay, 교통카드), 또는 어떤 앱이든 | `{ "merchant", "amount", "card", "name", "time"?, "lat"?, "lon"?, "kind"?: "online" \| "taxi", "item"? }` |
 
 헤더 `X-Ingest-Token: <범위 ledger 기기 토큰>`. `POST /ingest/sms`에 `{ "text", "lat"?, "lon"? }`를 보내면 `"channel": "sms"`인 `/ingest/message`와 같아요. 본문은 4KB까지(`/ingest/message`는 20KB), 모르는 칸이 있으면 거절하고, 거절한 요청은 값 없이 기록해요.
 
-카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드·삼성카드 문자, NHN KCP 결제 메일). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요 — [메시지 레시피](recipes.md).
+카드 문자는 공통 해석기와 볼트 노트로 저장되는 작은 **레시피**로 읽어요(기본: 현대카드·삼성카드 문자, NHN KCP 결제 메일). 못 읽은 건 대기함에서 Claude를 기다리고, Claude가 레시피를 제안할 수 있어요: [메시지 레시피](recipes.md).
 
 ## 아이폰 설정 (iOS 단축어)
 
 1. 관리 화면 → *Device tokens* → 범위 `ledger`로 토큰 만들기. 한 번만 보이니 복사해 두세요.
-2. **카드 문자** — 단축어 → 자동화 → *메시지* → *보낸 사람*: 카드사 → *즉시 실행* → *URL 콘텐츠 가져오기*:
+2. **카드 문자**: 단축어 → 자동화 → *메시지* → *보낸 사람*: 카드사 → *즉시 실행* → *URL 콘텐츠 가져오기*:
    URL `https://<수집 주소>/ingest/message`, 방법 `POST`, 헤더 `X-Ingest-Token`, 본문 *JSON*에 `channel` = `sms`, `text` = *단축어 입력 → 내용*.
    선택: *현재 위치 가져오기*로 `lat`/`lon`을 같이 보내면 장소 이름에만 쓰고 저장하지 않아요.
-3. **Apple Pay·교통** — 자동화 → *거래* → 카드 선택 → *즉시 실행* → `/ingest/transaction`으로 *URL 콘텐츠 가져오기*, *거래* 변수에서 `merchant`, `amount`, `card`, `name`.
+3. **Apple Pay·교통**: 자동화 → *거래* → 카드 선택 → *즉시 실행* → `/ingest/transaction`으로 *URL 콘텐츠 가져오기*, *거래* 변수에서 `merchant`, `amount`, `card`, `name`.
 
 ## Android 설정
 
@@ -39,7 +39,7 @@
 
 | 노트 | 기본 경로 | 내용 |
 |---|---|---|
-| 결제 | `ledger/payments/{year}.md` (`{year}-{month}.md` 로 하면 달마다 한 노트 — 작아서 루틴이 읽기 싸요) | 월·일 제목과 합계, 결제 표, 🚇 교통 줄, 🏢 출입 줄. **기록마다 다시 그려요 — 손으로 고치지 마세요.** |
+| 결제 | `ledger/payments/{year}.md` (`{year}-{month}.md` 로 하면 달마다 한 노트: 작아서 루틴이 읽기 싸요) | 월·일 제목과 합계, 결제 표, 🚇 교통 줄, 🏢 출입 줄. **기록마다 다시 그려요 · 손으로 고치지 마세요.** |
 | 돈 | `ledger/money.md` | 직접 쓰는 칸(*수동 고정비*, *메모*) + **자동 구역**: 이번 달, 많이 쓴 곳, 카드별, 월별, 반복 결제(구독 vs 자주 가는 곳) |
 
 경로, 노트 언어(`en`/`ko`), 회사 장소: 관리 화면 → *Features* → *Ledger*.
@@ -50,4 +50,4 @@
 |---|---|
 | `payments_day(date)` ✅ | 하루치 결제, 합계, 교통·출입을 짧게 |
 | `payments_from_mail(since?, until?)` ✅ | 결제 메일 폴더를 지금 읽어요(평소엔 15분마다). 같은 레시피로 해석하고, 같은 메일은 한 번만 |
-| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | 못 읽은 메시지와 레시피 — [메시지 레시피](recipes.md) |
+| `ledger_inbox` · `ledger_inbox_resolve` · `ledger_recipe_propose` · `ledger_recipes` ✅ | 못 읽은 메시지와 레시피: [메시지 레시피](recipes.md) |

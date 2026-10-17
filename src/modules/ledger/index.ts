@@ -124,7 +124,7 @@ export default defineModule({
           readOnly: false,
           description: T(
             "Read the receipt-mail folders set in the admin UI now (normally every 15 minutes) and record what the recipes recognise: receipts add the item name to the matching card payment, or become a payment. Each mail is read only once. Optional date range (YYYY-MM-DD) to look further back.",
-            "관리 화면에 정한 결제 메일 폴더를 지금 읽는다(평소엔 15분마다). 레시피가 알아보는 메일만 기록 — 영수증은 같은 카드 결제에 품목을 붙이거나 새 결제가 된다. 같은 메일은 한 번만. 더 예전을 보려면 날짜(YYYY-MM-DD) 범위.",
+            "관리 화면에 정한 결제 메일 폴더를 지금 읽는다(평소엔 15분마다). 레시피가 알아보는 메일만 기록: 영수증은 같은 카드 결제에 품목을 붙이거나 새 결제가 된다. 같은 메일은 한 번만. 더 예전을 보려면 날짜(YYYY-MM-DD) 범위.",
           ),
           input: {
             since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -133,7 +133,7 @@ export default defineModule({
             days: z.number().int().min(1).max(400).optional().describe("how many days back from date"),
           },
           async run(a) {
-            if (!settings.ledger.mailSources.length) return "no receipt-mail folders set — admin UI → Features → Ledger";
+            if (!settings.ledger.mailSources.length) return "no receipt-mail folders set: admin UI → Features → Ledger";
             const until = a.until ?? a.date;
             const since = a.since ?? (a.days ? addDays(until ?? localDate(tz, platform.now()), -(a.days - 1)) : undefined);
             const r = await mailSync({ since, until });
@@ -147,7 +147,7 @@ export default defineModule({
           name: "payments_day",
           readOnly: true,
           description: T(
-            "One day's payments, totals, transit taps and office gate taps — compact. Use instead of opening the yearly payments note.",
+            "One day's payments, totals, transit taps and office gate taps: compact. Use instead of opening the yearly payments note.",
             "하루치 결제, 합계, 교통 태그, 회사 출입을 짧게. 연간 결제 노트를 여는 대신 쓴다.",
           ),
           input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },

@@ -90,7 +90,7 @@ describe("music module", () => {
     await job.run();
     expect((await hub.bus.query(["music"])).map((e) => e.payload.title)).toEqual(["Track 1", "Track 2"]);
     const day = await hub.tools.find((t) => t.name === "music_day")!.run({ date: "2026-10-16" }, { actor: "t" });
-    expect(day).toBe("2026-10-16: 2 tracks · most played: Band (1), Band, Guest (1)\n- 10:00 Band — Track 1\n- 10:30 Band, Guest — Track 2");
+    expect(day).toBe("2026-10-16: 2 tracks · most played: Band (1), Band, Guest (1)\n- 10:00 Band · Track 1\n- 10:30 Band, Guest · Track 2");
     expect(await hub.tools.find((t) => t.name === "day_summary")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("2 tracks");
   });
 
@@ -98,6 +98,6 @@ describe("music module", () => {
     const hub = await mk(lastfmApi, () => new Date("2026-10-16T12:00:00Z"));
     await hub.connections.upsert({ kind: "music", provider: "lastfm", name: "lastfm", config: { user: "sample" }, secrets: { apiKey: "a".repeat(32) } }, "t");
     await hub.reload();
-    expect(await hub.tools.find((t) => t.name === "music_day")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("Artist One — Song A");
+    expect(await hub.tools.find((t) => t.name === "music_day")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("Artist One · Song A");
   });
 });

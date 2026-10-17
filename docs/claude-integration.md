@@ -27,7 +27,7 @@ sequenceDiagram
   Note over C,M: the refresh token rotates silently
 ```
 
-- Tokens are **opaque random strings** stored as SHA-256 hashes — revoking a client in the admin UI takes effect immediately.
+- Tokens are **opaque random strings** stored as SHA-256 hashes: revoking a client in the admin UI takes effect immediately.
 - Reusing an already-rotated refresh token revokes the whole token family (theft detection).
 - With the IP allowlist on, `/mcp` only accepts Anthropic's outbound ranges, so a leaked token is useless elsewhere.
 - You never copy a token. Nothing is stored on your phone.
@@ -41,11 +41,11 @@ sequenceDiagram
 
 New tools that make routines cheap ✅:
 
-- `day_summary(date)` — stays, payments, transit, health, mail counts in one compact call (no need to open large yearly notes)
-- `week_summary(week)` — weekly numbers with week-over-week comparison, top merchants, recurring payments
+- `day_summary(date)`: stays, payments, transit, health, mail counts in one compact call (no need to open large yearly notes)
+- `week_summary(week)`: weekly numbers with week-over-week comparison, top merchants, recurring payments
 
 Each module contributes its own part (a module added later shows up in the summaries by itself).
-- `hub_status()` ✅ — connection health and last received records (never settings or secrets)
+- `hub_status()` ✅: connection health and last received records (never settings or secrets)
 
 ## Routines
 

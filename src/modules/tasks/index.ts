@@ -51,7 +51,7 @@ export default defineModule({
           description: T("Connected to-do accounts. Use these names as `account` in the other task tools.", "연결된 할 일 계정. 다른 할 일 도구의 account 에 이 이름을 쓴다."),
           input: {},
           async run() {
-            return accounts.length ? accounts.map((a) => `- ${a}`).join("\n") : "no to-do accounts connected — admin UI → Connections → Google Tasks";
+            return accounts.length ? accounts.map((a) => `- ${a}`).join("\n") : "no to-do accounts connected: admin UI → Connections → Google Tasks";
           },
         }),
         defineTool({
@@ -108,7 +108,7 @@ export default defineModule({
           name: "task_delete",
           readOnly: false,
           destructive: true,
-          description: T("Delete a task permanently. Only when the user clearly asked; usually task_complete is right.", "할 일을 영구히 지운다. 사용자가 분명히 지우라고 했을 때만 — 보통은 task_complete."),
+          description: T("Delete a task permanently. Only when the user clearly asked; usually task_complete is right.", "할 일을 영구히 지운다. 사용자가 분명히 지우라고 했을 때만: 보통은 task_complete."),
           input: { account, task_id: id, tasklist },
           async run(a) {
             return run(a.account, async (p) => (await p.remove(a.tasklist, a.task_id), `deleted ${a.task_id}`));

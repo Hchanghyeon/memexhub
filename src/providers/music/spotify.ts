@@ -32,7 +32,7 @@ export class Spotify implements MusicProvider {
   ) {}
 
   private async token(force = false) {
-    if (!this.o.refreshToken) throw new Error("not signed in — admin UI → Connections → Sign in with Spotify");
+    if (!this.o.refreshToken) throw new Error("not signed in: admin UI → Connections → Sign in with Spotify");
     if (!force && this.access && this.access.until > this.now() + 60_000) return this.access.token;
     const r = await this.f(SPOTIFY_SIGNIN.token, {
       method: "POST",
@@ -40,7 +40,7 @@ export class Spotify implements MusicProvider {
       body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: this.o.refreshToken }),
     });
     const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; refresh_token?: string; error?: string };
-    if (!r.ok || !j.access_token) throw new Error(`Spotify sign-in expired or revoked (${j.error ?? r.status}) — sign in again`);
+    if (!r.ok || !j.access_token) throw new Error(`Spotify sign-in expired or revoked (${j.error ?? r.status}): sign in again`);
     if (j.refresh_token && j.refresh_token !== this.o.refreshToken) {
       this.o.refreshToken = j.refresh_token; // Spotify may rotate it
       await this.o.save({ refreshToken: j.refresh_token });

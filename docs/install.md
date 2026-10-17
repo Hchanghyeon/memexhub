@@ -15,7 +15,7 @@ docker compose up -d
 docker compose logs memexhub | grep -i "setup code"
 ```
 
-**Keep `MEMEXHUB_SECRET` safe and separate from backups** — it encrypts connection secrets and backups; without it they cannot be restored.
+**Keep `MEMEXHUB_SECRET` safe and separate from backups**: it encrypts connection secrets and backups; without it they cannot be restored.
 
 ## 2. Expose
 
@@ -23,7 +23,7 @@ docker compose logs memexhub | grep -i "setup code"
 |---|---|---|
 | 8787 | MCP for Claude (+ OAuth, Google sign-in callback) | yes, behind HTTPS at `PUBLIC_URL` |
 | 8790 | ingest for devices, `/dav/` vault sync | yes, behind HTTPS (another host name or path) |
-| 8791 | admin UI | **no** — private network only (the compose file binds it to 127.0.0.1) |
+| 8791 | admin UI | **no**: private network only (the compose file binds it to 127.0.0.1) |
 
 Any HTTPS reverse proxy or tunnel works (Caddy, Nginx, Synology reverse proxy, Cloudflare Tunnel). One port instead of three: `LISTEN=single` (admin under `/admin`, still private-network only).
 
@@ -46,7 +46,7 @@ gh attestation verify oci://ghcr.io/hchanghyeon/memexhub:0.1.0 --repo Hchanghyeo
 
 1. Admin UI → Backups → **Download a backup now**.
 2. Change the image tag in `compose.yml` (pin versions, e.g. `0.2.0`, rather than `latest`).
-3. `docker compose pull && docker compose up -d` — database migrations run automatically on start.
+3. `docker compose pull && docker compose up -d`: database migrations run automatically on start.
 
 ## Hardening in the compose example
 

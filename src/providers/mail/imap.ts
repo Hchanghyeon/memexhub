@@ -134,7 +134,7 @@ export class ImapMail implements MailProvider {
 export const imapProvider = defineProvider({
   kind: "mail",
   id: "imap",
-  title: T("IMAP mail (Kakao, Naver, Gmail, Outlook …) — read-only", "IMAP 메일 (카카오·네이버·Gmail·Outlook …) — 읽기 전용"),
+  title: T("IMAP mail (Kakao, Naver, Gmail, Outlook …): read-only", "IMAP 메일 (카카오·네이버·Gmail·Outlook …): 읽기 전용"),
   config: Config,
   secrets: z.object({ password: z.string().min(1).describe("Password or app password") }),
   runtimes: ["node"],

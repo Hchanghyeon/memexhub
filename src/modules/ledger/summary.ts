@@ -20,7 +20,7 @@ export function ledgerSummary(o: { rows: () => Promise<LedgerRow[]>; tz: () => s
       const pays = inRange.filter((e) => e.kind2 === "pay");
       const total = pays.reduce((s, e) => s + (krw(e.amount) ?? 0), 0);
       const out = [ko ? `${pays.length}건 · 합계 ₩${fmt(total)}` : `${pays.length} payments · total ₩${fmt(total)}`];
-      for (const e of pays) out.push(`- ${hm(e.w)} ${e.merchant || e.name || "?"}${e.place && !e.online ? ` @ ${e.place}` : ""} ${e.amount ?? ""}${e.card ? ` (${e.card})` : ""}${e.item ? ` — ${e.item}` : ""}`);
+      for (const e of pays) out.push(`- ${hm(e.w)} ${e.merchant || e.name || "?"}${e.place && !e.online ? ` @ ${e.place}` : ""} ${e.amount ?? ""}${e.card ? ` (${e.card})` : ""}${e.item ? ` · ${e.item}` : ""}`);
       const transit = inRange.filter((e) => e.kind2 === "transit");
       if (transit.length) out.push(`🚇 ${transit.map((e) => hm(e.w)).join(", ")}`);
       const office = inRange.filter((e) => e.kind2 === "office");

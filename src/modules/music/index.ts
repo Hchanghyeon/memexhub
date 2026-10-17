@@ -80,11 +80,11 @@ export default defineModule({
           ),
           input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() },
           async run({ date }) {
-            if (!names.length) return "no music connection — admin UI → Connections → Last.fm or Spotify";
+            if (!names.length) return "no music connection: admin UI → Connections → Last.fm or Spotify";
             const d = date ?? localDate(tz, platform.now());
             const plays = await playsOn(d);
             if (!plays.length) return `${d}: nothing played`;
-            return [`${d}: ${musicLine(plays, lang)}`, ...plays.slice(-150).map((p) => `- ${hm(p.at, tz)} ${p.artist} — ${p.title}`)].join("\n");
+            return [`${d}: ${musicLine(plays, lang)}`, ...plays.slice(-150).map((p) => `- ${hm(p.at, tz)} ${p.artist} · ${p.title}`)].join("\n");
           },
         }),
       ],

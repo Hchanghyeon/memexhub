@@ -18,7 +18,7 @@ export class HomeAssistant implements HomeProvider {
     const u = new URL(`${this.o.url.replace(/\/+$/, "")}${path}`);
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
     const r = await this.f(u, { headers: { authorization: `Bearer ${this.o.token}`, "content-type": "application/json" } });
-    if (r.status === 401 || r.status === 403) throw new Error("Home Assistant refused the token — create a long-lived access token in your HA profile");
+    if (r.status === 401 || r.status === 403) throw new Error("Home Assistant refused the token: create a long-lived access token in your HA profile");
     if (!r.ok) throw new Error(`Home Assistant ${r.status}`);
     return r.json() as Promise<any>;
   }

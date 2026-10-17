@@ -29,7 +29,7 @@ export function Devices() {
     <Page title={t("Devices", "기기")} sub={t("Phones and apps that send records (payments, health, location) use a device token. A token can only send, never read.", "기록(결제, 건강, 위치)을 보내는 폰과 앱은 기기 토큰을 써요. 토큰은 보내기만 하고 읽지는 못해요.")}>
       {fresh && (
         <Card title={t("Your new token", "새 토큰")} className="border-primary/50 ring-primary/10 ring-4" footer={<Button kind="secondary" onClick={() => setFresh(undefined)}>{t("Done", "다 했어요")}</Button>}>
-          <Callout tone="warning"><p>{t("Copy it now — it will not be shown again.", "지금 복사하세요. 다시 보여주지 않아요.")}</p></Callout>
+          <Callout tone="warning"><p>{t("Copy it now: it will not be shown again.", "지금 복사하세요. 다시 보여주지 않아요.")}</p></Callout>
           <Copy text={fresh} />
         </Card>
       )}
@@ -95,7 +95,7 @@ function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: ()
     run(() => post<{ token: string }>("/devices", { name, scopes }), undefined, (r) => { set(r.token); onCreated(); });
   return (
     <Card title={t("Set up your phone", "폰 설정")} sub={t("Each setup makes its own token. Do it on this screen, then pick up your phone.", "설정마다 토큰을 하나씩 만들어요. 이 화면을 띄워 두고 폰을 들어 주세요.")}>
-      <Sub>{t("Location — OwnTracks app", "위치 — OwnTracks 앱")}</Sub>
+      <Sub>{t("Location: OwnTracks app", "위치: OwnTracks 앱")}</Sub>
         {!loc ? (
           <>
             <Hint>{t("Where you go, for summaries and the Map screen. One scan sets up the app.", "다녀온 곳을 요약과 지도 화면에 써요. QR 한 번이면 앱 설정이 끝나요.")}</Hint>
@@ -114,7 +114,7 @@ function PhoneSetup({ publicUrl, onCreated }: { publicUrl: string; onCreated: ()
             </Steps>
           </div>
         )}
-      <Sub>{t("Card payments — iPhone Shortcuts", "카드 결제 — 아이폰 단축어")}</Sub>
+      <Sub>{t("Card payments: iPhone Shortcuts", "카드 결제: 아이폰 단축어")}</Sub>
         {!card ? (
           <>
             <Hint>{t("Card company texts become payments. A Shortcuts automation forwards each message.", "카드사 문자가 결제 기록이 돼요. 단축어 자동화가 문자를 하나씩 보내요.")}</Hint>
