@@ -74,6 +74,21 @@ When the vault lives on the server (built-in or a folder), memexhub can serve it
 
 Off by default · Basic auth with per-device tokens (revoke one when a device is lost) · rate limited · paths can never leave the vault (traversal and symbolic links refused) · deletes go to `.trash` (invisible over WebDAV) · file size limit (default 50 MB) · responses sandboxed (`Content-Security-Policy: sandbox`) · every write audited without content.
 
+## Change history ✅
+
+For a vault on the server's disk (built-in or a local folder), memexhub keeps **every change in git**:
+- The repository lives **beside** the vault in `DATA_DIR/vault-history/<vault>.git`, so the vault folder gets no `.git` and phone sync is not affected.
+- **What is recorded:**
+  - every write through memexhub, labelled with who made it (Claude, admin, …);
+  - before memexhub overwrites a note, any edit made outside (Obsidian, the server) is committed first, so a person's version is never lost;
+  - other outside changes are collected every 10 minutes.
+- **What is not:** `.obsidian/` and `.trash/`.
+- **Where to see it:** the admin **Notes** screen has *Earlier versions* for each note, where you can view one or *put it back* (a restore is a new change, and the usual write rules apply). Claude can read versions with `note_history` (read-only).
+- **Switch:** Vault → *Keep every change*.
+- **Backups:** the history is not in backup files. Back up `DATA_DIR` with your NAS tools to keep it.
+- Nothing leaves the server. Pushing to a remote git host is planned as an opt-in.
+- **Availability:** needs git (included in the Docker image). Not available on Workers or for remote vaults.
+
 ## Backups ✅
 
 Admin UI → **Backups**: download an encrypted backup now, see the automatic daily copies (newest 14 in `DATA_DIR/backups`), or restore one (type `RESTORE` to confirm). A backup holds settings, connections (their secrets stay encrypted), tokens (hashes), records, the inbox and the activity log. **It needs the same `MEMEXHUB_SECRET` to restore** — keep that secret somewhere safe apart from the backup. Vault notes are not included; back the vault up with your storage or sync.

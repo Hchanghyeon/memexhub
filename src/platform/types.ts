@@ -28,6 +28,8 @@ export interface Platform {
   isPrivateHost?(host: string): Promise<boolean>;
   /** Runtime resources by name (Workers bindings such as an R2 bucket). */
   bindings?: Record<string, unknown>;
+  /** Change history for a vault on local disk (Node: git beside DATA_DIR). Optional. */
+  vaultHistory?(root: string, name: string): import("../storage/history.js").VaultHistory | undefined;
   /** Where automatic backups are kept (Node: DATA_DIR/backups). Optional on runtimes without a disk. */
   backups?: BackupStore;
 }

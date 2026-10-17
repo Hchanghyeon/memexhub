@@ -10,6 +10,10 @@ export class FsStorage implements VaultStorage {
   capabilities = { search: false, etag: true };
   constructor(private root: string) {}
 
+  localRoot() {
+    return this.root;
+  }
+
   files() {
     return new FsFiles(this.root);
   }

@@ -16,8 +16,10 @@ export const SettingsSchema = z.object({
       readOnly: z.boolean().default(false),
       protectedPaths: z.array(z.string()).default(["CLAUDE.md", "AGENTS.md", "_templates/**", ".obsidian/**"]),
       maxWriteBytes: z.number().int().positive().default(512 * 1024),
+      /** Keep every change in a git history beside the vault (Node, local-disk vaults). */
+      history: z.boolean().default(true),
     })
-    .default({ readOnly: false, protectedPaths: ["CLAUDE.md", "AGENTS.md", "_templates/**", ".obsidian/**"], maxWriteBytes: 524288 }),
+    .default({ readOnly: false, protectedPaths: ["CLAUDE.md", "AGENTS.md", "_templates/**", ".obsidian/**"], maxWriteBytes: 524288, history: true }),
   mcp: z
     .object({
       /** CIDRs allowed to call /mcp. Empty = any. Preset: Anthropic outbound ranges. */

@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { GitHistory } from "./git-history.js";
 import Database from "better-sqlite3";
 import { mkdirSync, chmodSync } from "node:fs";
 import { readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
@@ -62,6 +64,7 @@ export function nodePlatform(opts: { dataDir: string; secret: string; dbFile?: s
     fetch: globalThis.fetch.bind(globalThis),
     log: opts.log ?? jsonLogger,
     backups: fileBackups(join(opts.dataDir, "backups")),
+    vaultHistory: hasGit() ? (root, name) => new GitHistory(join(opts.dataDir, "vault-history", `${name.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 60) || "vault"}.git`), root) : undefined,
     async isPrivateHost(host) {
       try {
         const addrs = await lookup(host, { all: true });
@@ -106,4 +109,18 @@ export function fileBackups(dir: string): import("./types.js").BackupStore {
       for (const b of all.slice(keep)) await rm(safe(b.name));
     },
   };
+}
+
+let gitChecked: boolean | undefined;
+/** Is the git command installed? (once; the change history is off without it) */
+function hasGit() {
+  if (gitChecked === undefined) {
+    try {
+      execFileSync("git", ["--version"], { stdio: "ignore", timeout: 5000 });
+      gitChecked = true;
+    } catch {
+      gitChecked = false;
+    }
+  }
+  return gitChecked;
 }

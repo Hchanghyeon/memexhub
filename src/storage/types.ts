@@ -30,6 +30,8 @@ export interface VaultStorage {
   move(from: string, to: string): Promise<void>; // must fail with "exists" if `to` exists
   capabilities: { search?: boolean; etag?: boolean };
   search?(query: RegExp, opts: { limit: number }): Promise<{ path: string; lines: { n: number; text: string }[] }[]>;
+  /** Folder on this server, for vaults kept on local disk (enables the change history). */
+  localRoot?(): string;
   /** Byte access for vaults the server holds itself (enables the built-in WebDAV). */
   files?(): import("./files.js").RawFiles;
 }

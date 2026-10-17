@@ -16,6 +16,8 @@ COPY web ./web
 RUN npm run build && npm run build:web && npm prune --omit=dev && npm cache clean --force
 
 FROM ${NODE_IMAGE}
+# git keeps the vault's change history (beside the vault, in /data/vault-history).
+RUN apk add --no-cache git
 LABEL org.opencontainers.image.source="https://github.com/Hchanghyeon/memexhub" \
       org.opencontainers.image.description="Self-hosted LLM Wiki engine for Claude" \
       org.opencontainers.image.licenses="MIT"

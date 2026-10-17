@@ -99,7 +99,11 @@ export class Hub {
           { ...s.vault, protectedPaths: [...s.vault.protectedPaths, ...layout.protectedGlobs()], writeOncePaths: layout.writeOnceGlobs() },
           this.platform.db,
           "system",
-          { index: this.searchIndex, source: `${store.id}:${s.vault.connection ?? ""}` },
+          {
+            index: this.searchIndex,
+            source: `${store.id}:${s.vault.connection ?? ""}`,
+            history: s.vault.history && store.localRoot ? this.platform.vaultHistory?.(store.localRoot(), s.vault.connection ?? store.id) : undefined,
+          },
         );
       }
     } catch (e) {

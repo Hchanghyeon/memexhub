@@ -5,7 +5,7 @@ import { useT, when } from "../i18n";
 import { navigate } from "../router";
 import { cn } from "@/lib/utils";
 import { Input as UIInput } from "@/components/ui/input";
-import { Actions, Button, Callout, Card, Empty, Loading, Skeleton, Status, errorText, useAction, useData } from "../ui/kit";
+import { Actions, Button, Callout, Card, Dialog, Empty, Loading, Skeleton, Status, errorText, useAction, useConfirm, useData } from "../ui/kit";
 import { Markdown, prepare, type VaultFile } from "../ui/markdown";
 
 interface F { path: string; size: number; mtime: string }
@@ -196,6 +196,7 @@ function Note({ path, resolve, file, files }: { path: string; resolve: (t: strin
         {info && <p className="text-muted-foreground text-[0.8125rem]">{t(`Changed ${when(info.mtime, tz)}`, `${when(info.mtime, tz)} 수정`)}</p>}
         {data && <Meta text={data.text} />}
         {data && <Review path={path} text={data.text} onDone={reload} />}
+        {data && <History path={path} resolve={resolve} file={file} onRestored={reload} />}
       </header>
       {error ? <Card><Callout tone="error"><p>{errorText(t, error)}</p></Callout></Card> : !data ? <Skeleton lines={8} /> : (
         <Markdown text={withoutTitle(data.text, nameOf(path))} exists={(x) => !!resolve(x)} open={(x) => { const p = resolve(x); if (p) openNote(p); }} file={file} />
@@ -249,5 +250,60 @@ function Review({ path, text, onDone }: { path: string; text: string; onDone: ()
         </Actions>
       )}
     </div>
+  );
+}
+
+interface Rev { rev: string; date: string; message: string }
+/** Who made a change, from the history message ("claude:…", "admin:…", "outside", "sync"). */
+const whoOf = (m: string): [string, string] =>
+  /^admin:/.test(m) ? ["You (admin)", "나 (관리 화면)"] : /^(outside|sync)/.test(m) ? ["Outside memexhub", "밖에서 (Obsidian·서버)"] : /^start/.test(m) ? ["First record", "첫 기록"] : ["Claude", "Claude"];
+
+/** Earlier versions of the note: see one, put it back. Every change is kept (git beside the vault). */
+function History({ path, resolve, file, onRestored }: { path: string; resolve: (t: string) => string | undefined; file: (t: string) => VaultFile | undefined; onRestored: () => void }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const [rev, setRev] = useState<Rev>();
+  const [text, setText] = useState<string>();
+  const { data } = useData<{ available: boolean; entries: Rev[] }>(open ? `/vault/history?path=${encodeURIComponent(path)}` : null);
+  const { busy, run } = useAction();
+  const confirm = useConfirm();
+  useEffect(() => {
+    setText(undefined);
+    if (rev) void get<{ text: string }>(`/vault/history/show?path=${encodeURIComponent(path)}&rev=${rev.rev}`).then((r) => setText(r.text), () => setText(""));
+  }, [rev, path]);
+  const restore = async () => {
+    if (!rev || !(await confirm(t("Put this version back? The current text stays in the history.", "이 판으로 되돌릴까요? 지금 내용도 이력에 남아요.")))) return;
+    await run(() => post("/vault/history/restore", { path, rev: rev.rev }), t("Restored.", "되돌렸어요."), () => { setOpen(false); setRev(undefined); onRestored(); });
+  };
+  return (
+    <>
+      <div className="pt-1"><Button kind="ghost" size="sm" onClick={() => setOpen(true)}>{t("Earlier versions", "이전 판")}</Button></div>
+      <Dialog open={open} onClose={() => { setOpen(false); setRev(undefined); }} title={rev ? when(rev.date, tz) : t("Earlier versions", "이전 판")} sub={rev ? `${t(...whoOf(rev.message))} · ${rev.message}` : t("Every change to this note, newest first.", "이 노트의 모든 변경, 최근 것부터.")}>
+        {!data ? <Skeleton lines={4} /> : !data.available ? (
+          <Callout><p>{t("This vault keeps no history (it needs a vault on the server's disk, with history on in Vault).", "이 볼트는 이력을 남기지 않아요 (서버 디스크의 볼트에서, 볼트 화면에서 이력을 켜야 해요).")}</p></Callout>
+        ) : rev ? (
+          <div className="flex flex-col gap-4">
+            <Actions>
+              <Button kind="secondary" size="sm" onClick={() => setRev(undefined)}><ArrowLeft />{t("All versions", "판 목록")}</Button>
+              <Button size="sm" busy={busy} onClick={() => void restore()}>{t("Put this version back", "이 판으로 되돌리기")}</Button>
+            </Actions>
+            <div className="max-h-[60vh] overflow-y-auto rounded-lg border p-4">
+              {text === undefined ? <Skeleton lines={6} /> : <Markdown text={text} exists={(x) => !!resolve(x)} open={() => {}} file={file} />}
+            </div>
+          </div>
+        ) : !data.entries.length ? <Empty>{t("No recorded versions yet.", "아직 기록된 판이 없어요.")}</Empty> : (
+          <ul className="flex max-h-[60vh] flex-col overflow-y-auto">
+            {data.entries.map((e, i) => (
+              <li key={e.rev}>
+                <button type="button" onClick={() => setRev(e)} className="hover:bg-accent flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left">
+                  <span className="text-sm font-medium">{when(e.date, tz)}{i === 0 ? ` · ${t("current", "지금")}` : ""}</span>
+                  <span className="text-muted-foreground text-xs break-all">{t(...whoOf(e.message))} · {e.message}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Dialog>
+    </>
   );
 }

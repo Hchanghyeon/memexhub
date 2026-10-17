@@ -59,6 +59,21 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
       },
     }),
     defineTool({
+      name: "note_history",
+      readOnly: true,
+      description: T(
+        "Earlier versions of a note: without rev, the list of changes (date · who · what); with rev, the note's text at that version. For \"what changed?\" and \"what did it say before?\". Restoring is done by the owner in the admin UI.",
+        "노트의 이전 판: rev 없이 부르면 변경 목록(날짜 · 누가 · 무엇), rev 를 주면 그 판의 본문. \"뭐가 바뀌었지?\", \"전에는 뭐라고 했지?\" 에 쓴다. 되돌리기는 사람이 관리 화면에서 한다.",
+      ),
+      input: { path: z.string().min(1).max(500), rev: z.string().regex(/^[0-9a-f]{7,40}$/).optional(), limit: z.number().int().min(1).max(100).default(20) },
+      async run({ path, rev, limit }) {
+        if (!vault.hasHistory) return "this vault keeps no change history (needs a vault on the server's disk with history on)";
+        if (rev) return (await vault.historyText(path, rev)).slice(0, 60_000);
+        const h = await vault.history(path, limit);
+        return h.length ? h.map((x) => `${x.rev.slice(0, 10)} · ${x.date.slice(0, 16).replace("T", " ")} · ${x.message}`).join("\n") : "no recorded versions";
+      },
+    }),
+    defineTool({
       name: "vault_stats",
       readOnly: true,
       description: T("Vault summary: file count, note count, total size.", "볼트 요약 — 파일 수, 노트 수, 전체 크기."),
@@ -137,7 +152,16 @@ export default defineModule({
     return {
       tools: vaultTools(vault!, on ? (v, p, t) => gateWikiWrite(v, layout, p, t) : undefined),
       // Notes changed outside memexhub (Obsidian sync, server edits) reach the search index within 10 minutes.
-      jobs: [{ id: "search-index", everyMinutes: 10, run: async () => void (await vault!.reindex()) }],
+      jobs: [
+        {
+          id: "search-index",
+          everyMinutes: 10,
+          run: async () => {
+            await vault!.recordOutsideChanges();
+            await vault!.reindex();
+          },
+        },
+      ],
     };
   },
 });

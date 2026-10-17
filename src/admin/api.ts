@@ -265,6 +265,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       runtime: hub.platform.name,
       dav: { enabled: s.dav.enabled, maxFileMb: s.dav.maxFileMb, available: !!storage[0] && storage[0].provider === "fs" },
       search: hub.vault ? await hub.vault.searchIndexStats() : null,
+      history: { on: s.vault.history, available: !!hub.vault?.hasHistory, stats: hub.vault ? await hub.vault.historyStats() : null },
       wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, gate: s.wiki.gate ?? !!new Layout(s.wiki.roles).sources, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })) },
     });
   });
@@ -322,6 +323,41 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const s = await hub.settings.get();
     const lint = Object.fromEntries(effectiveRules(s.wiki.lint).map((x) => [x.rule.id, { enabled: f.on.includes(x.rule.id), options: s.wiki.lint[x.rule.id]?.options }]));
     await hub.settings.set("wiki", { ...s.wiki, lint });
+    await hub.reload();
+    return c.json({ ok: true });
+  });
+  // ---- change history (git beside the vault) ----
+  const historyPath = (raw: string | undefined) => {
+    const p = z.string().min(1).max(1000).safeParse(raw);
+    if (!p.success || p.data.split("/").some((seg) => seg.startsWith("."))) throw new Fail("invalid_input");
+    return p.data;
+  };
+  const storageFail = (e: unknown): never => {
+    const code = (e as { code?: string }).code;
+    throw new Fail(code === "not_found" ? "not_found" : "invalid_input", (e as Error).message.slice(0, 160), code === "not_found" ? 404 : 400);
+  };
+  api.get("/vault/history", async (c) => {
+    const p = historyPath(c.req.query("path"));
+    const v = needVault();
+    return c.json({ available: v.hasHistory, entries: await v.history(p, 50).catch(storageFail) });
+  });
+  api.get("/vault/history/show", async (c) => {
+    const p = historyPath(c.req.query("path"));
+    const rev = z.string().regex(/^[0-9a-f]{7,40}$/).safeParse(c.req.query("rev"));
+    if (!rev.success) throw new Fail("invalid_input");
+    return c.json({ text: await needVault().historyText(p, rev.data).catch(storageFail) });
+  });
+  api.post("/vault/history/restore", async (c) => {
+    const f = await body(c, z.object({ path: z.string().min(1).max(1000), rev: z.string().regex(/^[0-9a-f]{7,40}$/) }));
+    const p = historyPath(f.path);
+    // Same rules as any change: read-only mode, protected rule notes and write-once sources still refuse.
+    await needVault().withActor(`admin:${c.get("adminId")}`).restore(p, f.rev).catch(storageFail);
+    return c.json({ ok: true });
+  });
+  api.post("/vault/history/enabled", async (c) => {
+    const f = await body(c, z.object({ on: z.boolean() }));
+    const s = await hub.settings.get();
+    await hub.settings.set("vault", { ...s.vault, history: f.on });
     await hub.reload();
     return c.json({ ok: true });
   });

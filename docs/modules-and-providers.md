@@ -66,7 +66,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 
 | Module | Tools | Ingest | Notes | Status |
 |---|---|---|---|---|
-| vault | `list_notes` `read_note` `search_notes` `vault_stats` `write_note` `append_note` `delete_note` `move_note` | — | — | ✅ |
+| vault | `list_notes` `read_note` `search_notes` `vault_stats` `note_history` `write_note` `append_note` `delete_note` `move_note` | — | — | ✅ |
 | hub | `hub_status`, `day_summary`, `week_summary` | — | — | ✅ |
 | wiki | `wiki_layout` `wiki_lint` `wiki_save_source` `wiki_index` `wiki_backlinks` `wiki_log` `wiki_check` `wiki_pending` | — | index, log | ✅ |
 | ledger | `payments_day` ✅, `payments_from_mail` ✅ | `/ingest/message` `/ingest/transaction` | payments, money | ✅ |

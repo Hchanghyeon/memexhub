@@ -11,6 +11,7 @@ import { sqliteDb, jsonLogger } from "../src/platform/node.js";
 import { loadEnv } from "../src/core/config.js";
 import { ingestApp } from "../src/http/ingest.js";
 import { PRESETS } from "../src/modules/wiki/layout.js";
+import { GitHistory } from "../src/platform/git-history.js";
 import { adminApp } from "../src/admin/app.js";
 import { nodeAdminAssets } from "../src/platform/node-assets.js";
 import { PORTABLE_PROVIDERS } from "../src/providers/registry.js";
@@ -35,7 +36,7 @@ mkdirSync(join(vaultDir, "wiki"));
 writeFileSync(join(vaultDir, "raw", "2026-01-02 Sowing guide.md"), "---\ntitle: Sowing guide\ntype: source\n---\nTomatoes in March.\n");
 writeFileSync(join(vaultDir, "wiki", "Tomatoes.md"), "---\ntitle: Tomatoes\nstatus: draft\n---\n# Tomatoes\n\nSow in March ([[2026-01-02 Sowing guide]]).\n");
 writeFileSync(join(vaultDir, "Attachments.md"), "# Attachments\n\n![[pixel.png]]\n\nSee [[Scan result.pdf]].\n");
-const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
+const hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date(), fetch, log: { ...jsonLogger, info() {} }, vaultHistory: (root) => new GitHistory(join(mkdtempSync(join(tmpdir(), "mx-e2eh-")), "v.git"), root) }, env, MODULES, [testFs(vaultDir), ...PORTABLE_PROVIDERS]);
 const log = console.log;
 console.log = () => {};
 await hub.init();
@@ -58,6 +59,8 @@ for (let i = 0; i < 120; i++) {
 await hub.settings.set("timezone", "Asia/Seoul");
 await hub.reload();
 await hub.ingestTokens.create("Sample phone", ["ledger"], "e2e");
+// One change through memexhub, so "Seeds" has an earlier version to look at.
+await hub.vault!.withActor("claude:e2e").write("Seeds.md", "# Seeds\n\nSample seed list, updated.\n");
 
 const app = new Hono()
   .use("*", (c: any, next: () => Promise<void>) => (c.set("ip", "10.0.0.9"), next()))

@@ -8,6 +8,7 @@ interface V {
   roots: string[]; runtime: string;
   dav: { enabled: boolean; maxFileMb: number; available: boolean };
   search: { available: boolean; ready: boolean; notes: number; updated: string | null } | null;
+  history: { on: boolean; available: boolean; stats: { commits: number } | null };
   wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
 }
 
@@ -54,6 +55,7 @@ function Storage({ v, reload }: { v: V; reload: () => void }) {
         {where && <code>{where}</code>}
       </div>
       {v.connected && v.search && <SearchIndexLine s={v.search} reload={reload} />}
+      {v.connected && <HistoryLine h={v.history} reload={reload} />}
       {open && (
         <>
           <Select label={t("Kind", "종류")} value={f.provider} onChange={(p) => setF({ ...f, provider: p })} options={options} />
@@ -163,5 +165,19 @@ function SearchIndexLine({ s, reload }: { s: NonNullable<V["search"]>; reload: (
       <Status tone={s.available && s.ready ? "ok" : "idle"}>{text}</Status>
       {s.available && <Button kind="ghost" size="sm" busy={busy} onClick={() => run(() => post<{ notes: number }>("/vault/search-index/rebuild"), (r) => t(`Rebuilt: ${r.notes} notes.`, `다시 만들었어요: 노트 ${r.notes}개.`), reload)}>{t("Rebuild", "다시 만들기")}</Button>}
     </div>
+  );
+}
+
+/** The change history beside the vault: on/off and how many changes are kept. */
+function HistoryLine({ h, reload }: { h: V["history"]; reload: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  return (
+    <Toggle checked={h.on} disabled={busy} onChange={(on) => run(() => post("/vault/history/enabled", { on }), t("Saved.", "저장했어요."), reload)}
+      label={t("Keep every change (history)", "모든 변경 기록 (이력)")}
+      hint={h.on && h.available
+        ? t(`${h.stats?.commits ?? 0} changes kept in git beside the vault. Earlier versions are under each note in Notes.`, `볼트 옆 git 에 변경 ${h.stats?.commits ?? 0}개를 보관 중이에요. 노트 화면에서 노트마다 이전 판을 볼 수 있어요.`)
+        : h.on ? t("Not available for this vault (needs a vault on the server's disk and git).", "이 볼트에서는 못 써요 (서버 디스크의 볼트와 git 이 필요해요).")
+          : t("Off. Overwritten notes are not kept.", "꺼져 있어요. 덮어쓴 노트는 남지 않아요.")} />
   );
 }

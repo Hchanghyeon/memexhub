@@ -199,3 +199,16 @@ test("notes: a page Claude wrote is a draft until you confirm it", async ({ page
   await expect(page.getByRole("button", { name: "확인했어요" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("notes: see an earlier version and put it back", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/admin/notes/Seeds.md");
+  await page.getByRole("button", { name: "이전 판" }).click();
+  await page.getByRole("button", { name: /첫 기록/ }).click();
+  await expect(page.getByRole("dialog").getByText("Sample seed list.")).toBeVisible();
+  page.once("dialog", (d) => void d.accept()); // "Put this version back?"
+  await page.getByRole("button", { name: "이 판으로 되돌리기" }).click();
+  await expect(page.locator("article").getByText("Sample seed list.")).toBeVisible();
+  expect(errors).toEqual([]);
+});

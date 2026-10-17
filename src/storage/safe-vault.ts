@@ -4,11 +4,13 @@ import { sha256Hex } from "../core/crypto.js";
 import { matchesAny, normalizeVaultDir, normalizeVaultPath } from "./paths.js";
 import { StorageError, type FileInfo, type VaultStorage } from "./types.js";
 import type { SearchIndex } from "./search-index.js";
+import type { HistoryEntry, VaultHistory } from "./history.js";
 
-/** The vault's search index and a name for this vault (a different vault rebuilds the index). */
+/** Helpers that follow the vault: its search index (+ a name; a different vault rebuilds it) and change history. */
 export interface IndexBinding {
   index: SearchIndex;
   source: string;
+  history?: VaultHistory;
 }
 
 export interface VaultPolicy {
@@ -103,6 +105,44 @@ export class SafeVault {
     await this.search_?.index.remove(p).catch(() => {});
   }
 
+  /** Record in the change history. Never fails the operation it follows. */
+  private async remember(paths: string[], message: string) {
+    await this.search_?.history?.record(paths, message).catch(() => {});
+  }
+
+  get hasHistory() {
+    return !!this.search_?.history;
+  }
+
+  /** Every change made outside memexhub since the last record (Obsidian sync, edits on the server). */
+  async recordOutsideChanges() {
+    return this.search_?.history ? this.search_.history.recordAll("sync: changes made outside memexhub").catch(() => 0) : 0;
+  }
+
+  async history(path: string, limit = 50): Promise<HistoryEntry[]> {
+    if (!this.search_?.history) return [];
+    return this.search_.history.log(normalizeVaultPath(path), limit);
+  }
+
+  async historyText(path: string, rev: string): Promise<string> {
+    if (!this.search_?.history) throw new StorageError("invalid", "this vault has no change history");
+    try {
+      return await this.search_.history.show(normalizeVaultPath(path), rev);
+    } catch {
+      throw new StorageError("not_found", "no such version");
+    }
+  }
+
+  /** Put a note back as it was at `rev` (recorded as a new change; write rules apply). */
+  async restore(path: string, rev: string) {
+    const text = await this.historyText(path, rev);
+    return this.write(path, text, { overwrite: true, why: `restore ${rev.slice(0, 7)}` });
+  }
+
+  async historyStats() {
+    return this.search_?.history ? this.search_.history.stats().catch(() => ({ commits: 0 })) : null;
+  }
+
   /** Re-read notes changed outside memexhub (Obsidian sync, edits on the server) into the search index. */
   async reindex(opts: { rebuild?: boolean } = {}) {
     if (!this.search_) return undefined;
@@ -124,7 +164,7 @@ export class SafeVault {
   }
 
   /** Writes only if content changed (avoids sync churn). Returns whether it wrote. */
-  async write(path: string, text: string, opts: { overwrite?: boolean; ifMatch?: string } = {}) {
+  async write(path: string, text: string, opts: { overwrite?: boolean; ifMatch?: string; why?: string } = {}) {
     const p = this.checkNote(path);
     const existing = await this.store.stat(p);
     this.checkWritable(p, existing ? "change" : "create");
@@ -135,8 +175,11 @@ export class SafeVault {
       const cur = await this.store.read(p);
       if (cur.text === text) return { path: p, created: false, changed: false };
     }
+    // Keep an edit made outside memexhub before overwriting it, then record this write.
+    if (existing) await this.remember([p], `outside: ${p}`);
     await this.store.write(p, text, existing ? { ifMatch: opts.ifMatch } : { ifNoneMatch: "*" });
     await this.indexNote(p, text);
+    await this.remember([p], `${this.actor}: ${opts.why ?? (existing ? "write" : "create")} ${p}`);
     await audit(this.db, this.actor, existing ? "vault.overwrite" : "vault.create", p, {
       bytes,
       sha: (await sha256Hex(text)).slice(0, 12),
@@ -160,8 +203,10 @@ export class SafeVault {
     if (!(await this.store.stat(p))) throw new StorageError("not_found", `"${p}" not found`);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const dest = `${TRASH}/${stamp} ${p.replace(/\//g, " - ")}`;
+    await this.remember([p], `outside: ${p}`);
     await this.store.move(p, dest);
     await this.unindex(p);
+    await this.remember([p], `${this.actor}: trash ${p}`);
     await audit(this.db, this.actor, "vault.trash", p);
     return { path: p, movedTo: dest };
   }
@@ -172,9 +217,11 @@ export class SafeVault {
     this.checkWritable(a);
     this.checkWritable(b, "create");
     if (await this.store.stat(b)) throw new StorageError("exists", `"${b}" already exists`);
+    await this.remember([a], `outside: ${a}`);
     await this.store.move(a, b);
     await this.unindex(a);
     await this.indexNote(b, (await this.store.read(b).catch(() => ({ text: "" }))).text);
+    await this.remember([a, b], `${this.actor}: move ${a} → ${b}`);
     await audit(this.db, this.actor, "vault.move", a, { to: b });
     return { from: a, to: b };
   }
