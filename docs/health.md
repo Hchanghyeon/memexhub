@@ -1,6 +1,6 @@
 # Health ✅
 
-Daily numbers from your phone's health app become one line per day in a yearly **health note** (`health/{year}.md`, admin UI → Features → Health). Claude reads a day with `health_day(date)`.
+Daily numbers from your phone's health app become one line per day in a yearly **health note** (`health/{year}.md`, or `{year}-{month}` in the path for one note per month; admin UI → Features → Health). Claude reads a day with `health_day(date)`.
 
 ```
 - 10-14 (Wed) 😴 23:40–06:50 · 6h 50m (deep 30 min · REM 2h 30m) · awake 1× (20 min) · steps 8,240 · 6.1 km · resting HR 58 · 🏃 Running 32 min 310 kcal

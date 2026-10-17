@@ -51,3 +51,12 @@ export function localDate(tz: string, t: Date): string {
   const p = nowIn(tz, t);
   return `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}`;
 }
+
+/**
+ * A note path pattern filled for a period: "{year}" and "{month}" (01–12).
+ * A pattern with "{month}" makes one note per month (smaller notes, cheaper for routines to read).
+ */
+export const perMonth = (pattern: string) => pattern.includes("{month}");
+export function periodPath(pattern: string, y: number, m: number): string {
+  return pattern.replaceAll("{year}", String(y)).replaceAll("{month}", String(m).padStart(2, "0"));
+}

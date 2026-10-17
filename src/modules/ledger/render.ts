@@ -24,7 +24,7 @@ const S = {
     count: (n: number) => `${n}건`, cancel: (n: number) => `취소 ${n}`, noPayments: "결제 없음", dow: "월화수목금토일",
     head: ["시각", "어디서", "금액", "카드"], noMerchant: "가맹점 없음", tag: "태그", cancelled: "(취소)", cancelWord: " 취소",
     office1: (t: string) => `🏢 ${t} 출입`, officeN: (a: string, b: string, n: number) => `🏢 ${a} – ${b} · 출입 ${n}회`,
-    title: (y: number) => `${y} 결제 기록`,
+    title: (y: number | string) => `${y} 결제 기록`,
     intro: [
       "기기·자동화가 결제 순간 보낸 기록을 엔진이 날짜별로 정리한다 (카드 문자 · Apple Pay · 교통카드 · 결제 메일).",
       "합계는 원화 승인 − 취소. 빠짐없는 기준은 카드사 명세서. 🌐 온라인·정기 결제 · 🚕 택시 · 🚇 교통 태그 · 🏢 회사 출입.",
@@ -50,7 +50,7 @@ const S = {
     count: (n: number) => `${n} paid`, cancel: (n: number) => `${n} cancelled`, noPayments: "no payments", dow: "MTWTFSS",
     head: ["Time", "Where", "Amount", "Card"], noMerchant: "unknown merchant", tag: "tap", cancelled: "(cancelled)", cancelWord: " 취소",
     office1: (t: string) => `🏢 ${t} gate`, officeN: (a: string, b: string, n: number) => `🏢 ${a} – ${b} · ${n} gate taps`,
-    title: (y: number) => `${y} payments`,
+    title: (y: number | string) => `${y} payments`,
     intro: [
       "Records sent by your devices and automations at payment time, grouped by day by the engine (card SMS · Apple Pay · transit card · receipt mails).",
       "Totals are KRW approvals minus cancellations; your card statement is the complete source. 🌐 online/recurring · 🚕 taxi · 🚇 transit tap · 🏢 office gate.",
@@ -123,9 +123,9 @@ export function entries(rows: LedgerRow[], tz: string, officePlaces: string[]): 
 const dowOf = (y: number, m: number, d: number, lang: Lang) => S[lang].dow[(new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7];
 
 /** The yearly payments note body (from the first month heading on). */
-export function renderPaymentsBody(rows: LedgerRow[], year: number, o: { tz: string; officePlaces: string[]; lang: Lang }): string {
+export function renderPaymentsBody(rows: LedgerRow[], year: number, o: { tz: string; officePlaces: string[]; lang: Lang }, month?: number): string {
   const t = S[o.lang];
-  const ents = entries(rows, o.tz, o.officePlaces).filter((e) => e.w.y === year);
+  const ents = entries(rows, o.tz, o.officePlaces).filter((e) => e.w.y === year && (month === undefined || e.w.m === month));
   const summary = (es: Ent[]) => {
     const pays = es.filter((e) => e.kind2 === "pay");
     const n = pays.filter((e) => !(e.amount ?? "").startsWith("-")).length;
@@ -176,12 +176,14 @@ export function renderPaymentsBody(rows: LedgerRow[], year: number, o: { tz: str
   return out.join("\n").replace(/\n+$/, "") + "\n";
 }
 
-export function renderPaymentsNote(rows: LedgerRow[], year: number, o: { tz: string; officePlaces: string[]; lang: Lang; now: Date }): string {
+/** One year's payments note, or one month's when `month` is given (paymentsNote with "{month}"). */
+export function renderPaymentsNote(rows: LedgerRow[], year: number, o: { tz: string; officePlaces: string[]; lang: Lang; now: Date }, month?: number): string {
   const t = S[o.lang];
   const today = (d: Date) => { const p = nowIn(o.tz, d); return `${p.y}-${pad(p.m)}-${pad(p.d)}`; };
-  const first = entries(rows, o.tz, o.officePlaces).find((e) => e.w.y === year);
+  const first = entries(rows, o.tz, o.officePlaces).find((e) => e.w.y === year && (month === undefined || e.w.m === month));
   const created = first ? `${first.w.y}-${pad(first.w.m)}-${pad(first.w.d)}` : today(o.now);
-  return `---\ntitle: ${t.title(year)}\ncreated: ${created}\nupdated: ${today(o.now)}\ntype: note\ntags: []\n---\n\n# ${t.title(year)}\n\n${t.intro.join("\n")}\n\n` + renderPaymentsBody(rows, year, o);
+  const title = month === undefined ? t.title(year) : t.title(`${year}-${pad(month)}`);
+  return `---\ntitle: ${title}\ncreated: ${created}\nupdated: ${today(o.now)}\ntype: note\ntags: []\n---\n\n# ${title}\n\n${t.intro.join("\n")}\n\n` + renderPaymentsBody(rows, year, o, month);
 }
 
 /** The auto section of the money note. */

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
-import { addDays, nowIn } from "../../core/time.js";
+import { addDays, nowIn, perMonth, periodPath } from "../../core/time.js";
 import { fromHealthAutoExport, fromShortcut, type DayUpdate } from "./parse.js";
 import { dayLine, mergeDays, renderHealthNote } from "./render.js";
 
@@ -24,10 +24,13 @@ export default defineModule({
     bus.on("health", async (e) => {
       if (!vault) return;
       try {
-        const year = Number(String((e.payload as { date: string }).date).slice(0, 4));
-        const path = h().note.replace("{year}", String(year));
+        const date = String((e.payload as { date: string }).date);
+        const year = Number(date.slice(0, 4));
+        const month = Number(date.slice(5, 7));
+        const monthly = perMonth(h().note);
+        const path = periodPath(h().note, year, month);
         const created = (await vault.stat(path)) ? ((await vault.read(path)).text.match(/^created: (.+)$/m)?.[1] ?? today()) : today();
-        await vault.withActor("health").write(path, renderHealthNote(await days(), year, { lang: h().language, created, today: today() }));
+        await vault.withActor("health").write(path, renderHealthNote(await days(), year, { lang: h().language, created, today: today() }, monthly ? month : undefined));
       } catch (err) {
         platform.log.warn("health redraw failed", { error: (err as Error).message.slice(0, 120) });
       }

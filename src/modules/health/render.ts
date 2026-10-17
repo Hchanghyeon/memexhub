@@ -81,20 +81,22 @@ export function dayLine(date: string, r: DayRecord, l: Lang) {
   return `- ${date.slice(5)} (${DOW[l][new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}) ${parts.join(" · ") || (l === "ko" ? "기록 없음" : "no data")}`;
 }
 
-export function renderHealthNote(days: Map<string, DayRecord>, year: number, o: { lang: Lang; created: string; today: string }) {
+/** One year's health note, or one month's when `month` is given (note pattern with "{month}"). */
+export function renderHealthNote(days: Map<string, DayRecord>, year: number, o: { lang: Lang; created: string; today: string }, month?: number) {
   const l = o.lang;
-  const title = l === "ko" ? `${year} 건강 기록` : `${year} health`;
+  const period = month === undefined ? `${year}` : `${year}-${String(month).padStart(2, "0")}`;
+  const title = l === "ko" ? `${period} 건강 기록` : `${period} health`;
   const intro =
     l === "ko"
       ? ["폰의 건강 앱에서 매일 들어온 기록. 하루 한 줄.", "😴 는 그날 아침 깬 잠(지난밤). 워치 없이 폰만이면 '침대' 시간이다.", "걸음·운동 같은 활동은 그날 하루치 (보통 다음 날 아침에 들어온다).", "**이 노트는 엔진이 매번 다시 그린다 — 손으로 고치면 다음 기록 때 사라진다.**"]
       : ["Daily records from the phone's health app, one line per day.", "😴 is the sleep you woke up from that morning. Without a watch it is time in bed.", "Activity (steps, exercise) is that day's total, usually sent the next morning.", "**The engine redraws this note on every record — hand edits are lost.**"];
   const out = [`---\ntitle: ${title}\ncreated: ${o.created}\nupdated: ${o.today}\ntype: note\ntags: []\n---\n`, `# ${title}\n`, intro.join("\n")];
-  const dates = [...days.keys()].filter((d) => d.startsWith(`${year}-`)).sort();
-  let month = "";
+  const dates = [...days.keys()].filter((d) => d.startsWith(`${period}-`)).sort();
+  let section = "";
   for (const d of dates) {
-    if (d.slice(0, 7) !== month) {
-      month = d.slice(0, 7);
-      out.push(`\n## ${month}\n`);
+    if (d.slice(0, 7) !== section) {
+      section = d.slice(0, 7);
+      out.push(`\n## ${section}\n`);
     }
     out.push(dayLine(d, days.get(d)!, l));
   }

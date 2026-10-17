@@ -8,7 +8,7 @@ import { builtinSource } from "./messages/builtin.js";
 import { vaultRecipeSource } from "./messages/notes.js";
 import { Layout } from "../wiki/layout.js";
 import { moneySkeleton, renderMoney, renderPaymentsBody, renderPaymentsNote, replaceAutoSection, type LedgerRow } from "./render.js";
-import { addDays, localDate, nowIn } from "../../core/time.js";
+import { addDays, localDate, nowIn, perMonth, periodPath } from "../../core/time.js";
 import { Inbox } from "../../core/inbox.js";
 import { inboxTools, type PendingMessage } from "./inbox-tools.js";
 import { ledgerAdmin } from "./admin-api.js";
@@ -38,21 +38,27 @@ export default defineModule({
       (await bus.query(["ledger"], { includeSkipped: true })).map((e) => ({ id: e.id, time: e.occurredAt, skipped: e.skipped, ...(e.payload as object) }));
 
     /** Observer: every recorded fact redraws the notes it affects. Rendering failures never lose a record. */
-    const redraw = async (years?: number[]) => {
+    /** Redraw the payments notes of these periods ([year, month]; month ignored for a yearly note) — all when omitted. */
+    const redraw = async (periods?: [number, number][]) => {
       if (!vault) return;
       const all = await rows();
-      const ys = years ?? [...new Set(all.map((r) => nowIn(tz, new Date(r.time)).y))];
+      const pattern = settings.ledger.paymentsNote;
+      const monthly = perMonth(pattern);
+      const keys = new Map<string, [number, number]>();
+      for (const [y, m] of periods ?? all.map((r) => { const p = nowIn(tz, new Date(r.time)); return [p.y, p.m] as [number, number]; }))
+        keys.set(monthly ? `${y}-${m}` : `${y}`, [y, m]);
       const w = vault.withActor("ledger");
-      for (const y of ys) await w.write(settings.ledger.paymentsNote.replace("{year}", String(y)), renderPaymentsNote(all, y, opts()));
+      for (const [y, m] of keys.values()) await w.write(periodPath(pattern, y, m), renderPaymentsNote(all, y, opts(), monthly ? m : undefined));
       const moneyPath = settings.ledger.moneyNote;
       const now = nowIn(tz, platform.now());
       const today = `${now.y}-${String(now.m).padStart(2, "0")}-${String(now.d).padStart(2, "0")}`;
-      const current = (await vault.stat(moneyPath)) ? (await vault.read(moneyPath)).text : moneySkeleton(settings.ledger.language, `[[${settings.ledger.paymentsNote.replace("{year}", String(now.y)).replace(/\.md$/, "")}]]`, today);
+      const current = (await vault.stat(moneyPath)) ? (await vault.read(moneyPath)).text : moneySkeleton(settings.ledger.language, `[[${periodPath(settings.ledger.paymentsNote, now.y, now.m).replace(/\.md$/, "")}]]`, today);
       await w.write(moneyPath, replaceAutoSection(current, renderMoney(all, opts())).replace(/^updated: .*$/m, `updated: ${today}`));
     };
     bus.on("ledger", async (e) => {
       try {
-        await redraw([nowIn(tz, new Date(e.occurredAt)).y]);
+        const p = nowIn(tz, new Date(e.occurredAt));
+        await redraw([[p.y, p.m]]);
       } catch (err) {
         platform.log.warn("ledger redraw failed", { error: (err as Error).message.slice(0, 120) });
       }

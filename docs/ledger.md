@@ -39,7 +39,7 @@ header `X-Ingest-Token`, JSON body `{"channel": "sms", "text": "<SMS body>"}`. A
 
 | Note | Default path | Content |
 |---|---|---|
-| Payments | `ledger/payments/{year}.md` | month and day headings with totals, payment table, 🚇 transit line, 🏢 office line. **Redrawn on every record — don't edit by hand.** |
+| Payments | `ledger/payments/{year}.md` (or `{year}-{month}.md` for one note per month — smaller, cheaper for routines to read) | month and day headings with totals, payment table, 🚇 transit line, 🏢 office line. **Redrawn on every record — don't edit by hand.** |
 | Money | `ledger/money.md` | your sections (*Manual fixed costs*, *Notes*) + an **auto section**: this month, top merchants, by card, by month, recurring payments (subscriptions vs frequent places) |
 
 Paths, note language (`en` / `ko`) and office places: Admin UI → *Features* → *Ledger*.

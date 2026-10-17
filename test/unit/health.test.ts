@@ -73,5 +73,17 @@ describe("payloads", () => {
     expect(days.get("2026-10-13")).toEqual({ metrics: { steps: 8240, weight: 70 }, workouts: [] });
     const note = renderHealthNote(days, 2026, { lang: "ko", created: "2026-10-01", today: "2026-10-15" });
     expect(note).toMatch(/## 2026-09\n\n- 09-30 \(수\) 걸음 1\n\n## 2026-10\n\n- 10-13 \(화\) 걸음 8,240 · 체중 70\.0 kg/);
+    const oct = renderHealthNote(days, 2026, { lang: "ko", created: "2026-10-01", today: "2026-10-15" }, 10);
+    expect(oct).toContain("title: 2026-10 건강 기록");
+    expect(oct).not.toContain("09-30");
+  });
+});
+
+describe("note path patterns", () => {
+  it("fills {year} and {month}", async () => {
+    const { periodPath, perMonth } = await import("../../src/core/time.js");
+    expect(periodPath("40-일지/결제/{year}-{month}.md", 2026, 3)).toBe("40-일지/결제/2026-03.md");
+    expect(periodPath("ledger/payments/{year}.md", 2026, 3)).toBe("ledger/payments/2026.md");
+    expect([perMonth("a/{year}-{month}.md"), perMonth("a/{year}.md")]).toEqual([true, false]);
   });
 });

@@ -20,6 +20,13 @@ describe("ledger rendering (golden)", () => {
     expect(en).toContain("🏢 09:04 – 18:20 · 2 gate taps");
     expect(renderMoney(rows, { ...o, lang: "en" })).toContain("**Subscriptions & fixed costs**");
   });
+  it("renders one month when the note pattern is monthly", () => {
+    const oct = renderPaymentsNote(rows, 2026, o, 10);
+    expect(oct).toContain("title: 2026-10 결제 기록");
+    expect(oct).toContain("## 2026-10 —");
+    expect(oct).not.toMatch(/^## 2026-0[1-9]/m);
+    expect(renderPaymentsBody(rows, 2026, o, 3).trim()).toBe("");
+  });
   it("only replaces the auto section", () => {
     const note = moneySkeleton("ko", "[[payments]]", "2026-10-16").replace("## 메모\n", "## 메모\n\n내가 쓴 메모\n");
     const once = replaceAutoSection(note, "AUTO 1");
