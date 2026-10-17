@@ -257,3 +257,12 @@ test("messages: plain words, a recipe collection to switch on, a guide, JSON und
   await page.getByText("레시피 직접 쓰기 (JSON)").click();
   await expect(page.getByLabel("레시피 (JSON)")).toBeVisible();
 });
+
+test("connections: a saved connection can be edited, filled in, secrets left empty", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/admin/connections");
+  await page.getByRole("button", { name: "수정" }).first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("비워 두면 저장된 값을 그대로 써요", { exact: false }).first()).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "저장하고 시험" })).toBeVisible();
+});

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
 import { CalendarDays, CloudSun, House, ListChecks, Mail, Map as MapIcon, MapPin, Music, NotebookText, Plug, Plus, type LucideIcon } from "lucide-react";
-import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Item, List, Loading, Page, Select, useAction, useData } from "../ui/kit";
+import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Item, List, Loading, Page, Select, useAction, useConfirm, useData } from "../ui/kit";
 
 type Text = { en: string; ko: string };
 interface Item { id: string; kind: string; name: string; provider: string; providerTitle: Text; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null; signIn: string | null }
@@ -60,6 +60,8 @@ export function Connections() {
   const [adding, setAdding] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [another, setAnother] = useState<Item | null>(null);
+  const [editing, setEditing] = useState<Item | null>(null);
+  const confirm = useConfirm();
   const [anotherName, setAnotherName] = useState("");
   if (!data) return <Page title={t("Connections", "연결")}><Loading error={error} reload={reload} /></Page>;
   const tx = (x: Text) => (lang === "ko" ? x.ko : x.en);
@@ -85,8 +87,10 @@ export function Connections() {
                   actions={<>
                     {x.signIn && x.email && <Button size="sm" kind="secondary" onClick={() => setAnother(x)}><Plus />{t("Add account", "계정 추가")}</Button>}
                     {x.signIn && <Button size="sm" kind={x.email ? "secondary" : "primary"} onClick={() => run(() => post<{ url: string }>(`/connections/${x.id}/signin`), undefined, (r) => void (location.href = r.url))}>{x.email ? t("Sign in again", "다시 로그인") : t(`Sign in with ${x.signIn}`, `${x.signIn}로 로그인`)}</Button>}
+                    <Button kind="secondary" size="sm" onClick={() => setEditing(x)}>{t("Edit", "수정")}</Button>
                     {x.enabled && <Button kind="secondary" size="sm" busy={testing === x.id} onClick={async () => { setTesting(x.id); await run(() => post<{ ok: boolean; error?: string }>(`/connections/${x.id}/test`), (r) => (r.ok ? t("Working.", "정상이에요.") : t(`Failed: ${r.error}`, `실패: ${r.error}`)), reload); setTesting(null); }}>{t("Test", "시험")}</Button>}
                     <Button kind="ghost" size="sm" disabled={busy} onClick={() => run(() => post(`/connections/${x.id}/${x.enabled ? "disable" : "enable"}`), x.enabled ? t("Turned off.", "껐어요.") : t("Turned on.", "켰어요."), reload)}>{x.enabled ? t("Turn off", "끄기") : t("Turn on", "켜기")}</Button>
+                    <Button kind="ghost" size="sm" disabled={busy} onClick={() => confirm(t(`Delete “${x.name}”? Its saved password or token is deleted too.`, `“${x.name}” 연결을 지울까요? 저장된 비밀번호·토큰도 같이 지워져요.`)) && run(() => post(`/connections/${x.id}/remove`), t("Deleted.", "지웠어요."), reload)}>{t("Delete", "삭제")}</Button>
                   </>} />
               ))}
             </List>
@@ -116,6 +120,10 @@ export function Connections() {
           <Actions><Button type="submit" busy={busy}>{t(`Continue to ${another?.signIn ?? ""}`, `${another?.signIn ?? ""} 로그인으로`)}</Button></Actions>
         </form>
       </Dialog>
+      <Dialog open={!!editing} onClose={() => setEditing(null)} title={editing ? `${shortName(tx(editing.providerTitle))} · ${editing.name}` : ""}
+        sub={t("Change what was wrong and save. Leave a password or token empty to keep the saved one.", "잘못된 걸 고치고 저장하세요. 비밀번호·토큰 칸을 비워 두면 저장된 값을 그대로 써요.")}>
+        {editing && <EditForm id={editing.id} onDone={() => { setEditing(null); reload(); }} />}
+      </Dialog>
       <Dialog open={!!adding} onClose={() => setAdding(null)} title={pick ? shortName(tx(pick.title)) : t("Add a connection", "연결 추가")} sub={pick && kindOf(pick.kind)?.what[0] ? t(...kindOf(pick.kind)!.what) : undefined}>
         {pick && (
           <div className="text-muted-foreground mb-5 space-y-1.5 text-sm">
@@ -139,18 +147,24 @@ function KindHeading(p: { icon: LucideIcon; name: string }) {
   );
 }
 
-function AddForm({ provider, onDone }: { provider: string; onDone: () => void }) {
+/** Loads a saved connection (no secrets) and opens the same form, filled in. */
+function EditForm({ id, onDone }: { id: string; onDone: () => void }) {
+  const { data, error, reload } = useData<{ provider: string; name: string; config: Record<string, unknown> }>(`/connections/${id}`);
+  return data ? <AddForm provider={data.provider} edit={data} onDone={onDone} /> : <Loading error={error} reload={reload} />;
+}
+
+function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => void; edit?: { name: string; config: Record<string, unknown> } }) {
   const { t } = useT();
   const { data: form } = useData<Form>(`/connections/form?provider=${encodeURIComponent(provider)}`);
   const { busy, run } = useAction();
-  const [name, setName] = useState("");
-  const [config, setConfig] = useState<Record<string, unknown>>({});
+  const [name, setName] = useState(edit?.name ?? "");
+  const [config, setConfig] = useState<Record<string, unknown>>(edit?.config ?? {});
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [copyFrom, setCopyFrom] = useState<string>();
   if (!form) return <Loading />;
   const val = (f: Field) => (config[f.key] ?? f.defaultValue ?? (f.type === "checkbox" ? false : "")) as string | boolean;
   // An app already set up for this service (client ID + secret) is offered first; then only the account sign-in is left.
-  const from = copyFrom ?? form.reuse[0]?.id ?? "";
+  const from = edit ? "" : copyFrom ?? form.reuse[0]?.id ?? "";
   const APP = ["clientId", "clientSecret"];
   const shown = (f: Field) => !(from && APP.includes(f.key));
   const KIND_NAME = Object.fromEntries(KINDS.map((k) => [k.kind, t(...k.name)]));
@@ -160,11 +174,11 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
       const cfg = Object.fromEntries(form.fields.map((f) => [f.key, f.type === "number" ? (val(f) === "" ? undefined : Number(val(f))) : val(f)]));
       const save = () => post<{ id: string; test: { ok: boolean; error?: string } }>("/connections", { provider, name, config: Object.fromEntries(Object.entries(cfg).filter(([k]) => !from || !APP.includes(k))), secrets, ...(from ? { copyFrom: from } : {}) });
       // Services with a sign-in go straight to it after saving.
-      if (form.signIn) void run(async () => (await post<{ url: string }>(`/connections/${(await save()).id}/signin`)).url, undefined, (url) => void (location.href = url));
+      if (form.signIn && !edit) void run(async () => (await post<{ url: string }>(`/connections/${(await save()).id}/signin`)).url, undefined, (url) => void (location.href = url));
       else void run(save, (r) => (r.test.ok ? t("Connected and working.", "연결했고 정상이에요.") : t(`Saved, but the test failed: ${r.test.error}`, `저장했지만 시험에 실패했어요: ${r.test.error}`)), onDone);
     }}>
-      <Input label={t("Name", "이름")} hint={t("Your own label, e.g. personal or work.", "구분용 이름이에요. 예: personal, work")} value={name} onChange={setName} required />
-      {form.reuse.length > 0 && (
+      {edit ? null : <Input label={t("Name", "이름")} hint={t("Your own label, e.g. personal or work.", "구분용 이름이에요. 예: personal, work")} value={name} onChange={setName} required />}
+      {!edit && form.reuse.length > 0 && (
         <Select label={t(`${form.signIn} app`, `${form.signIn} 앱 설정`)} hint={t("Use the client ID and secret you already entered, then just sign in with the other account.", "이미 넣은 Client ID·Secret을 그대로 쓰고, 다른 계정으로 로그인만 하면 돼요.")}
           value={from} onChange={setCopyFrom}
           options={[...form.reuse.map((r) => ({ value: r.id, label: t(`Same as ${r.name} (${KIND_NAME[r.kind] ?? r.kind}${r.account ? `, ${r.account}` : ""})`, `${r.name}과 같게 (${KIND_NAME[r.kind] ?? r.kind}${r.account ? `, ${r.account}` : ""})`) })), { value: "", label: t("Enter a new one", "새로 입력") }]} />
@@ -179,7 +193,7 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
         ),
       )}
       {form.secrets.filter(shown).map((f) => (
-        <Input key={f.key} label={f.label} hint={t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
+        <Input key={f.key} label={f.label} hint={edit ? t("Empty: keep the saved one.", "비워 두면 저장된 값을 그대로 써요.") : t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
       ))}
       {form.googleRedirect && !from && (
         <Callout>
@@ -190,7 +204,7 @@ function AddForm({ provider, onDone }: { provider: string; onDone: () => void })
           <p>{t(`Saving takes you to ${form.signIn} to sign in.`, `저장하면 ${form.signIn} 로그인으로 넘어가요.`)}</p>
         </Callout>
       )}
-      <Actions><Button type="submit" busy={busy}>{form.signIn ? t(`Save and sign in with ${form.signIn}`, `저장하고 ${form.signIn}로 로그인`) : t("Save and test", "저장하고 시험")}</Button></Actions>
+      <Actions><Button type="submit" busy={busy}>{form.signIn && !edit ? t(`Save and sign in with ${form.signIn}`, `저장하고 ${form.signIn}로 로그인`) : t("Save and test", "저장하고 시험")}</Button></Actions>
     </form>
   );
 }

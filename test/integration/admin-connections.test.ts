@@ -59,4 +59,18 @@ describe("adding a connection from the admin API", () => {
     expect(await hub.tools.find((t) => t.name === "calendar_events")!.run({ date: "2026-10-16", days: 1 }, { actor: "t" })).toBe("2026-10-16\n- 19:00–21:00 Dinner (Home)");
     expect(await hub.tools.find((t) => t.name === "day_summary")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("19:00–21:00 Dinner (Home)");
   });
+
+  it("edits a saved connection without showing or losing its secret, and deletes it", async () => {
+    const add = await (await a.post("/connections", { provider: "calendar:caldav", name: "edit-me", config: { url: "https://dav.example.com/wrong", username: "me" }, secrets: { password: "old-secret-value" } })).json();
+    const got = await a.json(`/connections/${add.id}`);
+    expect(got).toMatchObject({ provider: "calendar:caldav", name: "edit-me", config: { url: "https://dav.example.com/wrong", username: "me" } });
+    expect(JSON.stringify(got)).not.toContain("old-secret-value");
+    await a.post("/connections", { provider: "calendar:caldav", name: "edit-me", config: { url: "https://dav.example.com/right", username: "me" }, secrets: { password: "" } });
+    const con = await hub.connections.byId(add.id);
+    expect(con?.config.url).toBe("https://dav.example.com/right");
+    expect((await hub.connections.secretsOf(add.id)).password).toBe("old-secret-value");
+    expect((await a.post(`/connections/${add.id}/remove`, {})).status).toBe(200);
+    expect(await hub.connections.byId(add.id)).toBeUndefined();
+    expect((await a.post(`/connections/${add.id}/remove`, {})).status).toBe(404);
+  });
 });

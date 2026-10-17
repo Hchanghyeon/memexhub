@@ -46,6 +46,12 @@ export class Connections {
     await this.upsert({ kind: c.kind, provider: c.provider, name: c.name, config: { ...c.config, ...(p.config ?? {}) }, secrets }, actor);
   }
 
+  /** Deletes a connection and its encrypted secrets. The vault connection is never removed here. */
+  async remove(id: string, actor: string) {
+    await this.db.run(`DELETE FROM connections WHERE id = ? AND kind != 'storage'`, [id]);
+    await audit(this.db, actor, "connection.remove", id);
+  }
+
   async list(kind?: string): Promise<Connection[]> {
     const rows = await this.db.all<any>(kind ? `SELECT * FROM connections WHERE kind = ?` : `SELECT * FROM connections`, kind ? [kind] : []);
     return rows.map((r) => ({ id: r.id, kind: r.kind, provider: r.provider, name: r.name, config: JSON.parse(r.config), enabled: !!r.enabled }));

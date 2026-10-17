@@ -499,6 +499,21 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     await hub.reload();
     return c.json({ id, test: await testConnection(id) });
   });
+  // Editing: the saved settings without secrets or engine-filled values, to fill the form. Saving goes through POST /connections.
+  api.get("/connections/:id", async (c) => {
+    const con = await hub.connections.byId(c.req.param("id"));
+    if (!con || con.kind === "storage") throw new Fail("unknown_connection", undefined, 404);
+    const def = hub.providers.find((p) => p.kind === con.kind && p.id === con.provider);
+    const shape = (def?.config.shape ?? {}) as Record<string, { description?: string }>;
+    return c.json({ provider: `${con.kind}:${con.provider}`, name: con.name, config: Object.fromEntries(Object.entries(con.config).filter(([k]) => k in shape && shape[k]!.description !== INTERNAL)) });
+  });
+  api.post("/connections/:id/remove", async (c) => {
+    const con = await hub.connections.byId(c.req.param("id"));
+    if (!con || con.kind === "storage") throw new Fail("unknown_connection", undefined, 404);
+    await hub.connections.remove(con.id, actor(c));
+    await hub.reload();
+    return c.json({ ok: true });
+  });
   api.post("/connections/:id/test", async (c) => c.json(await testConnection(c.req.param("id"))));
   api.post("/connections/:id/disable", async (c) => {
     await db.run(`UPDATE connections SET enabled = 0 WHERE id = ? AND kind != 'storage'`, [c.req.param("id")]);
