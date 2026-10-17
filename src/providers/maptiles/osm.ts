@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { Db } from "../../platform/types.js";
 
 /** Map background pictures (256 px tiles) for the admin map. */
@@ -73,8 +73,8 @@ export const osmTilesProvider = defineProvider({
   id: "osm",
   title: T("OpenStreetMap map background", "OpenStreetMap 지도 바탕"),
   config: z.object({
-    url: z.string().url().default("https://tile.openstreetmap.org").describe("Tile server URL ({z}/{x}/{y}.png is added)"),
-    contact: z.string().max(100).optional().describe("Contact for the User-Agent (asked by the public server's policy)"),
+    url: z.string().url().default("https://tile.openstreetmap.org").meta(F("Map server address", "지도 서버 주소", ["/{z}/{x}/{y}.png is added at the end. The default public OpenStreetMap server is fine for one person.", "끝에 /{z}/{x}/{y}.png 가 붙어요. 혼자 쓰는 정도면 기본값(공개 OpenStreetMap 서버)으로 충분해요."])),
+    contact: z.string().max(100).optional().meta(F("Contact (optional)", "연락처 (선택)", ["An email or web address sent with requests, as the public map server's rules ask. Never shown to anyone else.", "공개 지도 서버 규칙에 따라 요청에 같이 보내는 메일이나 웹 주소예요. 다른 사람에게 보이지 않아요."])),
   }),
   runtimes: ["node", "workers"],
   hosts: (c: any) => [new URL(c.url).hostname],

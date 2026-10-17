@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import { StorageError, type FileInfo, type VaultStorage } from "../../storage/types.js";
 import { Cursors } from "../../core/cursors.js";
 import type { Db } from "../../platform/types.js";
@@ -125,10 +125,10 @@ export const notionVaultProvider = defineProvider({
   id: "notion",
   title: T("Notion (beta: small vaults)", "Notion (베타: 작은 볼트용)"),
   config: z.object({
-    parentPage: z.string().min(32).max(300).describe("Page that will hold the vault database (link or id): share it with your integration"),
-    version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").describe("Notion API version"),
+    parentPage: z.string().min(32).max(300).meta(F("Notion page for the vault", "볼트를 둘 Notion 페이지", ["Paste the page link (or its 32-character id). On that page: ⋯ → Connections → add your integration, or memexhub cannot see it.", "페이지 링크(또는 32자리 id)를 붙여 넣으세요. 그 페이지 오른쪽 위 ⋯ → 연결(Connections) → 내 통합을 추가해야 memexhub가 볼 수 있어요."])),
+    version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").meta(F("Notion API version", "Notion API 버전", ["Leave as it is unless Notion asks for a newer one.", "Notion이 새 버전을 요구하지 않는 한 그대로 두세요."])),
   }),
-  secrets: z.object({ token: z.string().min(20).describe("Internal integration secret") }),
+  secrets: z.object({ token: z.string().min(20).meta(F("Internal integration secret", "내부 통합 시크릿", ["notion.so/my-integrations → your integration → Internal integration secret (starts with ntn_).", "notion.so/my-integrations → 내 통합 → 내부 통합 시크릿 (ntn_ 으로 시작해요)."])) }),
   runtimes: ["node", "workers"],
   hosts: () => ["api.notion.com"],
   create: ({ config, secrets, fetch, platform, connection }) =>

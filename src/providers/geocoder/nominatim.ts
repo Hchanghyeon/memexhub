@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { Db } from "../../platform/types.js";
 import type { Geocoder, ReverseResult } from "../location/types.js";
 
@@ -47,9 +47,9 @@ export const nominatimProvider = defineProvider({
   id: "nominatim",
   title: T("OpenStreetMap Nominatim", "OpenStreetMap Nominatim"),
   config: z.object({
-    url: z.string().url().default("https://nominatim.openstreetmap.org").describe("Nominatim URL"),
-    language: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/).default("en").describe("Language of place names (en, ko …)"),
-    contact: z.string().max(100).optional().describe("Contact for the User-Agent (required by the public server's policy)"),
+    url: z.string().url().default("https://nominatim.openstreetmap.org").meta(F("Place-name server address", "지명 서버 주소", ["The default public OpenStreetMap server is fine. Only change it if you run your own.", "기본값(공개 OpenStreetMap 서버)이면 돼요. 직접 운영하는 서버가 있을 때만 바꾸세요."])),
+    language: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/).default("en").meta(F("Language of place names", "지명 언어", ["ko for Korean names (성북구 하월곡동), en for English.", "ko 면 한국어 지명(성북구 하월곡동), en 이면 영어예요."])),
+    contact: z.string().max(100).optional().meta(F("Contact", "연락처", ["An email or web address sent with requests, as the public server's rules require. Never shown to anyone else.", "공개 서버 규칙에 따라 요청에 같이 보내는 메일이나 웹 주소예요. 다른 사람에게 보이지 않아요."])),
   }),
   runtimes: ["node", "workers"],
   hosts: (c: any) => [new URL(c.url).hostname],

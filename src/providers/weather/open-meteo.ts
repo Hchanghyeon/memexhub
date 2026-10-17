@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import { addDays, localDate } from "../../core/time.js";
 import type { WeatherDay, WeatherProvider } from "./types.js";
 
@@ -53,9 +53,9 @@ export const openMeteoProvider = defineProvider({
   id: "open-meteo",
   title: T("Open-Meteo weather (free, no key)", "Open-Meteo 날씨 (무료, 키 없음)"),
   config: z.object({
-    place: z.string().min(1).max(60).describe("Place name to show, e.g. Seoul"),
-    latitude: z.coerce.number().min(-90).max(90).describe("Latitude (two decimals are enough, e.g. 37.57)"),
-    longitude: z.coerce.number().min(-180).max(180).describe("Longitude (e.g. 126.98)"),
+    place: z.string().min(1).max(60).meta(F("Place name", "장소 이름", ["Shown in summaries, e.g. Seoul or Home.", "요약에 보일 이름이에요. 예: 서울, 집."])),
+    latitude: z.coerce.number().min(-90).max(90).meta(F("Latitude", "위도", ["Two decimals are enough, e.g. 37.57. In Google Maps, right-click the place: the first number.", "소수 둘째 자리면 충분해요. 예: 37.57. 구글 지도에서 그 장소를 오른쪽 클릭하면 나오는 첫 번째 숫자예요."])),
+    longitude: z.coerce.number().min(-180).max(180).meta(F("Longitude", "경도", ["e.g. 126.98: the second number in Google Maps.", "예: 126.98. 구글 지도에서 나오는 두 번째 숫자예요."])),
   }),
   runtimes: ["node", "workers"],
   hosts: () => ["api.open-meteo.com", "archive-api.open-meteo.com"],

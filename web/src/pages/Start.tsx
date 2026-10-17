@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { post } from "../api";
+import { PRESET_TEXT, presetName } from "../presets";
 import { useT } from "../i18n";
 import { navigate } from "../router";
 import { Progress } from "@/components/ui/progress";
@@ -62,7 +63,7 @@ export function Start({ onDone }: { onDone: () => void }) {
           )}
           {askLayout && (
             <Field label={t("Which layout is closest to your notes?", "노트 구조가 어느 쪽에 가까운가요?")}>
-              <Choice value={preset || data.preset || "llm-wiki"} onChange={setPreset} options={data.presets.map((p) => ({ value: p, label: p }))} />
+              <Choice value={preset || data.preset || "llm-wiki"} onChange={setPreset} options={data.presets.map((p) => ({ value: p, label: presetName(t, p), hint: PRESET_TEXT[p] ? t(...PRESET_TEXT[p]!) : undefined }))} />
             </Field>
           )}
           {!askLayout && !data.vault && <Hint>{t("A new vault starts with sources in raw/ and wiki pages in wiki/: Claude keeps it tidy.", "새 볼트는 원본은 raw/, 위키는 wiki/ 로 시작해요. 정리는 Claude가 해요.")}</Hint>}

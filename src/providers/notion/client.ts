@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 
 export class NotionError extends Error {}
 
@@ -82,10 +82,10 @@ export const notionProvider = defineProvider({
   id: "notion",
   title: T("Notion", "Notion"),
   config: z.object({
-    parentPage: z.string().min(32).max(300).describe("Page where memexhub creates its databases (link or id): share it with your integration"),
-    version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").describe("Notion API version"),
+    parentPage: z.string().min(32).max(300).meta(F("Notion page for the databases", "데이터베이스를 만들 Notion 페이지", ["memexhub creates its databases (payments, health) under this page. Paste the link, then on the page: ⋯ → Connections → add your integration.", "memexhub가 이 페이지 아래에 결제·건강 데이터베이스를 만들어요. 링크를 붙여 넣고, 그 페이지 ⋯ → 연결(Connections)에서 내 통합을 추가하세요."])),
+    version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2025-09-03").meta(F("Notion API version", "Notion API 버전", ["Leave as it is unless Notion asks for a newer one.", "Notion이 새 버전을 요구하지 않는 한 그대로 두세요."])),
   }),
-  secrets: z.object({ token: z.string().min(20).describe("Internal integration secret (notion.so/my-integrations)") }),
+  secrets: z.object({ token: z.string().min(20).meta(F("Internal integration secret", "내부 통합 시크릿", ["notion.so/my-integrations → New integration → copy the Internal integration secret (starts with ntn_).", "notion.so/my-integrations → 새 통합 만들기 → 내부 통합 시크릿을 복사하세요 (ntn_ 으로 시작해요)."])) }),
   runtimes: ["node", "workers"],
   hosts: () => ["api.notion.com"],
   create: ({ config, secrets, fetch }) => new NotionClient({ token: secrets.token, version: config.version, parentPage: config.parentPage }, fetch),

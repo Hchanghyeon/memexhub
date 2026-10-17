@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
+import { PRESET_NAME, PRESET_TEXT } from "../presets";
 import { Badge, Button, Card, Check, Choice, Field, Fields, Input, Loading, More, Page, Segmented, Select, Status, Steps, Toggle, useAction, useData } from "../ui/kit";
 
 interface V {
@@ -12,12 +13,18 @@ interface V {
   wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
 }
 
-const PRESET_TEXT: Record<string, [string, string]> = {
-  "llm-wiki": ["Sources in raw/, pages Claude writes in wiki/: for a new vault", "원본은 raw/, Claude가 쓰는 페이지는 wiki/: 새 볼트에 추천"],
-  para: ["Projects, Areas, Resources, Archives", "Projects, Areas, Resources, Archives (영어 폴더)"],
-  "para-ko": ["PARA with Korean folder names", "한국어 폴더 이름의 PARA"],
-  zettelkasten: ["One folder of linked notes", "연결된 노트 한 폴더"],
-  flat: ["Everything in one folder", "모두 한 폴더에"],
+/** Each check in plain words: a name and what it finds. The rule id stays visible for docs and Claude. */
+const RULE_TEXT: Record<string, [string, string, string, string]> = {
+  "broken-links": ["Broken links", "깨진 링크", "[[links]] that point to nothing (code blocks are skipped, attachments count).", "아무 노트도 가리키지 않는 [[링크]]. 코드 안은 건너뛰고, 첨부 파일 링크는 정상으로 봐요."],
+  orphans: ["Orphan pages", "외톨이 페이지", "Wiki pages no other note links to.", "다른 어떤 노트도 링크하지 않는 위키 페이지."],
+  "missing-index-entry": ["Missing from the index", "목차에 없는 페이지", "Wiki pages not listed in any index (sub-indexes count).", "어느 목차(하위 목차 포함)에도 올라가 있지 않은 위키 페이지."],
+  "oversized-pages": ["Pages too large", "너무 큰 페이지", "Wiki pages over 4 KB: split them so Claude reads less.", "4KB가 넘는 위키 페이지. 쪼개면 Claude가 읽을 양이 줄어요."],
+  "index-too-long": ["Index too long", "너무 긴 목차", "Indexes with more than 50 entries: split into sub-indexes.", "항목이 50개가 넘는 목차. 하위 목차로 나누세요."],
+  "frontmatter-required": ["Required frontmatter", "필수 프론트매터", "Notes missing required keys at the top (title, dates …).", "맨 위 프론트매터에 꼭 있어야 할 키(제목, 날짜 등)가 빠진 노트."],
+  "unregistered-tags": ["Unregistered tags", "등록 안 된 태그", "Tags that are not in the allowed list.", "허용 목록에 없는 태그."],
+  "wiki-page-without-source": ["Wiki page without a source", "원본 없는 위키 페이지", "Wiki pages that cite no source note.", "원본 노트를 하나도 인용하지 않는 위키 페이지."],
+  "page-status": ["Page status", "페이지 상태", "Wiki pages without status: draft, stable or deprecated.", "status(draft·stable·deprecated)가 없는 위키 페이지."],
+  "bad-filenames": ["Bad file names", "쓰면 안 되는 파일 이름", "Names with characters that break links: [ ] # ^ | : ? * \" < >", "링크를 깨뜨리는 글자([ ] # ^ | : ? * \" < >)가 들어간 이름."],
 };
 
 export function Vault() {
@@ -93,7 +100,7 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
   return (
     <Card title={t("Wiki layout", "위키 구조")} badge={<Badge>{t("Optional", "선택")}</Badge>} sub={t("memexhub knows roles, not folder names. Pick the closest preset.", "memexhub는 폴더 이름이 아니라 역할을 알아요. 가장 비슷한 프리셋을 고르세요.")}
       footer={<Button busy={busy} disabled={!preset || preset === v.wiki.preset} onClick={() => run(() => post("/wiki/preset", { preset }), t("Layout applied.", "구조를 적용했어요."), reload)}>{t("Use this layout", "이 구조 쓰기")}</Button>}>
-      <Choice value={preset} onChange={setPreset} label={t("Layout", "구조")} options={v.wiki.presets.map((p) => ({ value: p, label: p, hint: PRESET_TEXT[p] ? t(...PRESET_TEXT[p]!) : undefined }))} />
+      <Choice value={preset} onChange={setPreset} label={t("Layout", "구조")} options={v.wiki.presets.map((p) => ({ value: p, label: PRESET_NAME[p] ? t(...PRESET_NAME[p]!) : p, hint: PRESET_TEXT[p] ? t(...PRESET_TEXT[p]!) : undefined }))} />
       <More summary={t("Folders for each role", "역할별 폴더 직접 정하기")}>
         <Fields>
           <Input label={t("Sources folder (write-once)", "원본 폴더 (한 번만 쓰기)")} value={roles.sources} onChange={(x) => setRoles({ ...roles, sources: x })} placeholder="raw" mono />
@@ -116,7 +123,7 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
         hint={t("A wiki page needs frontmatter and a link to an existing source, or it is not saved. Pages are saved as drafts until you confirm them in Notes.", "위키 페이지는 프론트매터와 실제 원본 링크가 있어야 저장돼요. 노트 화면에서 확인하기 전까지는 '검토 필요'로 저장돼요.")} />
       <More summary={t("Wiki checks", "위키 점검 규칙")}>
         <div className="grid gap-3 sm:grid-cols-2">
-          {lint.map((l) => <Check key={l.id} checked={l.enabled} onChange={(on) => setLint(lint.map((x) => (x.id === l.id ? { ...x, enabled: on } : x)))} label={<code>{l.id}</code>} />)}
+          {lint.map((l) => <Check key={l.id} checked={l.enabled} onChange={(on) => setLint(lint.map((x) => (x.id === l.id ? { ...x, enabled: on } : x)))} label={RULE_TEXT[l.id] ? <>{t(RULE_TEXT[l.id]![0], RULE_TEXT[l.id]![1])} <code className="text-muted-foreground text-xs">{l.id}</code></> : <code>{l.id}</code>} hint={RULE_TEXT[l.id] ? t(RULE_TEXT[l.id]![2], RULE_TEXT[l.id]![3]) : undefined} />)}
         </div>
         <div><Button kind="secondary" busy={busy} onClick={() => run(() => post("/wiki/lint", { on: lint.filter((x) => x.enabled).map((x) => x.id) }), t("Saved.", "저장했어요."), reload)}>{t("Save checks", "점검 규칙 저장")}</Button></div>
       </More>

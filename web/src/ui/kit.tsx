@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Check as CheckIcon, ChevronRight, CircleAlert, Copy as CopyIcon, Info, Loader2, TriangleAlert } from "lucide-react";
 import { ApiError, get } from "../api";
+import { explain } from "../explain";
 import { useT, type T } from "../i18n";
 import { cn } from "@/lib/utils";
 import { encode as qrEncode } from "uqr";
@@ -57,9 +58,33 @@ export function errorText(t: T, e: unknown): string {
     ledger_off: ["Turn on the Payments feature first.", "먼저 결제 기능을 켜세요."],
     bad_csrf: ["The page is out of date. Reload it.", "화면이 오래됐어요. 새로고침하세요."],
     signed_out: ["You were signed out.", "로그아웃됐어요."],
+    already_on: ["It is already on.", "이미 켜져 있어요."],
+    already_set_up: ["This server is already set up. Sign in instead.", "이미 설정된 서버예요. 로그인하세요."],
+    google_failed: [`Sign-in could not start${d}.`, `로그인을 시작하지 못했어요${d}.`],
+    import_failed: [`Could not import${d}.`, `가져오지 못했어요${d}.`],
+    invalid_json: ["That is not valid JSON.", "올바른 JSON이 아니에요."],
+    module_off: ["Turn on that feature first (Features).", "먼저 기능 화면에서 그 기능을 켜세요."],
+    not_found: ["It is no longer there. Reload the page.", "이제 없어요. 화면을 새로고침하세요."],
+    not_pending: ["This message was already handled.", "이미 처리한 메시지예요."],
+    recipe_failed: [`The recipe could not be used${d}.`, `레시피를 쓸 수 없어요${d}.`],
+    resolve_failed: [`Could not record it${d}.`, `기록하지 못했어요${d}.`],
+    restore_failed: [`Could not restore${d}.`, `되돌리지 못했어요${d}.`],
+    sync_failed: [`Sync failed${d}.`, `동기화하지 못했어요${d}.`],
+    unknown_connection: ["That connection no longer exists. Reload the page.", "그 연결이 없어요. 화면을 새로고침하세요."],
+    unknown_preset: ["Unknown layout.", "모르는 구조예요."],
+    unknown_provider: ["Unknown service.", "모르는 서비스예요."],
+    enrol_first: ["Set up the authenticator app first.", "먼저 인증 앱을 등록하세요."],
+    forbidden: ["Not allowed from here.", "여기서는 할 수 없어요."],
+    origin_not_allowed: ["Open the admin page from its own address.", "관리 화면 주소로 직접 열어 주세요."],
+    rate_limited: ["Too many tries. Wait a minute and try again.", "너무 많이 시도했어요. 1분 뒤에 다시 해 보세요."],
+    too_large: ["That is too large.", "너무 커요."],
+    setup_required: ["Finish the first setup first.", "먼저 처음 설정을 마치세요."],
+    unauthorized: ["Sign in again.", "다시 로그인하세요."],
+    internal: ["Something went wrong on the server. Try again.", "서버에서 문제가 생겼어요. 다시 해 보세요."],
+    server_error: ["Something went wrong on the server. Try again.", "서버에서 문제가 생겼어요. 다시 해 보세요."],
   };
   const x = m[e.code];
-  return x ? t(...x) : e.detail ? e.detail : t(`Failed: ${e.code}`, `실패: ${e.code}`);
+  return x ? t(...x) : e.detail ? explain(t, e.detail) : t(`Failed: ${e.code}`, `실패: ${e.code}`);
 }
 
 // ---------- toasts ----------

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../providers/types.js";
-import { T } from "../core/i18n.js";
+import { F, T } from "../core/i18n.js";
 import { StorageError, type FileInfo, type VaultStorage } from "./types.js";
 
 /** The parts of the R2 binding API we use. */
@@ -78,8 +78,8 @@ export const r2Provider = defineProvider({
   id: "r2",
   title: T("Cloudflare R2 bucket (bound to this Worker)", "Cloudflare R2 버킷 (이 Worker에 연결된)"),
   config: z.object({
-    binding: z.string().regex(/^[A-Z][A-Z0-9_]{0,40}$/).default("VAULT").describe("Binding name in wrangler.toml"),
-    prefix: z.string().max(200).optional().describe("Folder inside the bucket (optional)"),
+    binding: z.string().regex(/^[A-Z][A-Z0-9_]{0,40}$/).default("VAULT").meta(F("Binding name", "바인딩 이름", ["The R2 binding name in wrangler.toml. Usually VAULT.", "wrangler.toml 의 R2 바인딩 이름이에요. 보통 VAULT 예요."])),
+    prefix: z.string().max(200).optional().meta(F("Folder inside the bucket (optional)", "버킷 안의 폴더 (선택)", ["Empty: the whole bucket is the vault.", "비우면 버킷 전체가 볼트예요."])),
   }),
   runtimes: ["workers"],
   create: ({ config, platform }) => {

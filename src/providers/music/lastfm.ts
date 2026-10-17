@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { MusicProvider, Play } from "./types.js";
 
 const API = "https://ws.audioscrobbler.com/2.0/";
@@ -37,8 +37,8 @@ export const lastfmProvider = defineProvider({
   kind: "music",
   id: "lastfm",
   title: T("Last.fm (scrobbles)", "Last.fm (스크로블)"),
-  config: z.object({ user: z.string().regex(/^[A-Za-z0-9_-]{2,15}$/).describe("Last.fm user name") }),
-  secrets: z.object({ apiKey: z.string().regex(/^[a-f0-9]{32}$/i).describe("API key (last.fm/api/account/create)") }),
+  config: z.object({ user: z.string().regex(/^[A-Za-z0-9_-]{2,15}$/).meta(F("Last.fm user name", "Last.fm 사용자 이름", ["The name in your profile address: last.fm/user/<name>.", "프로필 주소 last.fm/user/<이름> 의 이름이에요."])) }),
+  secrets: z.object({ apiKey: z.string().regex(/^[a-f0-9]{32}$/i).meta(F("API key", "API 키", ["last.fm/api/account/create → any app name → copy the API key (32 characters).", "last.fm/api/account/create → 앱 이름은 아무거나 → API key(32자리)를 복사하세요."])) }),
   runtimes: ["node", "workers"],
   hosts: () => ["ws.audioscrobbler.com"],
   create: ({ config, secrets, fetch }) => new LastFm({ user: config.user, apiKey: secrets.apiKey }, fetch),

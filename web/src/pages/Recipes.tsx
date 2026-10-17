@@ -19,6 +19,12 @@ interface R {
 }
 interface Read { step: string; recipeId?: string; confident: boolean; kind?: string; reason?: string; payment?: Record<string, string> }
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+/** The reader's reasons, in Korean: why a message would be asked about. */
+const FIELD_KO: Record<string, string> = { time: "시각", "approval or cancellation": "승인·취소 단어", "card name": "카드 이름" };
+const reasonKo = (r = "") =>
+  r === "no amount" ? "금액을 못 찾았어요"
+  : r.startsWith("no recipe; generic parser missing ") ? `맞는 레시피가 없고, 기본 읽기가 ${r.slice(34).split(", ").map((x) => FIELD_KO[x] ?? x).join("·")}을(를) 못 찾았어요`
+  : r;
 const CHANNEL: Record<string, [string, string]> = { sms: ["Text", "문자"], mail: ["Mail", "메일"], notification: ["Notification", "알림"], text: ["Pasted", "붙여 넣은 글"] };
 
 export function Recipes() {
@@ -207,7 +213,7 @@ function Advanced({ editor, setEditor, dir, reload }: { editor: string; setEdito
         </Actions>
         {r && (
           <Callout tone={r.confident || r.kind === "ignore" ? "info" : "warning"}>
-            <p className="font-medium">{r.kind === "ignore" ? t("Skipped: not a payment.", "건너뛰어요: 결제가 아니에요.") : r.confident ? t(`Recorded by itself (${r.step === "recipe" ? r.recipeId : "general reader"}).`, `알아서 기록돼요 (${r.step === "recipe" ? r.recipeId : "기본 읽기"}).`) : t(`You would be asked: ${r.reason ?? ""}.`, `확인해 달라고 물어봐요: ${r.reason ?? ""}.`)}</p>
+            <p className="font-medium">{r.kind === "ignore" ? t("Skipped: not a payment.", "건너뛰어요: 결제가 아니에요.") : r.confident ? t(`Recorded by itself (${r.step === "recipe" ? r.recipeId : "general reader"}).`, `알아서 기록돼요 (${r.step === "recipe" ? r.recipeId : "기본 읽기"}).`) : t(`You would be asked: ${r.reason ?? ""}.`, `확인해 달라고 물어봐요: ${reasonKo(r.reason)}.`)}</p>
             {r.payment && <KeyValue rows={Object.entries(r.payment).filter(([, v]) => v).map(([k, v]) => [k, v])} />}
           </Callout>
         )}
@@ -219,7 +225,7 @@ function Advanced({ editor, setEditor, dir, reload }: { editor: string; setEdito
       </More>
       <More summary={t("Import recipes", "레시피 가져오기")}>
         <TextArea label={t("JSON array", "JSON 배열")} value={pack} onChange={setPack} rows={4} mono />
-        <Actions><Button size="sm" kind="secondary" busy={busy} disabled={!pack.trim()} onClick={() => run(() => post<{ message: string }>("/recipes/import", { json: pack }), (x) => x.message, () => { setPack(""); reload(); })}>{t("Import as proposals", "제안으로 가져오기")}</Button></Actions>
+        <Actions><Button size="sm" kind="secondary" busy={busy} disabled={!pack.trim()} onClick={() => run(() => post<{ message: string }>("/recipes/import", { json: pack }), (x) => t(x.message, x.message.replace(/^Imported (\d+) as proposals/, "제안으로 $1개 가져왔어요").replace(/; skipped (\d+):/, " · 건너뛴 것 $1개:")), () => { setPack(""); reload(); })}>{t("Import as proposals", "제안으로 가져오기")}</Button></Actions>
       </More>
     </Card>
   );

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { Db } from "../../platform/types.js";
 import type { Area, LocationProvider, Point } from "./types.js";
 
@@ -41,7 +41,7 @@ export const owntracksProvider = defineProvider({
   id: "owntracks",
   title: T("OwnTracks (points sent to memexhub)", "OwnTracks (memexhub로 보낸 위치)"),
   config: z.object({
-    areas: z.string().max(5000).default("").describe("Named places, one per line: name, latitude, longitude, radius in metres"),
+    areas: z.string().max(5000).default("").meta(F("Named places", "이름 붙인 장소", ["One per line: name, latitude, longitude, radius in metres. e.g. Home, 37.5665, 126.9780, 150. Stays there are shown by this name; a place named 비공개 is never shown.", "한 줄에 하나씩: 이름, 위도, 경도, 반경(미터). 예: 집, 37.5665, 126.9780, 150. 이 안에 머물면 이 이름으로 보여요. 이름을 비공개로 하면 어디에도 이름과 위치를 쓰지 않아요."])),
   }),
   runtimes: ["node", "workers"],
   create: ({ config, platform }) => new StoredPoints(platform.db, parseAreas(config.areas)),

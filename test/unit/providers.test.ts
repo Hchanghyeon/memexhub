@@ -1,3 +1,4 @@
+import { F } from "../../src/core/i18n.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { mkdtempSync } from "node:fs";
@@ -91,5 +92,16 @@ describe("generated forms", () => {
     const v = valuesOf(f, { "config.url": "https://x.example.com", "config.port": "143", "config.mode": "" }, "config");
     expect(schema.parse(v)).toEqual({ url: "https://x.example.com", port: 143, tls: false });
     expect(fieldsOf(z.object({ password: z.string() }), true)[0]!.type).toBe("password");
+  });
+  it("gives Korean labels and hints from .meta(F(...)), also through defaults", () => {
+    const f = fieldsOf(z.object({ on: z.boolean().default(true).meta(F("On my home network", "집 네트워크 안", ["Tick for 192.168.x.x", "192.168.x.x 면 체크"])), plain: z.string().describe("Plain") }));
+    expect(f[0]).toMatchObject({ label: "On my home network", labelKo: "집 네트워크 안", hint: { en: "Tick for 192.168.x.x", ko: "192.168.x.x 면 체크" }, type: "checkbox", defaultValue: true });
+    expect(f[1]).toMatchObject({ label: "Plain" });
+    expect(f[1]!.labelKo).toBeUndefined();
+  });
+  it("every provider field has a Korean label", async () => {
+    const { PORTABLE_PROVIDERS } = await import("../../src/providers/registry.js");
+    const missing = PORTABLE_PROVIDERS.flatMap((p) => [...fieldsOf(p.config), ...fieldsOf(p.secrets, true)].filter((x) => !x.labelKo).map((x) => `${p.kind}:${p.id}.${x.key}`));
+    expect(missing).toEqual([]);
   });
 });

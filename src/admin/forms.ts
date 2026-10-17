@@ -4,7 +4,10 @@ export const INTERNAL = "@internal";
 
 export interface Field {
   key: string;
+  /** English label; `labelKo` and `hint` come from `.meta(F(en, ko, hint))` on the field. */
   label: string;
+  labelKo?: string;
+  hint?: { en: string; ko: string };
   type: "text" | "password" | "checkbox" | "number" | "select";
   options?: string[];
   optional: boolean;
@@ -23,12 +26,17 @@ export function fieldsOf(schema: z.ZodObject<any> | undefined, secret = false): 
       if (s instanceof z.ZodDefault) defaultValue = (s as any)._zod.def.defaultValue;
       s = s._zod.def.innerType;
     }
-    const label = f.description ?? s.description ?? key;
-    if (secret) return { key, label, type: "password" as const, optional };
-    if (s instanceof z.ZodBoolean) return { key, label, type: "checkbox" as const, optional, defaultValue };
-    if (s instanceof z.ZodNumber) return { key, label, type: "number" as const, optional, defaultValue };
-    if (s instanceof z.ZodEnum) return { key, label, type: "select" as const, options: s.options as string[], optional, defaultValue };
-    return { key, label, type: "text" as const, optional, defaultValue };
+    const meta = ((f as any).meta?.() ?? (s as any).meta?.() ?? {}) as { ko?: string; hintEn?: string; hintKo?: string };
+    const text = {
+      label: f.description ?? s.description ?? key,
+      ...(meta.ko ? { labelKo: meta.ko } : {}),
+      ...(meta.hintEn ? { hint: { en: meta.hintEn, ko: meta.hintKo ?? meta.hintEn } } : {}),
+    };
+    if (secret) return { key, ...text, type: "password" as const, optional };
+    if (s instanceof z.ZodBoolean) return { key, ...text, type: "checkbox" as const, optional, defaultValue };
+    if (s instanceof z.ZodNumber) return { key, ...text, type: "number" as const, optional, defaultValue };
+    if (s instanceof z.ZodEnum) return { key, ...text, type: "select" as const, options: s.options as string[], optional, defaultValue };
+    return { key, ...text, type: "text" as const, optional, defaultValue };
   });
 }
 

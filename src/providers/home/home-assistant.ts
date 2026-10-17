@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { EntityState, HomeProvider, LogEntry } from "./types.js";
 
 /** Home Assistant REST API with a long-lived access token. Read-only: states and logbook, never services. */
@@ -53,11 +53,11 @@ export const homeAssistantProvider = defineProvider({
   id: "home-assistant",
   title: T("Home Assistant", "홈 어시스턴트"),
   config: z.object({
-    url: z.string().url().describe("Home Assistant address (e.g. http://192.168.0.10:8123)"),
-    entities: z.string().max(1000).optional().describe("Entities for the daily summary, comma separated (e.g. person.me, binary_sensor.front_door)"),
-    allowPrivateNetwork: z.boolean().default(true).describe("Home Assistant is on my home network"),
+    url: z.string().url().meta(F("Home Assistant address", "홈 어시스턴트 주소", ["The address you open Home Assistant with, e.g. http://192.168.0.10:8123. On the same home network, the home address is fastest.", "홈 어시스턴트를 여는 주소예요. 예: http://192.168.0.10:8123. 같은 집 네트워크에 있으면 집 안 주소가 가장 빨라요."])),
+    entities: z.string().max(1000).optional().meta(F("Entities for the daily summary (optional)", "하루 요약에 넣을 엔티티 (선택)", ["Comma separated, e.g. person.me, binary_sensor.front_door. Their logbook goes into day_summary and the journal. Empty: only asked when you ask Claude.", "쉼표로 구분해요. 예: person.me, binary_sensor.front_door. 이 엔티티의 기록이 하루 요약과 일지에 들어가요. 비우면 Claude에게 물어볼 때만 봐요."])),
+    allowPrivateNetwork: z.boolean().default(true).meta(F("Home Assistant is on my home network", "홈 어시스턴트가 집 네트워크 안에 있어요", ["Tick when the address starts with http:// or is a home address (192.168.x.x). Without it, only https internet addresses are allowed.", "주소가 http:// 로 시작하거나 192.168.x.x 같은 집 안 주소면 체크하세요. 끄면 https 인터넷 주소만 쓸 수 있어요."])),
   }),
-  secrets: z.object({ token: z.string().min(20).describe("Long-lived access token (HA → your profile → Security)") }),
+  secrets: z.object({ token: z.string().min(20).meta(F("Long-lived access token", "장기 액세스 토큰", ["Home Assistant → your profile (bottom left) → Security → Long-lived access tokens → Create token. Read only: memexhub never switches anything.", "홈 어시스턴트 → 왼쪽 아래 내 프로필 → 보안 → 장기 액세스 토큰 → 토큰 만들기. memexhub는 읽기만 하고 아무것도 켜고 끄지 않아요."])) }),
   runtimes: ["node", "workers"],
   hosts: (c: any) => [new URL(c.url).hostname],
   allowPrivate: (c: any) => !!c.allowPrivateNetwork,

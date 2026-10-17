@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import { nowIn } from "../../core/time.js";
 import { ImapClient, ImapError } from "./imap-client.js";
 import { decodeMUtf7, encodeMUtf7, headerText, messageText, splitPart } from "./mime.js";
@@ -15,13 +15,13 @@ const PRESETS: Record<string, { host?: string; digest: string }> = {
 };
 
 const Config = z.object({
-  preset: z.enum(["kakao", "naver", "gmail", "outlook", "custom"]).default("custom").describe("Mail service"),
-  host: z.string().optional().describe("IMAP host (only for custom)"),
-  port: z.number().int().default(993).describe("Port"),
-  username: z.string().min(1).describe("Username / email"),
-  digestFolders: z.string().optional().describe("Daily digest folders: name:label[:body], comma separated (empty = preset)"),
-  allowPrivateNetwork: z.boolean().default(false).describe("Server is on my private network (allows plain IMAP)"),
-  tls: z.boolean().default(true).describe("Use TLS"),
+  preset: z.enum(["kakao", "naver", "gmail", "outlook", "custom"]).default("custom").meta(F("Mail service", "메일 서비스", ["Pick yours; the server address is filled in. custom: enter it below.", "쓰는 곳을 고르면 서버 주소가 자동으로 정해져요. custom 이면 아래에 직접 넣어요."])),
+  host: z.string().optional().meta(F("IMAP server (custom only)", "IMAP 서버 (custom 만)", ["e.g. imap.example.com. Leave empty for the services in the list.", "예: imap.example.com. 목록에 있는 서비스면 비워 두세요."])),
+  port: z.number().int().default(993).meta(F("Port", "포트", ["993 for almost every service.", "거의 모든 서비스가 993이에요."])),
+  username: z.string().min(1).meta(F("Username or email", "아이디 또는 메일 주소")),
+  digestFolders: z.string().optional().meta(F("Folders for the daily mail summary (optional)", "하루 메일 요약에 넣을 메일함 (선택)", ["folder:label, comma separated; add :body to include a preview. e.g. INBOX:received:body, Sent:sent:body. Empty: the service's usual folders.", "메일함:이름 을 쉼표로 구분해요. 끝에 :body 를 붙이면 본문 앞부분도 넣어요. 예: INBOX:받은편지:body, Sent:보낸편지:body. 비우면 서비스의 기본 메일함을 써요."])),
+  allowPrivateNetwork: z.boolean().default(false).meta(F("The server is on my home network", "서버가 집 네트워크 안에 있어요", ["Only for a mail server at home. Allows a connection without TLS.", "집에 있는 메일 서버일 때만 체크하세요. TLS 없는 연결도 허용해요."])),
+  tls: z.boolean().default(true).meta(F("Use TLS (encryption)", "TLS(암호화) 사용", ["Keep it on.", "켜 둔 채로 두세요."])),
 });
 type Config = z.infer<typeof Config>;
 
@@ -136,7 +136,7 @@ export const imapProvider = defineProvider({
   id: "imap",
   title: T("IMAP mail (Kakao, Naver, Gmail, Outlook …): read-only", "IMAP 메일 (카카오·네이버·Gmail·Outlook …): 읽기 전용"),
   config: Config,
-  secrets: z.object({ password: z.string().min(1).describe("Password or app password") }),
+  secrets: z.object({ password: z.string().min(1).meta(F("Password or app password", "비밀번호 또는 앱 비밀번호", ["Kakao, Naver, Gmail and Outlook need an app password when two-step sign-in is on (Gmail: myaccount.google.com → Security → App passwords). IMAP must be allowed in the mail settings.", "카카오·네이버·Gmail·Outlook은 2단계 인증을 쓰면 앱 비밀번호가 필요해요 (Gmail: myaccount.google.com → 보안 → 앱 비밀번호). 메일 설정에서 IMAP 사용도 켜야 해요."])) }),
   runtimes: ["node"],
   create: ({ config, secrets, platform, timezone }) => {
     const host = config.host || PRESETS[config.preset]!.host || "";

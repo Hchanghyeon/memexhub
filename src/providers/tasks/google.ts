@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { Task, TaskList, TaskProvider } from "./types.js";
 import { GOOGLE, GoogleError, GoogleToken } from "../google/auth.js";
 
@@ -76,11 +76,11 @@ export const googleTasksProvider = defineProvider({
   id: "google",
   title: T("Google Tasks", "Google Tasks"),
   config: z.object({
-    clientId: z.string().min(10).max(200).describe("OAuth client ID (Google Cloud → APIs & Services → Credentials, type Web application)"),
+    clientId: z.string().min(10).max(200).meta(F("OAuth client ID", "OAuth 클라이언트 ID", ["Google Cloud console → APIs & Services → Credentials → Create credentials → OAuth client ID, type Web application. Add the redirect URI shown below.", "Google Cloud 콘솔 → API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID, 유형은 웹 애플리케이션. 아래에 보이는 리디렉션 URI를 추가하세요."])),
     email: z.string().max(200).optional().describe("@internal"), // set by the sign-in callback
   }),
   secrets: z.object({
-    clientSecret: z.string().min(1).describe("OAuth client secret"),
+    clientSecret: z.string().min(1).meta(F("OAuth client secret", "OAuth 클라이언트 보안 비밀", ["Shown next to the client ID in the same place.", "같은 곳에서 클라이언트 ID 옆에 있어요."])),
     refreshToken: z.string().optional().describe("@internal"), // set by the sign-in callback
   }),
   runtimes: ["node", "workers"],

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import { addDays, dayBounds } from "../../core/time.js";
 import { parseIcal } from "./ical.js";
 import type { CalendarEvent, CalendarInfo, CalendarProvider } from "./types.js";
@@ -87,12 +87,12 @@ export class CalDav implements CalendarProvider {
 }
 
 const config = z.object({
-  url: z.string().url().describe("CalDAV address (e.g. https://caldav.calendar.naver.com, https://nas.local:5001/caldav/)"),
-  username: z.string().min(1).max(200).describe("Username"),
-  calendars: z.string().max(500).optional().describe("Only these calendars, comma separated (empty = all)"),
-  allowPrivateNetwork: z.boolean().default(false).describe("The server is on my home network"),
+  url: z.string().url().meta(F("CalDAV address", "CalDAV 주소", ["Naver: https://caldav.calendar.naver.com · Synology: https://<your NAS>:5001/caldav/ · Nextcloud: https://<server>/remote.php/dav", "네이버: https://caldav.calendar.naver.com · 시놀로지: https://<내 NAS>:5001/caldav/ · Nextcloud: https://<서버>/remote.php/dav"])),
+  username: z.string().min(1).max(200).meta(F("Username", "아이디")),
+  calendars: z.string().max(500).optional().meta(F("Only these calendars (optional)", "이 캘린더만 (선택)", ["Calendar names, comma separated. Empty: every calendar of the account.", "캘린더 이름을 쉼표로 구분해요. 비우면 계정의 모든 캘린더를 읽어요."])),
+  allowPrivateNetwork: z.boolean().default(false).meta(F("The server is on my home network", "서버가 집 네트워크 안에 있어요", ["Tick for a home address such as a NAS (192.168.x.x, nas.local).", "NAS처럼 집 안 주소(192.168.x.x, nas.local)면 체크하세요."])),
 });
-const secrets = z.object({ password: z.string().min(1).describe("Password (an app password where the service offers one)") });
+const secrets = z.object({ password: z.string().min(1).meta(F("Password", "비밀번호", ["Use an app password where the service offers one (Naver: My info → Security → App password).", "서비스가 앱 비밀번호를 주면 그걸 쓰세요 (네이버: 내정보 → 보안설정 → 애플리케이션 비밀번호)."])) });
 const make = (url: string) => ({ config, fetch, timezone }: any, s: any) => new CalDav({ url, username: config.username, password: s.password, only: (config.calendars ?? "").split(",").map((x: string) => x.trim()).filter(Boolean), timezone }, fetch);
 
 export const caldavProvider = defineProvider({
@@ -116,10 +116,10 @@ export const icloudCalendarProvider = defineProvider({
   id: "icloud",
   title: T("iCloud Calendar", "iCloud 캘린더"),
   config: z.object({
-    username: z.string().min(3).max(200).describe("Apple ID (e-mail)"),
-    calendars: z.string().max(500).optional().describe("Only these calendars, comma separated (empty = all)"),
+    username: z.string().min(3).max(200).meta(F("Apple ID", "Apple ID", ["The email you sign in to iCloud with.", "iCloud에 로그인하는 메일 주소예요."])),
+    calendars: z.string().max(500).optional().meta(F("Only these calendars (optional)", "이 캘린더만 (선택)", ["Calendar names, comma separated. Empty: every calendar of the account.", "캘린더 이름을 쉼표로 구분해요. 비우면 계정의 모든 캘린더를 읽어요."])),
   }),
-  secrets: z.object({ password: z.string().min(1).describe("App-specific password (appleid.apple.com → Sign-In and Security)") }),
+  secrets: z.object({ password: z.string().min(1).meta(F("App-specific password", "앱 암호", ["appleid.apple.com → Sign-In and Security → App-Specific Passwords → make one named memexhub. Not your Apple ID password.", "appleid.apple.com → 로그인 및 보안 → 앱 암호 → memexhub 이름으로 하나 만드세요. Apple ID 비밀번호가 아니에요."])) }),
   runtimes: ["node", "workers"],
   hosts: () => ["caldav.icloud.com", "*.icloud.com"],
   create: (ctx) => make("https://caldav.icloud.com/")(ctx, ctx.secrets),

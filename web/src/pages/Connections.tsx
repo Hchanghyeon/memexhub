@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
+import { explain } from "../explain";
 import { CalendarDays, CloudSun, House, ListChecks, Mail, Map as MapIcon, MapPin, Music, NotebookText, Plug, Plus, type LucideIcon } from "lucide-react";
 import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Input, Item, List, Loading, Page, Select, useAction, useConfirm, useData } from "../ui/kit";
 
 type Text = { en: string; ko: string };
 interface Item { id: string; kind: string; name: string; provider: string; providerTitle: Text; enabled: boolean; status: string | null; lastOkAt: string | null; lastError: string | null; email: string | null; signIn: string | null }
-interface Field { key: string; label: string; type: "text" | "password" | "checkbox" | "number" | "select"; options?: string[]; optional: boolean; defaultValue?: unknown }
+interface Field { key: string; label: string; labelKo?: string; hint?: { en: string; ko: string }; type: "text" | "password" | "checkbox" | "number" | "select"; options?: string[]; optional: boolean; defaultValue?: unknown }
 interface Form { key: string; kind: string; title: Text; fields: Field[]; secrets: Field[]; googleRedirect: string | null; signIn: string | null; reuse: { id: string; name: string; kind: string; account: string | null }[] }
 
 /** Kinds in the order they are shown, with an icon, a name and what the connection is for. */
@@ -22,6 +23,8 @@ const KINDS: { kind: string; icon: LucideIcon; name: [string, string]; what: [st
   { kind: "music", icon: Music, name: ["Music", "음악"], what: ["What you listened to, for the journal. Read-only.", "들은 음악을 일지에. 읽기 전용."] },
   { kind: "notion", icon: NotebookText, name: ["Notion", "Notion"], what: ["Copies records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."] },
 ];
+/** Choice values shown in plain words (mail services …). */
+const OPTION: Record<string, [string, string]> = { kakao: ["Kakao Mail", "카카오 메일"], naver: ["Naver Mail", "네이버 메일"], gmail: ["Gmail", "Gmail"], outlook: ["Outlook", "Outlook"], custom: ["Other (enter the server)", "직접 입력 (서버 주소 넣기)"] };
 /** One line on what each service needs, shown under its full name. */
 const NEEDS: Record<string, [string, string]> = {
   "calendar:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],
@@ -70,7 +73,7 @@ export function Connections() {
   const known = KINDS.map((k) => k.kind);
   const kinds = [...KINDS, ...[...new Set([...data.items, ...data.addable].map((x) => x.kind))].filter((k) => !known.includes(k)).map((k) => ({ kind: k, icon: Plug, name: [k, k] as [string, string], what: ["", ""] as [string, string] }))];
   const status = (x: Item) =>
-    !x.enabled ? t("Off", "꺼짐") : x.status === "ok" ? t(`Working · checked ${ago(t, x.lastOkAt, "UTC")}`, `정상 · ${ago(t, x.lastOkAt, "UTC")} 확인`) : x.status === "error" ? <span className="text-destructive">{x.lastError}</span> : t("Checking soon", "곧 확인해요");
+    !x.enabled ? t("Off", "꺼짐") : x.status === "ok" ? t(`Working · checked ${ago(t, x.lastOkAt, "UTC")}`, `정상 · ${ago(t, x.lastOkAt, "UTC")} 확인`) : x.status === "error" ? <span className="text-destructive">{explain(t, x.lastError)}</span> : t("Checking soon", "곧 확인해요");
   const used = kinds.filter((k) => data.items.some((x) => x.kind === k.kind));
   return (
     <Page title={t("Connections", "연결")} sub={t("Services memexhub collects from. All optional.", "memexhub가 모아 오는 서비스예요. 모두 선택이에요.")}>
@@ -88,7 +91,7 @@ export function Connections() {
                     {x.signIn && x.email && <Button size="sm" kind="secondary" onClick={() => setAnother(x)}><Plus />{t("Add account", "계정 추가")}</Button>}
                     {x.signIn && <Button size="sm" kind={x.email ? "secondary" : "primary"} onClick={() => run(() => post<{ url: string }>(`/connections/${x.id}/signin`), undefined, (r) => void (location.href = r.url))}>{x.email ? t("Sign in again", "다시 로그인") : t(`Sign in with ${x.signIn}`, `${x.signIn}로 로그인`)}</Button>}
                     <Button kind="secondary" size="sm" onClick={() => setEditing(x)}>{t("Edit", "수정")}</Button>
-                    {x.enabled && <Button kind="secondary" size="sm" busy={testing === x.id} onClick={async () => { setTesting(x.id); await run(() => post<{ ok: boolean; error?: string }>(`/connections/${x.id}/test`), (r) => (r.ok ? t("Working.", "정상이에요.") : t(`Failed: ${r.error}`, `실패: ${r.error}`)), reload); setTesting(null); }}>{t("Test", "시험")}</Button>}
+                    {x.enabled && <Button kind="secondary" size="sm" busy={testing === x.id} onClick={async () => { setTesting(x.id); await run(() => post<{ ok: boolean; error?: string }>(`/connections/${x.id}/test`), (r) => (r.ok ? t("Working.", "정상이에요.") : t(`Failed: ${explain(t, r.error)}`, `실패: ${explain(t, r.error)}`)), reload); setTesting(null); }}>{t("Test", "시험")}</Button>}
                     <Button kind="ghost" size="sm" disabled={busy} onClick={() => run(() => post(`/connections/${x.id}/${x.enabled ? "disable" : "enable"}`), x.enabled ? t("Turned off.", "껐어요.") : t("Turned on.", "켰어요."), reload)}>{x.enabled ? t("Turn off", "끄기") : t("Turn on", "켜기")}</Button>
                     <Button kind="ghost" size="sm" disabled={busy} onClick={() => confirm(t(`Delete “${x.name}”? Its saved password or token is deleted too.`, `“${x.name}” 연결을 지울까요? 저장된 비밀번호·토큰도 같이 지워져요.`)) && run(() => post(`/connections/${x.id}/remove`), t("Deleted.", "지웠어요."), reload)}>{t("Delete", "삭제")}</Button>
                   </>} />
@@ -154,7 +157,7 @@ function EditForm({ id, onDone }: { id: string; onDone: () => void }) {
 }
 
 function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => void; edit?: { name: string; config: Record<string, unknown> } }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { data: form } = useData<Form>(`/connections/form?provider=${encodeURIComponent(provider)}`);
   const { busy, run } = useAction();
   const [name, setName] = useState(edit?.name ?? "");
@@ -162,6 +165,8 @@ function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => v
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [copyFrom, setCopyFrom] = useState<string>();
   if (!form) return <Loading />;
+  const label = (f: Field) => (lang === "ko" && f.labelKo ? f.labelKo : f.label);
+  const hint = (f: Field) => (f.hint ? (lang === "ko" ? f.hint.ko : f.hint.en) : undefined);
   const val = (f: Field) => (config[f.key] ?? f.defaultValue ?? (f.type === "checkbox" ? false : "")) as string | boolean;
   // An app already set up for this service (client ID + secret) is offered first; then only the account sign-in is left.
   const from = edit ? "" : copyFrom ?? form.reuse[0]?.id ?? "";
@@ -175,7 +180,7 @@ function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => v
       const save = () => post<{ id: string; test: { ok: boolean; error?: string } }>("/connections", { provider, name, config: Object.fromEntries(Object.entries(cfg).filter(([k]) => !from || !APP.includes(k))), secrets, ...(from ? { copyFrom: from } : {}) });
       // Services with a sign-in go straight to it after saving.
       if (form.signIn && !edit) void run(async () => (await post<{ url: string }>(`/connections/${(await save()).id}/signin`)).url, undefined, (url) => void (location.href = url));
-      else void run(save, (r) => (r.test.ok ? t("Connected and working.", "연결했고 정상이에요.") : t(`Saved, but the test failed: ${r.test.error}`, `저장했지만 시험에 실패했어요: ${r.test.error}`)), onDone);
+      else void run(save, (r) => (r.test.ok ? t("Connected and working.", "연결했고 정상이에요.") : t(`Saved, but the test failed: ${explain(t, r.test.error)}`, `저장했지만 시험에 실패했어요: ${explain(t, r.test.error)}`)), onDone);
     }}>
       {edit ? null : <Input label={t("Name", "이름")} hint={t("Your own label, e.g. personal or work.", "구분용 이름이에요. 예: personal, work")} value={name} onChange={setName} required />}
       {!edit && form.reuse.length > 0 && (
@@ -185,15 +190,15 @@ function AddForm({ provider, onDone, edit }: { provider: string; onDone: () => v
       )}
       {form.fields.filter(shown).map((f) =>
         f.type === "checkbox" ? (
-          <Check key={f.key} checked={!!val(f)} onChange={(v) => setConfig({ ...config, [f.key]: v })} label={f.label} />
+          <Check key={f.key} checked={!!val(f)} onChange={(v) => setConfig({ ...config, [f.key]: v })} label={label(f)} hint={hint(f)} />
         ) : f.type === "select" ? (
-          <Select key={f.key} label={f.label} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} options={(f.options ?? []).map((o) => ({ value: o, label: o }))} />
+          <Select key={f.key} label={label(f)} hint={hint(f)} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} options={(f.options ?? []).map((o) => ({ value: o, label: OPTION[o] ? t(...OPTION[o]!) : o }))} />
         ) : (
-          <Input key={f.key} label={`${f.label}${f.optional ? "" : " *"}`} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} inputMode={f.type === "number" ? "numeric" : undefined} required={!f.optional} />
+          <Input key={f.key} label={`${label(f)}${f.optional ? "" : " *"}`} hint={hint(f)} value={String(val(f))} onChange={(v) => setConfig({ ...config, [f.key]: v })} inputMode={f.type === "number" ? "numeric" : undefined} required={!f.optional} />
         ),
       )}
       {form.secrets.filter(shown).map((f) => (
-        <Input key={f.key} label={f.label} hint={edit ? t("Empty: keep the saved one.", "비워 두면 저장된 값을 그대로 써요.") : t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
+        <Input key={f.key} label={label(f)} hint={<>{hint(f) && <>{hint(f)} </>}{edit ? t("Empty: keep the saved one.", "비워 두면 저장된 값을 그대로 써요.") : t("Stored encrypted and never shown again.", "암호화해 저장하고 다시 보여주지 않아요.")}</>} type="password" value={secrets[f.key] ?? ""} onChange={(v) => setSecrets({ ...secrets, [f.key]: v })} autoComplete="new-password" />
       ))}
       {form.googleRedirect && !from && (
         <Callout>

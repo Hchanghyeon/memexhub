@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { Area, LocationProvider, Point, Visit } from "./types.js";
 
 /** Dawarich (self-hosted location history) over its REST API. Read-only. */
@@ -56,10 +56,10 @@ export const dawarichProvider = defineProvider({
   title: T("Dawarich", "Dawarich"),
   config: z.object({
     // Use an address Dawarich accepts (its APPLICATION_HOSTS), e.g. its public https name — fetch cannot override Host.
-    url: z.string().url().describe("Dawarich URL as listed in its APPLICATION_HOSTS, e.g. https://location.example.com"),
-    allowPrivateNetwork: z.boolean().default(false).describe("Server is on my private network"),
+    url: z.string().url().meta(F("Dawarich address", "Dawarich 주소", ["The address listed in Dawarich's APPLICATION_HOSTS, e.g. https://location.example.com", "Dawarich 설정의 APPLICATION_HOSTS 에 적힌 주소예요. 예: https://location.example.com"])),
+    allowPrivateNetwork: z.boolean().default(false).meta(F("The server is on my home network", "서버가 집 네트워크 안에 있어요", ["Tick when the address is a home address such as 192.168.x.x or http://nas.local. Leave it off for internet addresses.", "주소가 192.168.x.x, http://nas.local 처럼 집 안 주소면 체크하세요. 인터넷 주소면 끈 채로 두세요."])),
   }),
-  secrets: z.object({ apiKey: z.string().min(1).describe("API key (Dawarich → Account)") }),
+  secrets: z.object({ apiKey: z.string().min(1).meta(F("API key", "API 키", ["Dawarich → Account → API key", "Dawarich → Account(계정) 화면에 있는 API 키"])) }),
   runtimes: ["node", "workers"],
   hosts: (c: any) => [new URL(c.url).hostname],
   allowPrivate: (c: any) => !!c.allowPrivateNetwork,

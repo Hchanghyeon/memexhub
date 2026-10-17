@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineProvider } from "../types.js";
-import { T } from "../../core/i18n.js";
+import { F, T } from "../../core/i18n.js";
 import type { MusicProvider, Play } from "./types.js";
 
 const ACCOUNTS = "https://accounts.spotify.com";
@@ -71,11 +71,11 @@ export const spotifyProvider = defineProvider({
   id: "spotify",
   title: T("Spotify (recently played)", "Spotify (최근 재생)"),
   config: z.object({
-    clientId: z.string().regex(/^[a-f0-9]{32}$/i).describe("Client ID (developer.spotify.com → Dashboard → your app)"),
+    clientId: z.string().regex(/^[a-f0-9]{32}$/i).meta(F("Client ID", "클라이언트 ID", ["developer.spotify.com → Dashboard → Create app (Web API) → Settings. Add the redirect URI shown below.", "developer.spotify.com → Dashboard → Create app (Web API) → Settings. 아래에 보이는 리디렉션 URI를 추가하세요."])),
     account: z.string().max(200).optional().describe("@internal"),
   }),
   secrets: z.object({
-    clientSecret: z.string().min(16).describe("Client secret"),
+    clientSecret: z.string().min(16).meta(F("Client secret", "클라이언트 시크릿", ["Settings → View client secret, in the same app.", "같은 앱의 Settings → View client secret 에 있어요."])),
     refreshToken: z.string().optional().describe("@internal"),
   }),
   runtimes: ["node", "workers"],
