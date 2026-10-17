@@ -56,6 +56,11 @@ export default defineModule({
           }
           return lines.length ? lines : undefined;
         },
+        async events(date) {
+          const out = [];
+          for (const r of await events(date, date)) for (const e of r.events ?? []) if (!e.allDay && onDay(e, date, tz)) out.push({ kind: "event" as const, start: +new Date(e.start), end: e.end ? +new Date(e.end) : undefined, label: e.title });
+          return out;
+        },
       },
       tools: [
         defineTool({

@@ -41,7 +41,7 @@ sequenceDiagram
 
 New tools that make routines cheap ✅:
 
-- `day_summary(date)`: stays, payments, transit, health, mail counts in one compact call (no need to open large yearly notes)
+- `day_summary(date)`: stays, payments, transit, health, mail counts in one compact call (no need to open large yearly notes). It starts with **scenes**: records of the same moment merged by time, e.g. `18:47–20:44 📍 stay · 💳 20:35 restaurant ₩… · 📅 18:00 dinner (from 📍💳📅)`. A payment joins the stay it falls in, a calendar event joins the scene that overlaps it most (appointments prefer places other than home or office), transit taps between places become moves, and a calendar event nothing matches is listed so a routine can leave it unchecked
 - `week_summary(week)`: weekly numbers with week-over-week comparison, top merchants, recurring payments
 
 Each module contributes its own part (a module added later shows up in the summaries by itself).

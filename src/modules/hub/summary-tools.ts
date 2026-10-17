@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { defineTool, type ModuleContext, type WeekNumber } from "../../core/registry.js";
+import { defineTool, type DayEvent, type ModuleContext, type WeekNumber } from "../../core/registry.js";
 import { pick, T } from "../../core/i18n.js";
 import { addDays, localDate, weekdayMon0 } from "../../core/time.js";
+import { buildScenes, sceneLines } from "./scenes.js";
 
 const DOW = { en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], ko: ["월", "화", "수", "목", "금", "토", "일"] };
 
@@ -42,8 +43,8 @@ export function summaryTools(ctx: ModuleContext) {
       name: "day_summary",
       readOnly: true,
       description: T(
-        "Everything about one day in one compact call: where you were, payments, health, mail counts, tasks due. Use it for daily notes instead of opening large notes or calling each tool.",
-        "하루를 한 번에 짧게: 어디 있었는지, 결제, 건강, 메일 개수, 마감 할 일. 하루 일지를 쓸 때 큰 노트를 열거나 도구를 하나씩 부르는 대신 쓴다.",
+        "Everything about one day in one compact call: scenes first (calendar events, stays and payments of the same moment merged into one line, with what matched), then where you were, payments, health, mail counts, tasks due. Use it for daily notes instead of opening large notes or calling each tool.",
+        "하루를 한 번에 짧게: 먼저 장면(같은 때의 일정·체류·결제를 한 줄로 합치고 무엇이 맞았는지 표시), 그다음 어디 있었는지, 결제, 건강, 메일 개수, 마감 할 일. 하루 일지를 쓸 때 큰 노트를 열거나 도구를 하나씩 부르는 대신 쓴다.",
       ),
       input: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("YYYY-MM-DD (default: today)") },
       async run({ date }) {
@@ -55,6 +56,17 @@ export function summaryTools(ctx: ModuleContext) {
           const part = await safe(() => s.summary.day!(d));
           if (part === undefined || (Array.isArray(part) && !part.length)) continue;
           out.push("", `## ${pick(s.title, l)}`, ...(Array.isArray(part) ? part : [part]));
+        }
+        // Scenes first: the same moment told by several records (calendar, location, payments) as one line.
+        const events: DayEvent[] = [];
+        for (const s of ctx.summaries()) {
+          if (!s.summary.events) continue;
+          const e = await safe(() => s.summary.events!(d));
+          if (Array.isArray(e)) events.push(...e);
+        }
+        if (events.some((e) => e.kind !== "transit")) {
+          const lines = sceneLines(buildScenes(events), ctx.settings.timezone, l);
+          if (lines.length) out.splice(1, 0, "", l === "ko" ? "## 장면 (일정·위치·결제를 시간으로 합침)" : "## Scenes (calendar, location and payments merged by time)", ...lines);
         }
         return out.length > 1 ? out.join("\n") : `${out[0]}\n${l === "ko" ? "기록 없음" : "no records"}`;
       },

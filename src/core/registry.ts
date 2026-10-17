@@ -54,9 +54,25 @@ export interface WeekPart {
   lines: string[];
   numbers: WeekNumber[];
 }
+/**
+ * One timed thing on a day, given to day_summary so it can merge records of the same moment into scenes
+ * (a calendar dinner + a stay at the restaurant + its payment = one scene). Times are epoch milliseconds.
+ */
+export interface DayEvent {
+  kind: "stay" | "pay" | "transit" | "office" | "event";
+  start: number;
+  end?: number;
+  label: string;
+  /** A registered place (home, office, a station …): an everyday place, not where an appointment happens. */
+  named?: boolean;
+  amount?: string;
+  online?: boolean;
+}
 /** Composite: each module contributes its part of day_summary / week_summary. Dates are YYYY-MM-DD in the hub time zone. */
 export interface Summary {
   day?(date: string): Promise<string[] | undefined>;
+  /** The day's timed records, for merging into scenes. */
+  events?(date: string): Promise<DayEvent[] | undefined>;
   week?(from: string, to: string): Promise<WeekPart | undefined>;
 }
 

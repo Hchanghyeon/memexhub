@@ -101,6 +101,11 @@ export default defineModule({
           for (const x of stays(pts, s().stay)) parts.push(`${hhmm(x.start)}–${hhmm(x.end)} ${(await places.nameAt!(x.lat, x.lon)) || (s().language === "ko" ? "(이름 없음)" : "(unnamed)")}`);
           return [`${parts.join(" → ") || (s().language === "ko" ? "체류 없음" : "no stays")} · ${pathKm(pts).toFixed(1)} km`];
         },
+        async events(date) {
+          const day = await admin.day(date);
+          const ko = s().language === "ko";
+          return day.stays.map((x) => ({ kind: "stay" as const, start: x.start * 1000, end: x.end * 1000, label: x.named && s().privateAreas.includes(x.name) ? (ko ? "(비공개)" : "(private)") : x.name || (ko ? "(이름 없음)" : "(unnamed)"), named: x.named }));
+        },
         async week(from, to) {
           const { loc } = await get();
           if (!loc) return undefined;

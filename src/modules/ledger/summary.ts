@@ -1,4 +1,4 @@
-import type { Summary } from "../../core/registry.js";
+import type { DayEvent, Summary } from "../../core/registry.js";
 import { addDays, localDate } from "../../core/time.js";
 import { entries, krw, normMerchant, type LedgerRow } from "./render.js";
 
@@ -25,6 +25,15 @@ export function ledgerSummary(o: { rows: () => Promise<LedgerRow[]>; tz: () => s
       if (transit.length) out.push(`🚇 ${transit.map((e) => hm(e.w)).join(", ")}`);
       const office = inRange.filter((e) => e.kind2 === "office");
       if (office.length) out.push(`🏢 ${hm(office[0]!.w)}–${hm(office[office.length - 1]!.w)} · ${office.length}`);
+      return out;
+    },
+    async events(date) {
+      const { inRange } = await load(date, date);
+      const out: DayEvent[] = inRange
+        .filter((e) => e.kind2 === "pay" || e.kind2 === "transit")
+        .map((e) => (e.kind2 === "pay" ? { kind: "pay", start: e.ms, label: e.merchant || e.name || "?", amount: e.amount, online: !!e.online } : { kind: "transit", start: e.ms, label: e.merchant || e.name || "" }));
+      const office = inRange.filter((e) => e.kind2 === "office");
+      if (office.length) out.push({ kind: "office", start: office[0]!.ms, end: office[office.length - 1]!.ms, label: o.lang() === "ko" ? "회사" : "office", named: true });
       return out;
     },
     async week(from, to) {
