@@ -110,5 +110,5 @@ function RouteMap({ day, focus }: { day: Day; focus?: number }) {
       el.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [focus, day]);
-  return <div ref={el} className="h-[60vh] min-h-80 w-full overflow-hidden rounded-lg border" role="region" aria-label="map" />;
+  return <div ref={el} className="isolate h-[60vh] min-h-80 w-full overflow-hidden rounded-lg border" role="region" aria-label="map" />;
 }

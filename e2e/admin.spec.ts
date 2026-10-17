@@ -145,6 +145,20 @@ test("map: a day's route and stays", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("map: the phone menu covers the map, zoom buttons included", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "the slide-in menu is phone only");
+  await signIn(page);
+  await page.goto("/admin/map");
+  await page.getByLabel("날짜").fill("2026-01-15");
+  const zoom = page.locator(".leaflet-control-zoom-in");
+  await expect(zoom).toBeVisible();
+  await page.getByRole("button", { name: "메뉴" }).click();
+  const box = (await zoom.boundingBox())!;
+  // Leaflet layers use z-index 400–1000; the map keeps them inside its own stacking context.
+  const top = await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest(".leaflet-container"), { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+  expect(top).toBe(false);
+});
+
 test("first-run setup: three steps, waits for Claude, can finish later", async ({ page }) => {
   const errors = watchErrors(page);
   await signIn(page);
