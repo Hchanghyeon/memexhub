@@ -96,3 +96,15 @@ export async function pendingSources(vault: SafeVault, layout: Layout) {
     .filter((p) => layout.isSource(p) && !(g.incoming.get(p) ?? []).some((x) => layout.isWikiPage(x.from)))
     .sort();
 }
+
+/** A short record of what a conversation decided, saved as a source so the wiki can take it in later. */
+export function conversationNote(a: { decisions: string[]; facts: string[]; todos: string[]; context?: string }, lang: "ko" | "en") {
+  const h = lang === "ko" ? { d: "결정", f: "새로 안 것", t: "남은 일", c: "맥락" } : { d: "Decisions", f: "Facts", t: "To-dos", c: "Context" };
+  const list = (xs: string[], todo = false) => xs.map((x) => `- ${todo ? "[ ] " : ""}${oneLine(x, 400)}`).join("\n");
+  return [
+    ...(a.context ? [`> ${h.c}: ${oneLine(a.context, 400)}`, ""] : []),
+    ...(a.decisions.length ? [`## ${h.d}`, list(a.decisions), ""] : []),
+    ...(a.facts.length ? [`## ${h.f}`, list(a.facts), ""] : []),
+    ...(a.todos.length ? [`## ${h.t}`, list(a.todos, true), ""] : []),
+  ].join("\n").trimEnd() + "\n";
+}

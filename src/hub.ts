@@ -6,7 +6,7 @@ import { migrate } from "./core/migrations.js";
 import { SettingsStore, type Settings } from "./core/settings.js";
 import { Connections } from "./core/connections.js";
 import { EventBus } from "./core/events.js";
-import { pick } from "./core/i18n.js";
+import { pick, type Text } from "./core/i18n.js";
 import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
@@ -226,8 +226,10 @@ export class Hub {
   /** Builder: a fresh stateless MCP server per request (works the same on Node and Workers). */
   async buildMcpServer(actor: string): Promise<McpServer> {
     const s: Settings = await this.settings.get();
-    const server = new McpServer({ name: "memexhub", version: "0.1.0" });
-    for (const t of await this.visibleTools()) {
+    const tools = await this.visibleTools();
+    const has = (n: string) => tools.some((t) => t.name === n);
+    const server = new McpServer({ name: "memexhub", version: "0.1.0" }, { instructions: pick(serverInstructions(has), s.toolLanguage) });
+    for (const t of tools) {
       server.registerTool(
         t.name,
         {
@@ -253,4 +255,28 @@ export class Hub {
     }
     return server;
   }
+}
+
+/**
+ * What every connected AI is told once (MCP server instructions). The Claude app has no "end of chat" hook,
+ * so saving what a conversation decided is asked for here: offer, then save on yes.
+ */
+function serverInstructions(has: (tool: string) => boolean): Text {
+  const en = [
+    "memexhub is the user's second brain: their notes (an LLM Wiki in an Obsidian-style vault) and life logs. Use it to answer from what they wrote and recorded.",
+    "Find before you read: search_notes first (cheap, matching lines only), then open only the 2–3 notes you need.",
+    ...(has("wiki_layout") ? ["Before filing anything, call wiki_layout and follow the vault's rule notes."] : []),
+    ...(has("conversation_save")
+      ? ["When a conversation reaches a decision, a new fact about the user or their work, or a to-do worth keeping, ask once near the end whether to save it, and on yes call conversation_save (short: decisions, facts, to-dos). Do not offer it for small talk or one-off questions."]
+      : []),
+  ];
+  const ko = [
+    "memexhub 는 사용자의 두 번째 뇌다: 노트(Obsidian 식 볼트의 LLM Wiki)와 생활 기록. 사용자가 쓰고 기록한 것으로 답할 때 쓴다.",
+    "읽기 전에 찾는다: 먼저 search_notes (싸다, 매칭 줄만), 그다음 필요한 노트 2~3개만 연다.",
+    ...(has("wiki_layout") ? ["무언가 저장하기 전에 wiki_layout 을 부르고 볼트 규칙 노트를 따른다."] : []),
+    ...(has("conversation_save")
+      ? ["대화에서 결정, 사용자나 그 일에 대한 새 사실, 남길 만한 할 일이 나오면 끝 무렵에 한 번 저장할지 묻고, 그러자고 하면 conversation_save 를 부른다 (짧게: 결정·사실·남은 일). 잡담이나 일회성 질문에는 묻지 않는다."]
+      : []),
+  ];
+  return { en: en.join("\n"), ko: ko.join("\n") };
 }

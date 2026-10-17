@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Layout } from "./layout.js";
 import { LinkGraph } from "./graph.js";
 import { effectiveRules, formatFindings, lint, RULES } from "./lint.js";
-import { addToIndex, appendLog, backlinks, pendingSources, saveSource, today } from "./upkeep.js";
+import { addToIndex, appendLog, backlinks, conversationNote, pendingSources, saveSource, today } from "./upkeep.js";
 import { normalizeVaultPath } from "../../storage/paths.js";
 
 /** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
@@ -128,6 +128,27 @@ export default defineModule({
         }),
         ...(layout.sources
           ? [
+              defineTool({
+                name: "conversation_save",
+                description: T(
+                  "Save what this conversation decided — decisions, new facts about the user or their work, to-dos — as a short source note (write-once). The nightly ingest files the lasting parts into the wiki. Ask the user first; skip small talk.",
+                  "이 대화에서 정한 것 — 결정, 사용자나 그 일에 대한 새 사실, 남은 일 — 을 짧은 원본 노트로 저장한다 (한 번만 씀). 오래 쓸 부분은 밤 수집이 위키에 넣는다. 먼저 사용자에게 묻고, 잡담은 저장하지 않는다.",
+                ),
+                input: {
+                  title: z.string().min(1).max(80).describe("What it was about, a few words / 무엇에 대한 대화인지 몇 단어"),
+                  decisions: z.array(z.string().min(1).max(400)).max(10).default([]),
+                  facts: z.array(z.string().min(1).max(400)).max(10).default([]),
+                  todos: z.array(z.string().min(1).max(400)).max(10).default([]),
+                  context: z.string().max(400).optional().describe("One line: why this came up / 한 줄: 어떤 상황이었는지"),
+                },
+                async run({ title, decisions, facts, todos, context }, ctx) {
+                  if (!decisions.length && !facts.length && !todos.length) return "nothing to save — no decision, fact or to-do (not saved)";
+                  const lang = settings.ledger.language;
+                  const content = conversationNote({ decisions, facts, todos, context }, lang);
+                  const path = await saveSource(vault!.withActor(ctx.actor), layout, { title: `${lang === "ko" ? "대화" : "Conversation"} - ${title}`, content, date: today(settings.timezone) });
+                  return `saved: ${path} (${new TextEncoder().encode(content).length} bytes). The nightly ingest will file the lasting parts into the wiki.`;
+                },
+              }),
               defineTool({
                 name: "wiki_pending",
                 readOnly: true,
