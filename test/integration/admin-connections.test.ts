@@ -103,6 +103,6 @@ describe("adding a connection from the admin API", () => {
     // Only the link's own host may be called, over https; a home address needs "on my home network".
     await hub.connections.patch(add.id, { secrets: { url: "http://192.168.0.5/cal.ics" } }, "t");
     await hub.reload();
-    expect(await a.post(`/connections/${add.id}/test`, {}).then((r) => r.json())).toMatchObject({ ok: false, error: "https required" });
+    expect(await (await a.post(`/connections/${add.id}/test`, {})).json()).toMatchObject({ ok: false, error: "https required" });
   });
 });
