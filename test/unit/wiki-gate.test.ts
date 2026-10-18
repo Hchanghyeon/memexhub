@@ -90,7 +90,7 @@ describe("wiki write gate", () => {
     const save = tools.find((t) => t.name === "conversation_save")!;
     expect(await save.run({ title: "x", decisions: [], facts: [], todos: [] } as any, { actor: "c" })).toMatch(/not saved/);
     const r = await save.run({ title: "검색 색인", decisions: ["벡터 검색은 보류"], facts: [], todos: ["context 도구"], context: "토큰 걱정" } as any, { actor: "c" });
-    const path = r.match(/saved: (\S+ .*?\.md)/)![1]!;
+    const path = String(r).match(/saved: (\S+ .*?\.md)/)![1]!;
     expect(path).toBe("raw/2026-10-16 대화 - 검색 색인.md");
     const text = (await v.read(path)).text;
     expect(text).toContain("type: source");

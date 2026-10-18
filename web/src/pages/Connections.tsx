@@ -2,7 +2,7 @@ import { useState } from "react";
 import { post } from "../api";
 import { ago, useT } from "../i18n";
 import { explain } from "../explain";
-import { CalendarDays, CloudSun, House, ListChecks, Mail, Map as MapIcon, MapPin, Music, NotebookText, Plug, Plus, type LucideIcon } from "lucide-react";
+import { CalendarDays, Camera, CloudSun, House, ListChecks, Mail, Map as MapIcon, MapPin, Music, NotebookText, Plug, Plus, type LucideIcon } from "lucide-react";
 import { Actions, Badge, Button, Callout, Card, Check, Dialog, Empty, Hint, Input, Item, List, Loading, Page, Select, Sub, useAction, useConfirm, useData } from "../ui/kit";
 
 type Text = { en: string; ko: string };
@@ -15,6 +15,7 @@ const KINDS: { kind: string; icon: LucideIcon; name: [string, string]; what: [st
   { kind: "calendar", icon: CalendarDays, name: ["Calendar", "캘린더"], what: ["Your events in summaries; Claude can look up any day. Read-only.", "일정을 요약에 넣고 Claude가 어느 날이든 찾아봐요. 읽기 전용."] },
   { kind: "mail", icon: Mail, name: ["Mail", "메일"], what: ["Claude can search and read your mailbox; receipts become payments. Read-only.", "Claude가 메일함을 찾고 읽고, 영수증은 결제로 기록돼요. 읽기 전용."] },
   { kind: "tasks", icon: ListChecks, name: ["Tasks", "할 일"], what: ["Claude can read and add to-dos.", "Claude가 할 일을 보고 추가해요."] },
+  { kind: "photos", icon: Camera, name: ["Photos", "사진"], what: ["Pictures from your phone backup, as small previews Claude looks at for the journal: meals, receipts, documents, places. Read-only, never stored.", "폰 백업 사진을 작은 미리보기로 Claude가 보고 일지에 써요: 음식, 영수증, 문서, 장소. 읽기 전용이고 어디에도 저장하지 않아요."] },
   { kind: "location", icon: MapPin, name: ["Location", "위치"], what: ["Where you were, and place names for payments.", "다녀온 곳과 결제 장소 이름."] },
   { kind: "geocoder", icon: MapIcon, name: ["Place names", "지명"], what: ["Turns coordinates into neighbourhood names.", "좌표를 동네 이름으로 바꿔요."] },
   { kind: "maptiles", icon: MapIcon, name: ["Map background", "지도 바탕"], what: ["Pictures behind the route on the Map screen, fetched and kept by this server.", "지도 화면의 경로 뒤에 깔리는 지도. 이 서버가 받아 보관해요."] },
@@ -30,6 +31,7 @@ const NEEDS: Record<string, [string, string]> = {
   "calendar:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],
   "calendar:icloud": ["Apple ID and an app-specific password.", "Apple ID와 앱 암호."],
   "calendar:caldav": ["The CalDAV address, user name and password.", "CalDAV 주소, 아이디, 비밀번호."],
+  "photos:folder": ["A phone photo backup folder mounted into memexhub read-only (Synology Photos, Nextcloud, Syncthing).", "memexhub에 읽기 전용으로 붙인 폰 사진 백업 폴더 (시놀로지 포토, Nextcloud, Syncthing)."],
   "calendar:ical": ["Only the calendar's iCal link. No sign-in. One connection per calendar.", "캘린더의 iCal 링크 하나만 있으면 돼요. 로그인 없음. 캘린더마다 연결 하나."],
   "mail:imap": ["Mail server, user name and an app password.", "메일 서버, 아이디, 앱 비밀번호."],
   "tasks:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],

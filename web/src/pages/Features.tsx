@@ -24,6 +24,7 @@ const MOD: Record<string, [string, string, string, string]> = {
   mail: ["Mail", "메일", "Claude reads your mailbox (read-only).", "Claude가 메일함을 읽어요 (읽기 전용)."],
   location: ["Location", "위치", "Where you were, place names for payments.", "다녀온 곳, 결제 장소 이름."],
   health: ["Health", "건강", "Sleep, steps and workouts become health notes.", "수면·걸음·운동을 건강 노트로 남겨요."],
+  photos: ["Photos", "사진", "Claude looks at the day's pictures (previews) to fill the journal: meals, receipts, documents, places.", "Claude가 그날 사진(미리보기)을 보고 일지를 채워요: 음식, 영수증, 문서, 장소."],
   meals: ["Meals", "식단", "Send Claude a photo or say what you ate: it estimates calories and protein, carbs, fat and keeps a meals note.", "Claude에게 음식 사진을 보내거나 먹은 걸 말하면 칼로리와 단백질·탄수화물·지방을 어림해 식단 노트에 남겨요."],
   tasks: ["Tasks", "할 일", "Google Tasks for Claude.", "Claude가 Google Tasks를 써요."],
   notion: ["Notion", "Notion", "Copy records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."],

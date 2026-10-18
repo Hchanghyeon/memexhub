@@ -8,6 +8,7 @@ import { nodePlatform } from "./platform/node.js";
 import { Hub } from "./hub.js";
 import { MODULES } from "./modules/index.js";
 import { fsProvider } from "./storage/fs-provider.js";
+import { folderPhotosProvider } from "./providers/photos/folder.js";
 import { PORTABLE_PROVIDERS } from "./providers/registry.js";
 import { NODE_PROVIDERS } from "./providers/node.js";
 import { mcpApp } from "./http/mcp.js";
@@ -22,7 +23,7 @@ const builtinVault = resolve(join(env.DATA_DIR, "vault"));
 const vaultRoots = env.VAULT_ROOTS.split(",").map((r) => resolve(r.trim())).filter(Boolean);
 const trusted = env.TRUSTED_PROXIES.split(",").map((s) => s.trim());
 
-const hub = new Hub(platform, env, MODULES, [...PORTABLE_PROVIDERS, ...NODE_PROVIDERS, fsProvider({ builtinVault, vaultRoots })]);
+const hub = new Hub(platform, env, MODULES, [...PORTABLE_PROVIDERS, ...NODE_PROVIDERS, fsProvider({ builtinVault, vaultRoots }), folderPhotosProvider({ roots: env.PHOTO_ROOTS.split(",").map((r) => resolve(r.trim())).filter(Boolean) })]);
 await hub.init();
 const assets = nodeAdminAssets();
 // Module jobs (receipt mails, …): check every minute what is due.

@@ -5,6 +5,13 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 const subtle = globalThis.crypto.subtle;
 
+/** Standard base64 (for images in tool answers), without Node's Buffer so it runs on Workers too. */
+export function b64(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
 export function b64url(bytes: Uint8Array): string {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);

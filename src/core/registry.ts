@@ -13,8 +13,15 @@ export interface ToolDef<S extends z.ZodRawShape = z.ZodRawShape> {
   /** Hint for clients + used to hide destructive tools by default. */
   readOnly?: boolean;
   destructive?: boolean;
-  run(args: z.infer<z.ZodObject<S>>, ctx: CallContext): Promise<string>;
+  run(args: z.infer<z.ZodObject<S>>, ctx: CallContext): Promise<string | ToolResult>;
 }
+
+/** A tool answer with pictures (e.g. photo previews for Claude to look at). The text always comes first. */
+export interface ToolResult {
+  text: string;
+  images: { data: string; mimeType: string }[]; // base64
+}
+export const textOf = (r: string | ToolResult) => (typeof r === "string" ? r : r.text);
 
 export interface CallContext {
   actor: string; // "mcp:<client_id>"
@@ -59,7 +66,7 @@ export interface WeekPart {
  * (a calendar dinner + a stay at the restaurant + its payment = one scene). Times are epoch milliseconds.
  */
 export interface DayEvent {
-  kind: "stay" | "pay" | "transit" | "office" | "event" | "meal";
+  kind: "stay" | "pay" | "transit" | "office" | "event" | "meal" | "photo";
   start: number;
   end?: number;
   label: string;

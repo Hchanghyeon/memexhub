@@ -23,6 +23,8 @@ export const EnvSchema = z.object({
   ADMIN_PUBLIC: z.enum(["0", "1", "true", "false"]).default("0").transform((v) => v === "1" || v === "true"),
   /** Folders the admin UI may choose as a server-local vault (security boundary). The built-in vault lives in DATA_DIR/vault. */
   VAULT_ROOTS: z.string().default("/vaults"),
+  /** Folders a photo connection may read (security boundary), e.g. a phone backup mounted read-only. */
+  PHOTO_ROOTS: z.string().default("/photos"),
   /** Comma-separated CIDRs whose X-Real-IP / X-Forwarded-For we trust (your reverse proxy). Default: private ranges. */
   TRUSTED_PROXIES: z.string().default("127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7"),
 });

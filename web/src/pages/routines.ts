@@ -22,6 +22,7 @@ Rules
 1. Call wiki_layout to find where daily notes live, and read the vault's rule notes it names.
 2. Call day_summary for today. Its "Scenes" section already merges stays, payments, transit and office taps by time: use it as the skeleton, do not re-match.
 3. If a calendar connector is available, list today's events from every calendar and attach each one to the scene it overlaps (within an hour). An event that fits no scene is "not confirmed".
+   If photos_day is available, look at the day's pictures (narrow to meal times and scenes worth a line) and file them as its rules say: meals with meal_add, documents as sources, one line per place or event in the scene it belongs to.
 4. Open today's daily note (create it from the layout's daily pattern if missing) and replace only "## Daily record (auto)" (add it at the end if missing):
    > [!summary] one line for the day, then up to 3 highlights (who I met, what I finished, notable spending)
    ### Scenes: numbered list, one scene per line with time, place, payment, event
@@ -40,6 +41,7 @@ Rules
 1. wiki_layout 으로 일지 노트 위치를 확인하고, 거기 나온 볼트 규칙 노트를 읽으세요.
 2. 오늘 날짜로 day_summary 를 부르세요. "장면" 섹션은 체류·결제·교통·회사 출입을 시간으로 이미 합친 것입니다. 다시 맞춰 보지 말고 뼈대로 쓰세요.
 3. 캘린더 커넥터가 있으면 모든 캘린더의 오늘 일정을 보고, 시간이 겹치는(1시간 안) 장면에 붙이세요. 어느 장면과도 안 맞는 일정은 "확인 못 함"입니다.
+   photos_day 가 있으면 그날 사진을 보고(끼니 시간대와 한 줄 남길 만한 장면으로 좁혀서) 도구 설명의 규칙대로 기록하세요: 음식은 meal_add, 문서는 원본으로, 장소·행사는 그 장면에 한 줄.
 4. 오늘 일지 노트를 여세요(없으면 구조의 일지 패턴으로 만들기). "## 하루 기록 (자동)" 섹션만 바꿉니다(없으면 노트 끝에 추가):
    > [!summary] 하루 한 줄, 그 아래 하이라이트 최대 3줄(만난 사람, 끝낸 일, 눈에 띄는 지출)
    ### 장면: 번호 목록, 한 줄에 한 장면(시각·장소·결제·일정)

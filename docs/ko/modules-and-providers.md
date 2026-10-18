@@ -74,6 +74,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | location | `location_day` | `/ingest/owntracks` | - | ✅ ([위치](location.md)) |
 | health | `health_day` | `/ingest/health` | 건강 | ✅ ([건강](health.md)) |
 | meals | `meal_add` `meal_day` `meal_cancel` | - | 식단 | ✅ ([식단](meals.md)) |
+| photos | `photos_day` | - | - | ✅ ([사진](photos.md)) |
 | tasks | `task_*` | - | - | ✅ ([할 일](tasks.md)) |
 | calendar | `calendar_list` `calendar_events` | - | - | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | - | - | ✅ |

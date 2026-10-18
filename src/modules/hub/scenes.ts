@@ -11,6 +11,7 @@ export interface Scene {
   online?: boolean;
   pays: DayEvent[];
   meals: DayEvent[];
+  photos: number;
   events: DayEvent[];
   taps: number;
   fromLocation: boolean;
@@ -31,7 +32,7 @@ const overlap = (a0: number, a1: number, b0: number, b1: number) => Math.max(0, 
  */
 export function buildScenes(all: DayEvent[]): { scenes: Scene[]; unmatched: DayEvent[] } {
   const by = (k: DayEvent["kind"]) => all.filter((e) => e.kind === k).sort((a, b) => a.start - b.start);
-  const scene = (e: DayEvent, kind: Scene["kind"], fromLocation: boolean): Scene => ({ kind, start: e.start, end: e.end ?? e.start, label: e.label, named: e.named, online: e.online, pays: [], meals: [], events: [], taps: 0, fromLocation });
+  const scene = (e: DayEvent, kind: Scene["kind"], fromLocation: boolean): Scene => ({ kind, start: e.start, end: e.end ?? e.start, label: e.label, named: e.named, online: e.online, pays: [], meals: [], photos: 0, events: [], taps: 0, fromLocation });
 
   const scenes: Scene[] = [];
   for (const s of by("stay")) {
@@ -54,6 +55,11 @@ export function buildScenes(all: DayEvent[]): { scenes: Scene[]; unmatched: DayE
     const at = places().find((s) => m.start >= s.start - 30 * MIN && m.start <= s.end + 30 * MIN);
     if (at) at.meals.push(m);
     else scenes.push({ ...scene(m, "meal", false), meals: [m] });
+  }
+  // Pictures only count: how many were taken at each place.
+  for (const p of by("photo")) {
+    const at = places().find((s) => p.start >= s.start - 5 * MIN && p.start <= s.end + 5 * MIN);
+    if (at) at.photos++;
   }
   const unmatched: DayEvent[] = [];
   for (const ev of by("event")) {
@@ -105,8 +111,9 @@ export function sceneLines(r: { scenes: Scene[]; unmatched: DayEvent[] }, tz: st
       ...(s.kind === "pay" ? [] : s.pays.map((p) => `💳 ${hm(p.start)} ${p.label} ${p.amount ?? ""}`.trim())),
       ...(s.kind === "meal" ? [] : s.meals.map((m) => `🍽 ${hm(m.start)} ${m.label} ${m.amount ?? ""}`.trim())),
       ...s.events.map((e) => `📅 ${hm(e.start)} ${e.label}`),
+      ...(s.photos ? [`📷 ${s.photos}`] : []),
     ];
-    const proof = [s.fromLocation ? "📍" : "", s.kind === "office" ? "🏢" : "", s.pays.length ? "💳" : "", s.meals.length ? "🍽" : "", s.events.length ? "📅" : ""].filter(Boolean);
+    const proof = [s.fromLocation ? "📍" : "", s.kind === "office" ? "🏢" : "", s.pays.length ? "💳" : "", s.meals.length ? "🍽" : "", s.events.length ? "📅" : "", s.photos ? "📷" : ""].filter(Boolean);
     return `- ${span(s)} ${[head, ...extra].join(" · ")}${proof.length > 1 ? ` (${t.proof} ${proof.join("")})` : ""}`;
   });
   for (const e of r.unmatched) lines.push(`- 📅 ${t.unmatched}: ${hm(e.start)} ${e.label}`);

@@ -246,8 +246,10 @@ export class Hub {
         },
         async (args: any) => {
           try {
-            const text = await t.run(z.object(t.input).parse(args), { actor });
-            return { content: [{ type: "text" as const, text }], structuredContent: { result: text } };
+            const r = await t.run(z.object(t.input).parse(args), { actor });
+            const text = typeof r === "string" ? r : r.text;
+            const images = typeof r === "string" ? [] : r.images.map((i) => ({ type: "image" as const, data: i.data, mimeType: i.mimeType }));
+            return { content: [{ type: "text" as const, text }, ...images], structuredContent: { result: text } };
           } catch (e) {
             // Expected errors are shown to the model; unexpected ones are logged without details.
             const msg = e instanceof StorageError || e instanceof z.ZodError ? (e as Error).message : "internal error";
