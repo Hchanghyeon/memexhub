@@ -136,13 +136,13 @@ Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active
 
 ## Admin UI
 
-Under **Features → Ledger → Recipes & inbox** ✅:
+On the **Messages** page ✅ ([page guide](admin-ui.md#messages)):
 
-- **Try a message.** Paste a text and see which step handled it (recipe, generic parser or inbox) and the fields.
-- **Recipes.** Lists built-in, active and proposed recipes, with test results. **Approve** moves a proposed note into `<recipes>/`, and **Disable** sets `enabled: false`.
-- **New recipe from a message.** Builds a draft from the generic guess. You adjust it and save it as a note.
-- **Inbox.** Record, edit and record, or ignore each item.
-- **Import / export.** Accepts a JSON pack of recipes (e.g. shared by others); each recipe is written as a proposed note.
+- **Please check** (the inbox). *It's a payment* records it (values can be corrected); with **read messages like this by themselves** on, a recipe is made from that message and your answer and switched on (`POST /inbox/:id/learn`). *Not a payment* ignores it.
+- **Read by themselves.** Active recipes. Claude's proposals are switched on here (approve moves the note into `<recipes>/`); **Turn off** sets `enabled: false`, or for a collection recipe just switches it off again.
+- **Recipe collection.** The bundled recipes in `recipes/`, off by default, switched on per install (`settings.recipePacks`). Installs that existed before 2026-10-18 keep the four built-ins on.
+- **What is a recipe?** The four steps and an example key by key, with *start from this example*.
+- **Advanced.** Try a message (which step handles it and the fields), write a recipe (JSON, saved as a proposal), import and export packs.
 
 ## Mail ✅
 

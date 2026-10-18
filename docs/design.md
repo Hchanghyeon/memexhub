@@ -79,9 +79,9 @@ The admin UI is a React app in `web/` (Vite, TypeScript), built into `dist-web/`
 | Vault | where notes live (current choice preselected), wiki layout, Obsidian sync |
 | Claude app | how to add the connector (copy button), signed-in apps, tools |
 | Devices | device tokens (scopes as checkboxes, shown once with a copy button), where to send |
-| Connections | outside services with their state; add one in a dialog with the provider's own fields |
+| Connections | outside services with their state, edit and delete; add one by its short name in a dialog with the provider's fields, each with a label and help in both languages |
 | Features | switches for optional features, each with its settings |
-| Recipes & inbox | messages that could not be read, try a message, recipes |
+| Messages | messages to check, senders read by themselves, the recipe collection, what a recipe is; trying a message and JSON under Advanced |
 | Activity | who connected (with IP) and what changed |
 | Security · Backups | checks, two-factor, who may connect, open from outside; download, restore, import |
 

@@ -13,4 +13,5 @@
 | P8 | Notion output sink ✅, Notion storage adapter ✅ (beta) | re-rendering creates no duplicate rows | ✅ |
 | P9 | one-click Cloudflare (Workers + D1 + R2 + Cron, OwnTracks ingest) | from a clean Cloudflare account to the first record in 30 min | ✅ |
 | P10 | app-store packages (Home Assistant add-on, Synology, Railway template) | install → wizard completes | ✅ |
-| later | calendar provider, Gmail API, Kakao Local geocoder, MCP prompts, mobile app | - | 📝 |
+| P11 | collecting made easy: share sheet, day scenes in `day_summary`, ready-made Claude routines, Messages page with learning and a recipe collection, iCal calendar links (recurring events), Home Assistant entity picker, editing connections, help on every field in Korean, a logo | the owner's daily journal fills itself; a newcomer finds each step on screen | ✅ |
+| later | Gmail API, Kakao Local geocoder, MCP prompts, mobile app, more record kinds for messages (parcels, bookings) | - | 📝 |

@@ -11,7 +11,7 @@
 ## What you have 10 minutes after installing
 
 - **Claude knows your notes.** Ask "find the meeting notes from last month" or "file this article in my wiki", and it searches, reads and writes your vault (a Markdown folder).
-- **Your phone's records flow in by themselves.** Card payment texts, places you went, health, anything you "share" from any app. Phone setup is one QR scan.
+- **Your phone's records flow in by themselves.** Card payment texts, places you went, health, anything you "share" from any app. Phone setup is one QR scan. Calendars, mail and Home Assistant can join too (a calendar can be just its link).
 - **A journal writes itself every night.** A Claude routine merges calendar, places and payments into "where, with whom, what, how much" and checks off the to-dos you really did. Copy the routine prompts from the admin page.
 
 memexhub is not an agent and runs no model. Claude does the thinking; memexhub is the **memory** it reads from, on your server.
@@ -56,7 +56,8 @@ Threat model: [security](docs/security.md). Report vulnerabilities privately: [S
 
 ## More
 
-- [Everything it does](docs/README.md#what-works): 20+ connections, tools, status
+- [Everything it does](docs/README.md#what-works): collect · organize · serve · admin pages
+- [The admin pages](docs/admin-ui.md): what each page is for
 - [Claude integration](docs/claude-integration.md) · [architecture](docs/architecture.md) · [contributing](CONTRIBUTING.md)
 
 Named after *Memex*, the personal memory machine Vannevar Bush imagined in 1945.
