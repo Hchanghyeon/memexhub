@@ -1,3 +1,5 @@
+<p><img src="docs/assets/logo.svg" width="72" alt="memexhub"></p>
+
 # memexhub
 
 **A second brain for your AI.** A self-hosted server that gathers your notes and life logs in one place, keeps them tidy, and lets Claude (or any MCP client) use them through one connector.

@@ -1,3 +1,5 @@
+<p><img src="docs/assets/logo.svg" width="72" alt="memexhub"></p>
+
 # memexhub
 
 **내 AI를 위한 두 번째 뇌.** 내 노트와 생활 기록을 한곳에 모아 정리하고, Claude 같은 AI가 커넥터 하나로 꺼내 쓰게 해 주는 셀프호스팅 서버예요.

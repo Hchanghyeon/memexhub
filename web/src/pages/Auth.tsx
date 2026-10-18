@@ -8,7 +8,7 @@ import { Input as UIInput } from "@/components/ui/input";
 const Frame = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-muted/40 grid min-h-svh place-items-center px-4 py-8">
     <div className="w-full max-w-sm">
-      <div className="mb-6 flex items-center justify-center gap-2.5 text-lg font-bold"><Brand />memexhub</div>
+      <div className="mb-6 flex flex-col items-center justify-center gap-3 text-lg font-bold"><Brand size="lg" />memexhub</div>
       <div className="bg-card flex flex-col gap-5 rounded-xl border p-6 shadow-sm sm:p-8">{children}</div>
     </div>
   </div>
