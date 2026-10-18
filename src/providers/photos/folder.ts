@@ -25,6 +25,20 @@ export class PhotoFolder implements PhotoSource {
     const lo = from.getTime();
     const hi = to.getTime();
     let scanned = 0;
+    // Phone backups sort pictures into year (and month) folders: skip the ones that cannot hold the range.
+    // (A folder's own time says nothing here: it changes only when its direct entries do.)
+    const years = new Set<number>();
+    for (let y = from.getUTCFullYear() - 1; y <= to.getUTCFullYear() + 1; y++) years.add(y);
+    const months = new Set<string>();
+    for (let t = lo - 32 * 86_400_000; t <= hi + 32 * 86_400_000; t += 86_400_000) { const d = new Date(t); months.add(`${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`); }
+    const wanted = (full: string) => {
+      const parts = relative(this.root, full).split(sep);
+      const name = parts[parts.length - 1]!;
+      if (/^(19|20)\d\d$/.test(name)) return years.has(Number(name));
+      const parent = parts[parts.length - 2];
+      if (parent && /^(19|20)\d\d$/.test(parent) && /^(0?[1-9]|1[0-2])$/.test(name)) return months.has(`${Number(parent)}-${Number(name)}`);
+      return true;
+    };
     const walk = async (dir: string) => {
       let entries;
       try {
@@ -37,9 +51,8 @@ export class PhotoFolder implements PhotoSource {
         if (e.name.startsWith("@") || e.name.startsWith(".") || e.name.startsWith("#")) continue;
         const full = join(dir, e.name);
         if (e.isDirectory()) {
-          // A folder untouched since before the day cannot hold a picture of that day (it is added after it is taken).
-          const st = await stat(full).catch(() => undefined);
-          if (st && st.mtimeMs >= lo - 86_400_000) await walk(full);
+          if (!wanted(full)) continue;
+          await walk(full);
           continue;
         }
         const x = ext(e.name);

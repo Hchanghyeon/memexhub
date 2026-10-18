@@ -38,6 +38,9 @@ beforeAll(async () => {
   put("2026/10/IMG_5.heic", "2026-10-16T20:00:00"); // no thumbnail, no preview
   put("2026/10/R1.DNG", "2026-10-16T21:00:00");
   put("2026/10/IMG_6.JPG", "2026-10-17T09:00:00");
+  put("2025/03/OLD.JPG", "2025-03-01T09:00:00");
+  // Folders keep old times when only deeper folders change (as on a real backup).
+  for (const d of ["", "2026", "2025", "2025/03"]) utimesSync(join(LIB, d), new Date("2026-01-02T00:00:00Z"), new Date("2026-01-02T00:00:00Z"));
   const env = loadEnv({ MEMEXHUB_SECRET: "k".repeat(48), PUBLIC_URL: "https://hub.example.com", DATA_DIR: mkdtempSync(join(tmpdir(), "mx-phd-")) });
   hub = new Hub({ name: "node", db: sqliteDb(":memory:"), secret: env.MEMEXHUB_SECRET, now: () => new Date("2026-10-16T13:00:00Z"), fetch, log: { ...jsonLogger, info() {} } }, env, MODULES, [testFs(mkdtempSync(join(tmpdir(), "mx-phv-"))), folderPhotosProvider({ roots: [ROOT] })]);
   const log = console.log;
