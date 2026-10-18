@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { open, readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { z } from "zod";
 import { defineProvider } from "../types.js";
@@ -64,8 +64,14 @@ export class PhotoFolder implements PhotoSource {
     }
     const x = ext(name);
     if (x === "jpg" || x === "jpeg" || x === "png") {
-      const st = await stat(full).catch(() => undefined);
-      if (st && st.size <= MAX_ORIGINAL) return { bytes: new Uint8Array(await readFile(full)), mimeType: x === "png" ? "image/png" : "image/jpeg" };
+      // One open file for the size check and the read, so the file cannot change in between.
+      const fh = await open(full, "r").catch(() => undefined);
+      if (!fh) return undefined;
+      try {
+        if ((await fh.stat()).size <= MAX_ORIGINAL) return { bytes: new Uint8Array(await fh.readFile()), mimeType: x === "png" ? "image/png" : "image/jpeg" };
+      } finally {
+        await fh.close();
+      }
     }
     return undefined;
   }
