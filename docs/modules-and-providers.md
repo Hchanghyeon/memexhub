@@ -73,6 +73,7 @@ export interface ProviderDef<K extends Kind, C, S> {
 | mail | `mail_folders` `mail_search` `mail_read` `mail_day` | - | - | ✅ ([mail](mail.md)) |
 | location | `location_day` | `/ingest/owntracks` | - | ✅ ([location](location.md)) |
 | health | `health_day` | `/ingest/health` | health | ✅ ([health](health.md)) |
+| meals | `meal_add` `meal_day` `meal_cancel` | - | meals | ✅ ([meals](meals.md)) |
 | tasks | `task_*` | - | - | ✅ ([tasks](tasks.md)) |
 | calendar | `calendar_list` `calendar_events` | - | - | ✅ ([calendar](calendar.md)) |
 | weather | `weather_days` | - | - | ✅ |

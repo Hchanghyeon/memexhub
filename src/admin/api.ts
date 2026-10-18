@@ -563,6 +563,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       modules: hub.moduleStatus,
       ledger: { ...s.ledger, available: on("ledger") },
       health: s.health,
+      meals: s.meals,
       location: { connection: s.location.connection ?? "", geocoder: s.location.geocoder ?? "", privateAreas: s.location.privateAreas, language: s.location.language },
       notion: { connection: s.notion.connection ?? "", ledger: s.notion.ledger, health: s.notion.health },
       choices: { location: names("location"), geocoder: names("geocoder"), notion: names("notion") },
@@ -578,6 +579,13 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     const f = await body(c, z.object({ officePlaces: z.array(z.string().max(60)).max(20), paymentsNote: z.string(), moneyNote: z.string(), language: z.enum(["en", "ko"]), inboxDays: z.number().int().min(1).max(365), mailSources: z.array(z.object({ connection: z.string().min(1).max(32), folder: z.string().min(1).max(200) })).max(10) }));
     const s = await hub.settings.get();
     await hub.settings.set("ledger", { ...f, officePlaces: f.officePlaces.map((x) => x.trim()).filter(Boolean), paymentsNote: notePath(f.paymentsNote, s.ledger.paymentsNote), moneyNote: notePath(f.moneyNote, s.ledger.moneyNote) });
+    await hub.reload();
+    return c.json({ ok: true });
+  });
+  api.post("/meals", async (c) => {
+    const f = await body(c, z.object({ note: z.string(), language: z.enum(["en", "ko"]) }));
+    const s = await hub.settings.get();
+    await hub.settings.set("meals", { note: notePath(f.note, s.meals.note, true), language: f.language });
     await hub.reload();
     return c.json({ ok: true });
   });

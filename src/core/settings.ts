@@ -71,6 +71,10 @@ export const SettingsSchema = z.object({
   health: z
     .object({ note: z.string().default("health/{year}.md"), language: z.enum(["ko", "en"]).default("en") })
     .default({ note: "health/{year}.md", language: "en" }),
+  /** Meals Claude records from photos or descriptions; a note per year, or per month with {month}. */
+  meals: z
+    .object({ note: z.string().default("meals/{year}-{month}.md"), language: z.enum(["ko", "en"]).default("en") })
+    .default({ note: "meals/{year}-{month}.md", language: "en" }),
   /** Mirror records into Notion databases. Off until a kind is switched on. */
   notion: z
     .object({ connection: z.string().optional(), ledger: z.boolean().default(false), health: z.boolean().default(false) })

@@ -12,6 +12,7 @@
 | Reading messages: recipes + general reader, messages to check, learning a recipe from your answer, recipe collection (off by default) | ✅ |
 | Location: OwnTracks (QR setup) or Dawarich, stays and place names (OSM), the Map page | ✅ |
 | Health: iOS Shortcuts, Health Auto Export | ✅ |
+| [Meals](meals.md): Claude estimates calories and macros from a photo or a description, a monthly meals note, meals in scenes | ✅ |
 | Share sheet: links and text shared from any app become wiki sources (`/ingest/share`) | ✅ |
 | Mail (IMAP, read-only): Kakao, Naver, Gmail, Outlook, custom | ✅ |
 | Calendars: Google (sign-in), iCloud, CalDAV, **calendar link (iCal, recurring events expanded)** | ✅ |
@@ -61,7 +62,7 @@
 - [Claude integration](claude-integration.md): connector, OAuth, `day_summary` / `week_summary`
 - [Wiki engine](wiki-engine.md): roles, presets, lint, sources, index, log
 - [Ledger](ledger.md): payments and money notes · [Message recipes](recipes.md) · SMS / mail / notifications without code
-- [Mail](mail.md) · [Location](location.md) · [Health](health.md) · [Tasks](tasks.md) · [Calendar](calendar.md) · [Home](home.md) · [Music](music.md) · [Notion](notion.md)
+- [Mail](mail.md) · [Location](location.md) · [Health](health.md) · [Meals](meals.md) · [Tasks](tasks.md) · [Calendar](calendar.md) · [Home](home.md) · [Music](music.md) · [Notion](notion.md)
 
 ## Run
 - [Configuration and storage](configuration-and-storage.md): environment, vault storage, built-in WebDAV, backups

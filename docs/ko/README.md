@@ -12,6 +12,7 @@
 | 메시지 읽기: 레시피 + 기본 읽기, 확인할 메시지, 답하면서 레시피 배우기, 레시피 모음(기본 꺼짐) | ✅ |
 | 위치: OwnTracks(QR 설정)·Dawarich, 체류와 장소 이름(OSM), 지도 화면 | ✅ |
 | 건강: iOS 단축어, Health Auto Export | ✅ |
+| [식단](meals.md): 음식 사진이나 설명으로 Claude가 칼로리·영양 어림, 월별 식단 노트, 장면에 끼니 | ✅ |
 | 공유 시트: 어느 앱에서든 공유한 링크·글을 위키 원본으로 (`/ingest/share`) | ✅ |
 | 메일(IMAP, 읽기 전용): 카카오·네이버·Gmail·Outlook·직접 입력 | ✅ |
 | 캘린더: Google(로그인), iCloud, CalDAV, **캘린더 링크(iCal, 반복 일정 펼침)** | ✅ |
@@ -61,7 +62,7 @@
 - [Claude 연동](claude-integration.md): 커넥터, OAuth, `day_summary` / `week_summary`
 - [위키 엔진](wiki-engine.md): 역할, 프리셋, 점검, 원본, 목차, 로그
 - [결제](ledger.md): 결제·돈 노트 · [메시지 레시피](recipes.md) · 코드 없이 문자·메일·알림 해석
-- [메일](mail.md) · [위치](location.md) · [건강](health.md) · [할 일](tasks.md) · [캘린더](calendar.md) · [집](home.md) · [음악](music.md) · [Notion](notion.md)
+- [메일](mail.md) · [위치](location.md) · [건강](health.md) · [식단](meals.md) · [할 일](tasks.md) · [캘린더](calendar.md) · [집](home.md) · [음악](music.md) · [Notion](notion.md)
 
 ## 운영
 - [설정과 저장소](configuration-and-storage.md): 환경 변수, 볼트 저장소, 내장 WebDAV, 백업

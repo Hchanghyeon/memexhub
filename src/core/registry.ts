@@ -59,7 +59,7 @@ export interface WeekPart {
  * (a calendar dinner + a stay at the restaurant + its payment = one scene). Times are epoch milliseconds.
  */
 export interface DayEvent {
-  kind: "stay" | "pay" | "transit" | "office" | "event";
+  kind: "stay" | "pay" | "transit" | "office" | "event" | "meal";
   start: number;
   end?: number;
   label: string;

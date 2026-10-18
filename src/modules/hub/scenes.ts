@@ -3,13 +3,14 @@ import { nowIn } from "../../core/time.js";
 
 /** Records of one moment merged: where you were, what you paid there, which calendar event it was. */
 export interface Scene {
-  kind: "stay" | "office" | "pay" | "move";
+  kind: "stay" | "office" | "pay" | "move" | "meal";
   start: number;
   end: number;
   label: string;
   named?: boolean;
   online?: boolean;
   pays: DayEvent[];
+  meals: DayEvent[];
   events: DayEvent[];
   taps: number;
   fromLocation: boolean;
@@ -30,7 +31,7 @@ const overlap = (a0: number, a1: number, b0: number, b1: number) => Math.max(0, 
  */
 export function buildScenes(all: DayEvent[]): { scenes: Scene[]; unmatched: DayEvent[] } {
   const by = (k: DayEvent["kind"]) => all.filter((e) => e.kind === k).sort((a, b) => a.start - b.start);
-  const scene = (e: DayEvent, kind: Scene["kind"], fromLocation: boolean): Scene => ({ kind, start: e.start, end: e.end ?? e.start, label: e.label, named: e.named, online: e.online, pays: [], events: [], taps: 0, fromLocation });
+  const scene = (e: DayEvent, kind: Scene["kind"], fromLocation: boolean): Scene => ({ kind, start: e.start, end: e.end ?? e.start, label: e.label, named: e.named, online: e.online, pays: [], meals: [], events: [], taps: 0, fromLocation });
 
   const scenes: Scene[] = [];
   for (const s of by("stay")) {
@@ -47,6 +48,12 @@ export function buildScenes(all: DayEvent[]): { scenes: Scene[]; unmatched: DayE
     const at = !p.online && places().find((s) => p.start >= s.start - 10 * MIN && p.start <= s.end + 10 * MIN);
     if (at) at.pays.push(p);
     else scenes.push({ ...scene(p, "pay", false), pays: [p] });
+  }
+  // A meal joins the place it was eaten at (±30 min: logged times are rough), else stands alone.
+  for (const m of by("meal")) {
+    const at = places().find((s) => m.start >= s.start - 30 * MIN && m.start <= s.end + 30 * MIN);
+    if (at) at.meals.push(m);
+    else scenes.push({ ...scene(m, "meal", false), meals: [m] });
   }
   const unmatched: DayEvent[] = [];
   for (const ev of by("event")) {
@@ -91,13 +98,15 @@ export function sceneLines(r: { scenes: Scene[]; unmatched: DayEvent[] }, tz: st
     const head =
       s.kind === "move" ? `🚇 ${t.move(s.taps)}`
       : s.kind === "office" ? `🏢 ${s.label}`
+      : s.kind === "meal" ? `🍽 ${s.label} ${s.meals[0]?.amount ?? ""}`.trim()
       : s.kind === "pay" ? `${s.online ? "🌐" : "💳"} ${s.label} ${s.pays[0]?.amount ?? ""}`.trim() + (s.online ? "" : ` (${t.noLoc})`)
       : `📍 ${s.label}`;
     const extra = [
       ...(s.kind === "pay" ? [] : s.pays.map((p) => `💳 ${hm(p.start)} ${p.label} ${p.amount ?? ""}`.trim())),
+      ...(s.kind === "meal" ? [] : s.meals.map((m) => `🍽 ${hm(m.start)} ${m.label} ${m.amount ?? ""}`.trim())),
       ...s.events.map((e) => `📅 ${hm(e.start)} ${e.label}`),
     ];
-    const proof = [s.fromLocation ? "📍" : "", s.kind === "office" ? "🏢" : "", s.pays.length ? "💳" : "", s.events.length ? "📅" : ""].filter(Boolean);
+    const proof = [s.fromLocation ? "📍" : "", s.kind === "office" ? "🏢" : "", s.pays.length ? "💳" : "", s.meals.length ? "🍽" : "", s.events.length ? "📅" : ""].filter(Boolean);
     return `- ${span(s)} ${[head, ...extra].join(" · ")}${proof.length > 1 ? ` (${t.proof} ${proof.join("")})` : ""}`;
   });
   for (const e of r.unmatched) lines.push(`- 📅 ${t.unmatched}: ${hm(e.start)} ${e.label}`);

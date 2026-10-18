@@ -10,6 +10,7 @@ interface F {
   modules: { id: string; enabled: boolean; error?: string }[];
   ledger: { officePlaces: string[]; paymentsNote: string; moneyNote: string; language: "en" | "ko"; inboxDays: number; mailSources: { connection: string; folder: string }[] };
   health: { note: string; language: "en" | "ko" };
+  meals: { note: string; language: "en" | "ko" };
   location: { connection: string; geocoder: string; privateAreas: string[]; language: "en" | "ko" };
   notion: { connection: string; ledger: boolean; health: boolean };
   choices: Record<"location" | "geocoder" | "notion", { name: string; provider: string }[]>;
@@ -23,6 +24,7 @@ const MOD: Record<string, [string, string, string, string]> = {
   mail: ["Mail", "메일", "Claude reads your mailbox (read-only).", "Claude가 메일함을 읽어요 (읽기 전용)."],
   location: ["Location", "위치", "Where you were, place names for payments.", "다녀온 곳, 결제 장소 이름."],
   health: ["Health", "건강", "Sleep, steps and workouts become health notes.", "수면·걸음·운동을 건강 노트로 남겨요."],
+  meals: ["Meals", "식단", "Send Claude a photo or say what you ate: it estimates calories and protein, carbs, fat and keeps a meals note.", "Claude에게 음식 사진을 보내거나 먹은 걸 말하면 칼로리와 단백질·탄수화물·지방을 어림해 식단 노트에 남겨요."],
   tasks: ["Tasks", "할 일", "Google Tasks for Claude.", "Claude가 Google Tasks를 써요."],
   notion: ["Notion", "Notion", "Copy records into Notion databases.", "기록을 Notion 데이터베이스로 복사해요."],
   calendar: ["Calendar", "캘린더", "Your events in summaries; Claude can look up any day.", "일정을 요약에 넣고, Claude가 어느 날이든 찾아봐요."],
@@ -54,6 +56,7 @@ export function Features() {
       {on("ledger") && <Ledger f={data} reload={reload} />}
       {on("location") && <Location f={data} reload={reload} />}
       {on("health") && <Health f={data} reload={reload} />}
+      {on("meals") && <Meals f={data} reload={reload} />}
       {on("notion") && <Notion f={data} reload={reload} />}
     </Page>
   );
@@ -115,6 +118,19 @@ function Health({ f, reload }: { f: F; reload: () => void }) {
   return (
     <Card id="health" title={t("Health", "건강")} footer={<Button busy={busy} onClick={() => void run(() => post("/health", s), t("Health saved.", "건강 설정을 저장했어요."), reload)}>{t("Save", "저장")}</Button>}>
       <Input label={t("Health note", "건강 노트")} hint={t("{year} becomes the year.", "{year}는 연도로 바뀌어요.")} value={s.note} onChange={(v) => setS({ ...s, note: v })} mono />
+      <NoteLang v={s.language} set={(x) => setS({ ...s, language: x })} />
+    </Card>
+  );
+}
+
+function Meals({ f, reload }: { f: F; reload: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const [s, setS] = useState(f.meals);
+  return (
+    <Card id="meals" title={t("Meals", "식단")} sub={t("In the Claude app: send a photo of the meal, or say “I had bibimbap for lunch”. Claude estimates it and records it with meal_add.", "Claude 앱에서 음식 사진을 보내거나 “점심에 비빔밥 먹었어”라고 하면, Claude가 어림해서 meal_add 로 기록해요.")}
+      footer={<Button busy={busy} onClick={() => void run(() => post("/meals", s), t("Meals saved.", "식단 설정을 저장했어요."), reload)}>{t("Save", "저장")}</Button>}>
+      <Input label={t("Meals note", "식단 노트")} hint={t("{year} becomes the year, {month} the month (one note per month).", "{year}는 연도, {month}는 월로 바뀌어요 (달마다 한 노트).")} value={s.note} onChange={(v) => setS({ ...s, note: v })} mono />
       <NoteLang v={s.language} set={(x) => setS({ ...s, language: x })} />
     </Card>
   );
