@@ -36,7 +36,7 @@ export interface ProviderDef<K extends string = string, C = any, S = any> {
   secrets?: z.ZodObject<any>;
   runtimes: ("node" | "workers")[];
   /** Hosts this connection may call, derived from its config (e.g. the URL field). */
-  hosts?(config: C): string[];
+  hosts?(config: C, secrets?: S): string[];
   /** May this connection reach private-network addresses (e.g. a server on your LAN)? */
   allowPrivate?(config: C): boolean;
   create(ctx: ProviderContext<C, S>): KindMap[K] | Promise<KindMap[K]>;

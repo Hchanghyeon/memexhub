@@ -193,7 +193,7 @@ export class Hub {
         const config = def.config.parse(c.config);
         const secrets = def.secrets ? def.secrets.parse(await this.connections.secretsOf(c.id)) : {};
         const fetch = guardedFetch(this.platform.fetch, {
-          hosts: def.hosts?.(config) ?? [],
+          hosts: def.hosts?.(config, secrets) ?? [],
           allowPrivate: def.allowPrivate?.(config) ?? false,
           isPrivate: this.platform.isPrivateHost?.bind(this.platform),
         });

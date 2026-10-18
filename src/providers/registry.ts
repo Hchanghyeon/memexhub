@@ -10,9 +10,10 @@ import { notionVaultProvider } from "./notion/vault.js";
 import { openMeteoProvider } from "./weather/open-meteo.js";
 import { caldavProvider, icloudCalendarProvider } from "./calendar/caldav.js";
 import { googleCalendarProvider } from "./calendar/google.js";
+import { icalLinkProvider } from "./calendar/ical-link.js";
 import { homeAssistantProvider } from "./home/home-assistant.js";
 import { lastfmProvider } from "./music/lastfm.js";
 import { spotifyProvider } from "./music/spotify.js";
 
 /** Portable providers (Node and Workers). Runtime-specific ones are added by the entry point. */
-export const PORTABLE_PROVIDERS: ProviderDef[] = [webdavProvider, s3Provider, dawarichProvider, owntracksProvider, nominatimProvider, osmTilesProvider, googleTasksProvider, notionProvider, notionVaultProvider, openMeteoProvider, caldavProvider, icloudCalendarProvider, googleCalendarProvider, homeAssistantProvider, lastfmProvider, spotifyProvider];
+export const PORTABLE_PROVIDERS: ProviderDef[] = [webdavProvider, s3Provider, dawarichProvider, owntracksProvider, nominatimProvider, osmTilesProvider, googleTasksProvider, notionProvider, notionVaultProvider, openMeteoProvider, caldavProvider, icloudCalendarProvider, icalLinkProvider, googleCalendarProvider, homeAssistantProvider, lastfmProvider, spotifyProvider];

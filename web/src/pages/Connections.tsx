@@ -30,6 +30,7 @@ const NEEDS: Record<string, [string, string]> = {
   "calendar:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],
   "calendar:icloud": ["Apple ID and an app-specific password.", "Apple ID와 앱 암호."],
   "calendar:caldav": ["The CalDAV address, user name and password.", "CalDAV 주소, 아이디, 비밀번호."],
+  "calendar:ical": ["Only the calendar's iCal link. No sign-in. One connection per calendar.", "캘린더의 iCal 링크 하나만 있으면 돼요. 로그인 없음. 캘린더마다 연결 하나."],
   "mail:imap": ["Mail server, user name and an app password.", "메일 서버, 아이디, 앱 비밀번호."],
   "tasks:google": ["Sign in with Google (an OAuth client from Google Cloud).", "Google로 로그인 (Google Cloud의 OAuth 클라이언트)."],
   "location:owntracks": ["The OwnTracks app sends to memexhub with a device token.", "OwnTracks 앱이 기기 토큰으로 memexhub에 보내요."],

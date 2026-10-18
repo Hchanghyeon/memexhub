@@ -23,6 +23,7 @@ const fake = (async (u: string | URL, init?: RequestInit) => {
     if (init?.method === "PROPFIND") return ms(`<d:response><d:href>/cal/home/</d:href><d:propstat><d:prop><d:resourcetype><c:calendar/></d:resourcetype><d:displayname>Home</d:displayname></d:prop></d:propstat></d:response>`);
     return ms(`<d:response><d:href>/cal/home/a.ics</d:href><d:propstat><d:prop><c:calendar-data>BEGIN:VEVENT\nDTSTART;TZID=Asia/Seoul:20261016T190000\nDTEND;TZID=Asia/Seoul:20261016T210000\nSUMMARY:Dinner\nEND:VEVENT</c:calendar-data></d:prop></d:propstat></d:response>`);
   }
+  if (url.hostname === "cal.example.com") return new Response("BEGIN:VCALENDAR\r\nX-WR-CALNAME:Family\r\nBEGIN:VEVENT\r\nUID:w\r\nSUMMARY:Walk\r\nDTSTART;TZID=Asia/Seoul:20261002T070000\r\nDTEND;TZID=Asia/Seoul:20261002T080000\r\nRRULE:FREQ=WEEKLY\r\nEND:VEVENT\r\nEND:VCALENDAR");
   if (url.hostname === "ha.example.com") {
     if (url.pathname === "/api/") return new Response(JSON.stringify({ message: "API running." }));
     if (url.pathname === "/api/states") return new Response(JSON.stringify([
@@ -92,5 +93,16 @@ describe("adding a connection from the admin API", () => {
       { value: "binary_sensor.front_door", label: "Front door", group: "binary_sensor", note: "off" },
     ]);
     expect((await a.get(`/connections/${add.id}/choices/nope`)).status).toBe(404);
+  });
+
+  it("an iCal link: the link stays secret, weekly events reach day_summary, a home address needs the box", async () => {
+    const add = await (await a.post("/connections", { provider: "calendar:ical", name: "family-link", config: {}, secrets: { url: "webcal://cal.example.com/private-abc/basic.ics" } })).json();
+    expect(add.test).toEqual({ ok: true });
+    expect(JSON.stringify(await a.json(`/connections/${add.id}`))).not.toContain("private-abc");
+    expect(await hub.tools.find((t) => t.name === "day_summary")!.run({ date: "2026-10-16" }, { actor: "t" })).toContain("07:00–08:00 Walk (Family");
+    // Only the link's own host may be called, over https; a home address needs "on my home network".
+    await hub.connections.patch(add.id, { secrets: { url: "http://192.168.0.5/cal.ics" } }, "t");
+    await hub.reload();
+    expect(await a.post(`/connections/${add.id}/test`, {}).then((r) => r.json())).toMatchObject({ ok: false, error: "https required" });
   });
 });
