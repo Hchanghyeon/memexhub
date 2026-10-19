@@ -16,6 +16,15 @@
 
 memexhub는 에이전트가 아니고 모델도 돌리지 않아요. 생각은 Claude가 하고, memexhub는 Claude가 꺼내 쓰는 **기억**이에요. 기억은 내 서버에 있어요.
 
+<table>
+<tr><td><img src="docs/assets/screens/ko/overview-top.jpg" alt="개요: 처음 할 일과 상태"></td><td><img src="docs/assets/screens/ko/map-top.jpg" alt="지도: 하루 동선과 머문 곳"></td></tr>
+<tr><td align="center">개요: 처음 할 일과 상태</td><td align="center">지도: 하루 동선과 머문 곳</td></tr>
+<tr><td><img src="docs/assets/screens/ko/notes-top.jpg" alt="노트: 옵시디언 문법 그대로 읽기"></td><td><img src="docs/assets/screens/ko/messages-top.jpg" alt="메시지: 결제 문자 확인과 레시피"></td></tr>
+<tr><td align="center">노트: 옵시디언 문법 그대로 읽기</td><td align="center">메시지: 결제 문자 확인과 레시피</td></tr>
+</table>
+
+관리 화면 전체: [화면 안내](docs/ko/admin-ui.md)
+
 ## 설치
 
 **필요한 것:** Docker가 되는 서버(NAS, 집 PC, VPS), 그리고 밖에서 들어오는 **HTTPS 주소**. Claude가 인터넷 쪽에서 접속하기 때문이에요. 시놀로지 역방향 프록시, Caddy, Cloudflare Tunnel 중 아무거나 돼요.

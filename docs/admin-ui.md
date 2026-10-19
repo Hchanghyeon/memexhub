@@ -9,6 +9,8 @@ One page at a time, in menu order. The admin pages open on your home network onl
 - **Status cards:** vault, Claude, payments, location … with when something last arrived. Payment messages to check show on the payments card.
 - **Needs attention:** connection errors, messages to check.
 
+<img src="assets/screens/en/overview.jpg" alt="Overview" width="720">
+
 ## Notes
 A read-only view of the vault.
 - Folder tree, search across all notes (search index), follow `[[wiki links]]`.
@@ -17,8 +19,12 @@ A read-only view of the vault.
 - **Confirm:** read a wiki page Claude wrote (draft) and press *I checked it* to make it stable.
 - **Earlier versions:** every saved version of a note, and restore one.
 
+<img src="assets/screens/en/notes.jpg" alt="Notes" width="720">
+
 ## Map
 The day's route and the places you stayed. Only you see it; Claude and the vault never get coordinates. The map background (OpenStreetMap) is opt-in; this server fetches and keeps the pictures for 30 days.
+
+<img src="assets/screens/en/map.jpg" alt="Map" width="720">
 
 ## Vault
 - **Where notes live:** built-in, a server folder, WebDAV, S3 / R2.
@@ -28,10 +34,14 @@ The day's route and the places you stayed. Only you see it; Claude and the vault
 - **Search index · change history:** state, rebuild, on/off.
 - **Obsidian sync:** the WebDAV address for the built-in vault.
 
+<img src="assets/screens/en/vault.jpg" alt="Vault" width="720">
+
 ## Claude app
 - **How to add it:** copy the connector address → Claude app → Settings → Connectors → sign in and allow.
 - **Every day, by itself: Claude routines:** Daily journal, Wiki ingest and Weekly check prompts to paste into Claude app routines.
 - **Signed-in apps**, **what Claude can do** (tools, tool description language), tools that move or delete notes.
+
+<img src="assets/screens/en/claude.jpg" alt="Claude app" width="720">
 
 ## Devices
 - **Set up your phone:** one token per setup.
@@ -39,6 +49,8 @@ The day's route and the places you stayed. Only you see it; Claude and the vault
   - **Card payments:** an iPhone Shortcuts automation forwards card texts.
   - **Share sheet:** links and text shared from any app become wiki sources.
 - **Tokens** and where to send (`/ingest/...`).
+
+<img src="assets/screens/en/devices.jpg" alt="Devices" width="720">
 
 ## Connections
 Outside services, all optional.
@@ -48,8 +60,12 @@ Outside services, all optional.
 - **Add a connection:** a short name per service; opening one shows what it needs, an easier path if there is one, and where to find each value.
 - Calendars (Google, iCloud, CalDAV, **calendar link (iCal)**), mail, tasks, location, place names, map background, weather, home (Home Assistant), music, Notion.
 
+<img src="assets/screens/en/connections.jpg" alt="Connections" width="720">
+
 ## Features
 Optional features and their settings (payment note paths, office places, receipt-mail folders; location source and private places; health note …). Adding a connection switches its feature on.
+
+<img src="assets/screens/en/features.jpg" alt="Features" width="720">
 
 ## Messages
 Texts, mails and app notifications become records: payments and receipts today; ads and codes can be skipped.
@@ -58,6 +74,8 @@ Texts, mails and app notifications become records: payments and receipts today; 
 - **Recipe collection:** ready-made recipes (Hyundai and Samsung card texts, KCP and KICC receipt mails), off until you switch on the ones you use.
 - **What is a recipe?:** match → extract → set and kind → examples, with an example key by key.
 - **Advanced:** try a message, write a recipe (JSON), import and export. More: [message recipes](recipes.md).
+
+<img src="assets/screens/en/messages.jpg" alt="Messages" width="720">
 
 ## Activity
 Who connected, from where (IP), and what changed.

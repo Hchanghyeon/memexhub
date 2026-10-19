@@ -16,6 +16,15 @@
 
 memexhub is not an agent and runs no model. Claude does the thinking; memexhub is the **memory** it reads from, on your server.
 
+<table>
+<tr><td><img src="docs/assets/screens/en/overview-top.jpg" alt="Overview: getting started and status"></td><td><img src="docs/assets/screens/en/map-top.jpg" alt="Map: the day's route and stays"></td></tr>
+<tr><td align="center">Overview: getting started and status</td><td align="center">Map: the day's route and stays</td></tr>
+<tr><td><img src="docs/assets/screens/en/notes-top.jpg" alt="Notes: read the vault, Obsidian syntax"></td><td><img src="docs/assets/screens/en/messages-top.jpg" alt="Messages: payment texts and recipes"></td></tr>
+<tr><td align="center">Notes: read the vault, Obsidian syntax</td><td align="center">Messages: payment texts and recipes</td></tr>
+</table>
+
+Every admin page: [page guide](docs/admin-ui.md)
+
 ## Install
 
 **You need:** a server that runs Docker (NAS, home PC, VPS) and a public **HTTPS address**, because Claude connects from the internet. Any reverse proxy or tunnel works: Synology reverse proxy, Caddy, Cloudflare Tunnel.
