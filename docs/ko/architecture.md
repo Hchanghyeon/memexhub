@@ -2,6 +2,10 @@
 
 memexhub는 서버 하나에 입구 세 개, 작은 core, 갈아끼울 수 있는 모듈과 공급자로 이뤄져요.
 
+![memexhub 구조: 모으기, memexhub, 볼트, 꺼내 주기](../assets/architecture-ko.png)
+
+그림은 전체 흐름이에요. 아래 도표는 같은 서버를 입구별, 층별로 나눠 보여 줘요.
+
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 flowchart LR

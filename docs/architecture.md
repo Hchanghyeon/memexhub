@@ -2,6 +2,10 @@
 
 memexhub is one server with three entry points, a small core, pluggable modules and pluggable providers.
 
+![How memexhub works: collect, memexhub, vault, serve](assets/architecture-en.png)
+
+The picture is the big picture. The diagrams below show the same server by entry point and by layer.
+
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 flowchart LR

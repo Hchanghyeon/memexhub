@@ -25,6 +25,17 @@ memexhub is not an agent and runs no model. Claude does the thinking; memexhub i
 
 Every admin page: [page guide](docs/admin-ui.md)
 
+## How it works
+
+![How memexhub works: collect, memexhub, vault, serve](docs/assets/architecture-en.png)
+
+1. **Collect.** Your phone sends places, card texts, health and shares with a device token; mail, calendars and Home Assistant are read through connections you add.
+2. **memexhub** turns them into facts (events) and notes. The wiki engine checks every write: no source, no page; new pages stay drafts until you confirm.
+3. **The vault** is a plain Markdown folder (works with Obsidian): sources you collected, the wiki Claude writes, the rules it follows, your journal.
+4. **Serve.** Claude connects with one MCP connector and reads, searches and writes. Nightly routines write the journal and file new sources.
+
+More detail: [architecture](docs/architecture.md)
+
 ## Install
 
 **You need:** a server that runs Docker (NAS, home PC, VPS) and a public **HTTPS address**, because Claude connects from the internet. Any reverse proxy or tunnel works: Synology reverse proxy, Caddy, Cloudflare Tunnel.
