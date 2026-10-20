@@ -446,3 +446,41 @@ export function useConfirm() {
   const { t } = useT();
   return (text: string) => window.confirm(text || t("Are you sure?", "정말 할까요?"));
 }
+
+// ---------- charts (one series, neutral ink; values also in text) ----------
+/** Bars from a zero baseline, one per slot (a day of the month). Hover or focus shows the slot's text. */
+export function Bars(p: { label: string; items: { key: string; value: number; tip: string; tick?: string; muted?: boolean }[] }) {
+  const max = Math.max(1, ...p.items.map((i) => i.value));
+  return (
+    <figure aria-label={p.label} className="flex flex-col gap-1.5">
+      <div className="flex h-32 items-end gap-[2px]">
+        {p.items.map((i) => (
+          <div key={i.key} tabIndex={0} title={i.tip} aria-label={i.tip} className="group flex h-full min-w-0 flex-1 cursor-default items-end rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <div className={cn("w-full rounded-t-[4px] transition-colors", i.muted ? "bg-muted-foreground/20" : "bg-foreground/70 group-hover:bg-foreground group-focus-visible:bg-foreground")} style={{ height: i.value > 0 ? `max(2px, ${(i.value / max) * 100}%)` : 0 }} />
+          </div>
+        ))}
+      </div>
+      <div className="border-t" aria-hidden />
+      <div className="text-muted-foreground flex gap-[2px] text-[0.6875rem] tabular-nums" aria-hidden>
+        {p.items.map((i) => <span key={i.key} className="min-w-0 flex-1 text-center">{i.tick ?? ""}</span>)}
+      </div>
+    </figure>
+  );
+}
+
+/** Rows of "name ··· value" with a thin bar for the share of the largest. */
+export function Meters(p: { items: { key: string; label: ReactNode; value: ReactNode; share: number; meta?: ReactNode }[] }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {p.items.map((i) => (
+        <li key={i.key} className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 truncate">{i.label}{i.meta && <span className="text-muted-foreground ml-2 text-[0.8125rem]">{i.meta}</span>}</span>
+            <span className="shrink-0 font-medium tabular-nums">{i.value}</span>
+          </div>
+          <div className="bg-muted h-1.5 overflow-hidden rounded-full"><div className="bg-foreground/70 h-full rounded-full" style={{ width: `${Math.max(1, Math.min(100, i.share * 100))}%` }} /></div>
+        </li>
+      ))}
+    </ul>
+  );
+}

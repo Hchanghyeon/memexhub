@@ -6,6 +6,7 @@ import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 import { safeEqual } from "../core/crypto.js";
 import { audit } from "../core/audit.js";
 import { STAY_MS } from "../auth/admin.js";
+import { nowIn } from "../core/time.js";
 import { staleSources } from "../core/freshness.js";
 import { listAccess, recordAccess } from "../core/access.js";
 import { ANTHROPIC_OUTBOUND_CIDRS, type Settings } from "../core/settings.js";
@@ -874,6 +875,12 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   api.get("/recipes/export", async (c) => {
     c.header("content-disposition", 'attachment; filename="memexhub-recipes.json"');
     return c.body(await ledger().exportPack(), 200, { "content-type": "application/json; charset=utf-8" });
+  });
+  api.get("/money", async (c) => {
+    const q = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).safeParse(c.req.query("month"));
+    const t = nowIn((await hub.settings.get()).timezone, now());
+    const [y, m] = q.success ? q.data.split("-").map(Number) : [t.y, t.m];
+    return c.json(await ledger().month(y!, m!));
   });
   api.post("/inbox/:id/ignore-sender", async (c) => {
     try {

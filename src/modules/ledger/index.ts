@@ -112,7 +112,7 @@ export default defineModule({
     };
     return {
       summary: ledgerSummary({ rows, tz: () => settings.timezone, officePlaces: () => settings.ledger.officePlaces, lang: () => settings.ledger.language }),
-      admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now() }),
+      admin: ledgerAdmin({ vault: () => vault, recipesDir, recipes, reader, inbox, ledger, tz: () => settings.timezone, now: () => platform.now(), rows, officePlaces: () => settings.ledger.officePlaces }),
       jobs: [
         ...extra.jobs,
         ...(settings.ledger.mailSources.length ? [{ id: "ledger-receipt-mails", everyMinutes: 15, run: async () => void (await mailSync()) }] : []),

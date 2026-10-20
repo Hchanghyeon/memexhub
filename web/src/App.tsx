@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNo
 import { get, post, setCsrf, whenSignedOut, type Session } from "./api";
 import { LangContext, makeT, pickLang, useT } from "./i18n";
 import { Link, navigate, useRoute } from "./router";
-import { Activity as ActivityIcon, Archive, BookOpen, Bot, Cable, FolderOpen, Inbox, Languages, LayoutDashboard, LogOut, Map as MapIcon, Menu, Puzzle, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
+import { Activity as ActivityIcon, Archive, BookOpen, Bot, Cable, FolderOpen, Inbox, Languages, LayoutDashboard, LogOut, Map as MapIcon, Wallet, Menu, Puzzle, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
 import { Toasts, Skeleton } from "./ui/kit";
 import { Brand } from "./ui/brand";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ const Activity = lazy(() => import("./pages/Activity").then((m) => ({ default: m
 const Backups = lazy(() => import("./pages/Backups").then((m) => ({ default: m.Backups })));
 const Start = lazy(() => import("./pages/Start").then((m) => ({ default: m.Start })));
 const MapPage = lazy(() => import("./pages/Map").then((m) => ({ default: m.MapPage })));
+const MoneyPage = lazy(() => import("./pages/Money").then((m) => ({ default: m.MoneyPage })));
 const Notes = lazy(() => import("./pages/Notes").then((m) => ({ default: m.Notes })));
 
 export function App() {
@@ -73,6 +74,7 @@ const NAV: { group?: [string, string]; path: string; label: [string, string]; ic
   { path: "/", label: ["Overview", "개요"], icon: LayoutDashboard },
   { path: "/notes", label: ["Notes", "노트"], icon: BookOpen },
   { path: "/map", label: ["Map", "지도"], icon: MapIcon },
+  { path: "/money", label: ["Money", "돈"], icon: Wallet },
   { group: ["Set up", "설정"], path: "/vault", label: ["Vault", "볼트"], icon: FolderOpen },
   { path: "/claude", label: ["Claude app", "Claude 앱"], icon: Bot },
   { path: "/devices", label: ["Devices", "기기"], icon: Smartphone },
@@ -132,6 +134,7 @@ function Shell({ session, onSignOut }: { session: Session; onSignOut: () => void
       case "/activity": return <Activity />;
       case "/backups": return <Backups />;
       case "/map": return <MapPage />;
+      case "/money": return <MoneyPage />;
       default: return path === "/notes" || path.startsWith("/notes/") ? <Notes route={path} /> : <Overview />;
     }
   })();

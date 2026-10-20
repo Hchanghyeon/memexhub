@@ -1,3 +1,6 @@
+import { monthReport, type MonthReport } from "./month.js";
+import type { LedgerRow } from "./render.js";
+import { nowIn } from "../../core/time.js";
 import type { Inbox } from "../../core/inbox.js";
 import type { SafeVault } from "../../storage/safe-vault.js";
 import type { Ledger } from "./record.js";
@@ -28,6 +31,8 @@ export interface LedgerAdmin {
   learn(id: string, fields: Partial<ReadPayment>): Promise<{ recorded: string; learned: boolean; name?: string; reason?: string }>;
   /** Never ask about this sender again: an "ignore" recipe on its address, and its other waiting messages closed. */
   ignoreSender(id: string): Promise<{ sender: string; closed: number }>;
+  /** One month of payments for the money page. */
+  month(year: number, month: number): Promise<MonthReport>;
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -42,6 +47,8 @@ export function ledgerAdmin(d: {
   ledger: Ledger;
   tz: () => string;
   now: () => Date;
+  rows: () => Promise<LedgerRow[]>;
+  officePlaces: () => string[];
 }): LedgerAdmin {
   const admin = () => {
     const v = d.vault();
@@ -177,6 +184,9 @@ export function ledgerAdmin(d: {
       } catch (e) {
         return { recorded, learned: false, reason: (e as Error).message.slice(0, 200) };
       }
+    },
+    async month(year, month) {
+      return monthReport(await d.rows(), { tz: d.tz(), officePlaces: d.officePlaces(), year, month, today: nowIn(d.tz(), d.now()) });
     },
     async ignoreSender(id) {
       const it = await d.inbox.get<PendingMessage>("ledger", id);

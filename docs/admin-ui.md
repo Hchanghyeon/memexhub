@@ -26,6 +26,9 @@ The day's route and the places you stayed. Only you see it; Claude and the vault
 
 <img src="assets/screens/en/map.jpg" alt="Map" width="720">
 
+## Money
+One month of card payments: what you spent against the same days of the month before, spending by day (hover a bar), the top 10 places, cards, recurring payments and, in busy months, the largest ones. Cancellations are subtracted; payments in another currency are counted apart. Only you see it.
+
 ## Vault
 - **Where notes live:** built-in, a server folder, WebDAV, S3 / R2.
 - **Wiki layout:** LLM Wiki, PARA (English or Korean folders), Zettelkasten, flat.
