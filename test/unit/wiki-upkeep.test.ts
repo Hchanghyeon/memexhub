@@ -71,7 +71,7 @@ describe("wiki upkeep", () => {
   it("hides tools whose role is not configured", async () => {
     const names = async (roles: any) =>
       ((await wiki.setup({ settings: SettingsSchema.parse({ wiki: { roles } }), vault: v } as any)).tools ?? []).map((t) => t.name).sort();
-    expect(await names(PRESETS["llm-wiki"])).toEqual(["conversation_save", "wiki_backlinks", "wiki_check", "wiki_index", "wiki_layout", "wiki_lint", "wiki_log", "wiki_pending", "wiki_save_source"]);
-    expect(await names(PRESETS.flat)).toEqual(["wiki_backlinks", "wiki_check", "wiki_layout", "wiki_lint"]);
+    expect(await names(PRESETS["llm-wiki"])).toEqual(["conversation_save", "wiki_backlinks", "wiki_check", "wiki_index", "wiki_layout", "wiki_lint", "wiki_log", "wiki_pending", "wiki_review", "wiki_save_source", "wiki_checked"].sort());
+    expect(await names(PRESETS.flat)).toEqual(["wiki_backlinks", "wiki_check", "wiki_checked", "wiki_layout", "wiki_lint", "wiki_review"]);
   });
 });

@@ -68,6 +68,7 @@
 | `wiki-page-without-source` | 끔 | - | 원본을 하나도 인용하지 않는 위키 페이지 |
 | `page-status` | 꺼짐 | - | `status: draft · stable · deprecated` 가 없는 위키 페이지 |
 | `bad-filenames` | 켬 | - | `[ ] # ^ \| : ? * " < > \`가 들어간 이름 |
+| `stale-facts` | 켬 | `days` (60), `tags` | 내용이 바뀌는 페이지(프론트매터 `review: <일수>` 또는 `tags` 중 하나) 중 그만큼 확인 안 된 것. `wiki_review` 가 보여 주고 `wiki_checked` 가 `checked:` 를 적어요 |
 
 링크는 Obsidian처럼 해석해요: 정확한 경로 → 링크한 노트 기준 상대 경로 → 파일 이름 (가까운 폴더 먼저).
 

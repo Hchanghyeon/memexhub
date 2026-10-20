@@ -10,7 +10,7 @@ interface V {
   dav: { enabled: boolean; maxFileMb: number; available: boolean };
   search: { available: boolean; ready: boolean; notes: number; updated: string | null } | null;
   history: { on: boolean; available: boolean; stats: { commits: number } | null };
-  wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string; profile?: string }; lint: { id: string; enabled: boolean }[] };
+  wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string; profile?: string }; lint: { id: string; enabled: boolean }[]; stale: { tags: string[]; days: number } };
 }
 
 /** Each check in plain words: a name and what it finds. The rule id stays visible for docs and Claude. */
@@ -24,6 +24,7 @@ const RULE_TEXT: Record<string, [string, string, string, string]> = {
   "unregistered-tags": ["Unregistered tags", "등록 안 된 태그", "Tags that are not in the allowed list.", "허용 목록에 없는 태그."],
   "wiki-page-without-source": ["Wiki page without a source", "원본 없는 위키 페이지", "Wiki pages that cite no source note.", "원본 노트를 하나도 인용하지 않는 위키 페이지."],
   "page-status": ["Page status", "페이지 상태", "Wiki pages without status: draft, stable or deprecated.", "status(draft·stable·deprecated)가 없는 위키 페이지."],
+  "stale-facts": ["Facts to confirm again", "다시 확인할 사실", "Pages whose facts change (review: <days> in frontmatter, or a tag below) not confirmed for a while. Claude asks you and marks them checked.", "내용이 바뀌는 페이지(프론트매터 review: <일수>, 또는 아래 태그) 중 한동안 확인 안 된 것. Claude가 물어보고 확인 날짜를 적어요."],
   "bad-filenames": ["Bad file names", "쓰면 안 되는 파일 이름", "Names with characters that break links: [ ] # ^ | : ? * \" < >", "링크를 깨뜨리는 글자([ ] # ^ | : ? * \" < >)가 들어간 이름."],
 };
 
@@ -96,6 +97,7 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
   const r = v.wiki.roles;
   const [roles, setRoles] = useState({ sources: r.sources ?? "", wiki: r.wiki === "" ? "/" : r.wiki ?? "", index: r.index.style, indexFile: r.index.file ?? "index.md", log: r.log ?? "", daily: r.daily ?? "", rules: r.rules.join(", "), archive: r.archive ?? "", profile: r.profile ?? "" });
   const [lint, setLint] = useState(v.wiki.lint);
+  const [stale, setStale] = useState({ tags: v.wiki.stale.tags.join(", "), days: String(v.wiki.stale.days) });
   useEffect(() => setPreset(v.wiki.preset ?? ""), [v.wiki.preset]);
   return (
     <Card title={t("Wiki layout", "위키 구조")} badge={<Badge>{t("Optional", "선택")}</Badge>} sub={t("memexhub knows roles, not folder names. Pick the closest preset.", "memexhub는 폴더 이름이 아니라 역할을 알아요. 가장 비슷한 프리셋을 고르세요.")}
@@ -126,7 +128,11 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
         <div className="grid gap-3 sm:grid-cols-2">
           {lint.map((l) => <Check key={l.id} checked={l.enabled} onChange={(on) => setLint(lint.map((x) => (x.id === l.id ? { ...x, enabled: on } : x)))} label={RULE_TEXT[l.id] ? <>{t(RULE_TEXT[l.id]![0], RULE_TEXT[l.id]![1])} <code className="text-muted-foreground text-xs">{l.id}</code></> : <code>{l.id}</code>} hint={RULE_TEXT[l.id] ? t(RULE_TEXT[l.id]![2], RULE_TEXT[l.id]![3]) : undefined} />)}
         </div>
-        <div><Button kind="secondary" busy={busy} onClick={() => run(() => post("/wiki/lint", { on: lint.filter((x) => x.enabled).map((x) => x.id) }), t("Saved.", "저장했어요."), reload)}>{t("Save checks", "점검 규칙 저장")}</Button></div>
+        <Fields>
+          <Input label={t("Tags of pages to confirm again", "다시 확인할 페이지의 태그")} hint={t("Comma separated, e.g. status/active. A page can also set review: 30 itself.", "쉼표로 구분, 예: 상태/진행중. 페이지에 review: 30 을 적어도 돼요.")} value={stale.tags} onChange={(x) => setStale({ ...stale, tags: x })} mono />
+          <Input label={t("Every how many days", "며칠마다")} value={stale.days} onChange={(x) => setStale({ ...stale, days: x })} inputMode="numeric" />
+        </Fields>
+        <div><Button kind="secondary" busy={busy} onClick={() => run(() => post("/wiki/lint", { on: lint.filter((x) => x.enabled).map((x) => x.id), staleTags: stale.tags.split(","), staleDays: Number(stale.days) || 60 }), t("Saved.", "저장했어요."), reload)}>{t("Save checks", "점검 규칙 저장")}</Button></div>
       </More>
     </Card>
   );

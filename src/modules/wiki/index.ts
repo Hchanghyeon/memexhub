@@ -7,6 +7,7 @@ import { effectiveRules, formatFindings, lint, RULES } from "./lint.js";
 import { addToIndex, appendLog, backlinks, conversationNote, pendingSources, safeTitle, saveSource, sharedNote, today } from "./upkeep.js";
 import { nowIn } from "../../core/time.js";
 import { normalizeVaultPath } from "../../storage/paths.js";
+import { setFrontmatter } from "./gate.js";
 
 /** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
 const WORKFLOW = [
@@ -172,6 +173,37 @@ export default defineModule({
               }),
             ]
           : []),
+        defineTool({
+          name: "wiki_review",
+          readOnly: true,
+          description: T(
+            "Pages whose facts change and were not confirmed for a while (frontmatter review: <days>, or a tag set in the stale-facts rule), oldest first. For each: ask the user whether it is still true, or check newer records; then fix the page (move a replaced fact under a History section as \"before: … (until YYYY-MM)\" instead of deleting it) and call wiki_checked.",
+            "내용이 바뀌는 페이지 중 한동안 확인 안 된 것 (프론트매터 review: <일수>, 또는 stale-facts 규칙에 정한 태그), 오래된 순. 하나씩: 아직 맞는지 사용자에게 묻거나 최근 기록으로 확인 → 페이지를 고치고 (바뀐 사실은 지우지 말고 이력 섹션에 \"이전: … (~YYYY-MM)\" 로) wiki_checked 를 부른다.",
+          ),
+          input: { limit: z.number().int().min(1).max(100).default(20) },
+          async run({ limit }) {
+            const g = await LinkGraph.build(vault!);
+            const r = settings.wiki.lint["stale-facts"];
+            const found = lint(g, layout, { "stale-facts": { enabled: true, options: r?.options } }, ["stale-facts"]);
+            if (!found.length) return "no page is due for a check ✓";
+            return [`${found.length} page(s) to confirm`, ...found.slice(0, limit).map((f) => `- ${f.path}: ${f.message}`), ...(found.length > limit ? [`- … ${found.length - limit} more`] : [])].join("\n");
+          },
+        }),
+        defineTool({
+          name: "wiki_checked",
+          description: T(
+            "Mark a page's facts as confirmed today (sets checked: YYYY-MM-DD in its frontmatter). Call after the user confirmed it or you updated it from newer records.",
+            "페이지 내용을 오늘 확인했다고 표시 (프론트매터 checked: YYYY-MM-DD). 사용자가 맞다고 했거나 최근 기록으로 고친 뒤에 부른다.",
+          ),
+          input: { path: z.string().min(1).max(500) },
+          async run({ path }, { actor }) {
+            const p = normalizeVaultPath(path);
+            const v = vault!.withActor(actor);
+            const date = today(settings.timezone, platform.now());
+            await v.write(p, setFrontmatter((await v.read(p)).text, "checked", date), { why: "checked" });
+            return `checked: ${p} (${date})`;
+          },
+        }),
         defineTool({
           name: "wiki_backlinks",
           readOnly: true,

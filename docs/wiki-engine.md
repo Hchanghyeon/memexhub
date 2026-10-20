@@ -68,6 +68,7 @@ An empty role switches the related feature off (its tools are not shown to Claud
 | `wiki-page-without-source` | off | - | wiki pages that cite no source note |
 | `page-status` | off | - | wiki pages without `status: draft · stable · deprecated` |
 | `bad-filenames` | on | - | names with `[ ] # ^ \| : ? * " < > \` |
+| `stale-facts` | on | `days` (60), `tags` | pages whose facts change (`review: <days>` in frontmatter, or one of `tags`) not confirmed for that long; `wiki_review` lists them, `wiki_checked` sets `checked:` |
 
 Links resolve like Obsidian: exact path → path relative to the linking note → basename (nearest folder first).
 

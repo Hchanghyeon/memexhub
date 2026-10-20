@@ -272,7 +272,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       dav: { enabled: s.dav.enabled, maxFileMb: s.dav.maxFileMb, available: !!storage[0] && storage[0].provider === "fs" },
       search: hub.vault ? await hub.vault.searchIndexStats() : null,
       history: { on: s.vault.history, available: !!hub.vault?.hasHistory, stats: hub.vault ? await hub.vault.historyStats() : null },
-      wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, gate: s.wiki.gate ?? !!new Layout(s.wiki.roles).sources, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })) },
+      wiki: { preset: s.wiki.preset ?? null, presets: Object.keys(PRESETS), roles: s.wiki.roles, gate: s.wiki.gate ?? !!new Layout(s.wiki.roles).sources, lint: effectiveRules(s.wiki.lint).map((x) => ({ id: x.rule.id, enabled: x.enabled })), stale: (() => { const o = effectiveRules(s.wiki.lint).find((x) => x.rule.id === "stale-facts")!.options; return { tags: (o.tags as string[]) ?? [], days: Number(o.days) || 60 }; })() },
     });
   });
   api.post("/vault", async (c) => {
@@ -328,9 +328,13 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({ ok: true });
   });
   api.post("/wiki/lint", async (c) => {
-    const f = await body(c, z.object({ on: z.array(z.string().max(60)).max(50) }));
+    const f = await body(c, z.object({ on: z.array(z.string().max(60)).max(50), staleTags: z.array(z.string().trim().max(60)).max(20).optional(), staleDays: z.number().int().min(1).max(3650).optional() }));
     const s = await hub.settings.get();
     const lint = Object.fromEntries(effectiveRules(s.wiki.lint).map((x) => [x.rule.id, { enabled: f.on.includes(x.rule.id), options: s.wiki.lint[x.rule.id]?.options }]));
+    if (f.staleTags || f.staleDays) {
+      const o = lint["stale-facts"]!.options ?? {};
+      lint["stale-facts"]!.options = { ...o, ...(f.staleTags ? { tags: f.staleTags.map((x) => x.replace(/^#/, "")).filter(Boolean) } : {}), ...(f.staleDays ? { days: f.staleDays } : {}) };
+    }
     await hub.settings.set("wiki", { ...s.wiki, lint });
     await hub.reload();
     return c.json({ ok: true });

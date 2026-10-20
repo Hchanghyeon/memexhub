@@ -97,13 +97,15 @@ Rules
 1. Call week_summary for this week. Write 3 to 5 lines on what stands out against last week (spending, places, sleep, workouts).
 2. Call wiki_lint and group the findings by rule, at most 5 examples each.
 3. Call wiki_pending and list sources still waiting, and wiki pages still in draft that I should confirm.
-4. End with at most 3 suggestions for next week, each one line.`,
+4. Call wiki_review and list pages whose facts I should confirm again (at most 5), each with the one line most likely out of date.
+5. End with at most 3 suggestions for next week, each one line.`,
       `한 주 보고입니다. 읽기만 하세요: 아무것도 만들거나 고치거나 지우지 마세요.
 
 1. 이번 주 week_summary 를 부르세요. 지난주와 비교해 눈에 띄는 점을 3~5줄로 쓰세요(지출, 다닌 곳, 잠, 운동).
 2. wiki_lint 를 부르고 결과를 규칙별로 묶으세요. 규칙마다 예시는 최대 5개.
 3. wiki_pending 으로 아직 기다리는 원본과, 내가 확인해야 할 draft 위키 페이지를 적으세요.
-4. 마지막에 다음 주 제안을 최대 3개, 한 줄씩.`,
+4. wiki_review 로 다시 확인할 페이지를 최대 5개 적고, 페이지마다 가장 낡았을 것 같은 줄 하나를 같이 적으세요.
+5. 마지막에 다음 주 제안을 최대 3개, 한 줄씩.`,
     ],
   },
 ];

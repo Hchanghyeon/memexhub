@@ -177,6 +177,36 @@ export const RULES: LintRule[] = [
   },
 ];
 
+const DAY = 86_400_000;
+/** The date a note's facts were last confirmed: `checked`, else `updated`, else `created` (YYYY-MM-DD…). */
+export const lastChecked = (fm: Record<string, unknown>) => [fm.checked, fm.updated, fm.created].map((v) => String(v ?? "").slice(0, 10)).find((v) => /^\d{4}-\d{2}-\d{2}$/.test(v));
+
+/**
+ * Pages whose facts change (a job search, a health plan, who does what): due for a check when not confirmed for
+ * a while. A page opts in with `review: <days>` in its frontmatter, or by carrying one of the `tags`.
+ * After Zep's validity and LongMemEval's "knowledge update": stale facts are the commonest wrong answer.
+ */
+export const STALE_RULE: LintRule = {
+  id: "stale-facts",
+  defaultEnabled: true,
+  defaults: { days: 60, tags: [] as string[] },
+  run(g, _l, o) {
+    const now = typeof o.now === "number" ? o.now : Date.now();
+    const tags = new Set(arr(o.tags).map((t) => t.replace(/^#/, "")));
+    const out: (Finding & { age: number })[] = [];
+    for (const n of g.notes.values()) {
+      const own = Number(n.frontmatter.review);
+      if (!(own > 0) && !n.tags.some((t) => tags.has(t))) continue;
+      const days = own > 0 ? own : num(o.days, 60);
+      const last = lastChecked(n.frontmatter);
+      const age = last ? Math.floor((now - Date.parse(`${last}T00:00:00Z`)) / DAY) : Infinity;
+      if (age >= days) out.push({ rule: "stale-facts", path: n.path, age, message: last ? `last confirmed ${last} (${age} days, every ${days}): still true?` : `never confirmed (every ${days} days): add checked: YYYY-MM-DD` });
+    }
+    return out.sort((a, b) => b.age - a.age).map(({ age: _, ...f }) => f);
+  },
+};
+RULES.push(STALE_RULE);
+
 export function effectiveRules(cfg: Record<string, { enabled: boolean; options?: Opts }>) {
   return RULES.map((r) => ({ rule: r, enabled: cfg[r.id]?.enabled ?? r.defaultEnabled, options: { ...r.defaults, ...(cfg[r.id]?.options ?? {}) } }));
 }
