@@ -6,6 +6,7 @@ import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 import { safeEqual } from "../core/crypto.js";
 import { audit } from "../core/audit.js";
 import { STAY_MS } from "../auth/admin.js";
+import { staleSources } from "../core/freshness.js";
 import { listAccess, recordAccess } from "../core/access.js";
 import { ANTHROPIC_OUTBOUND_CIDRS, type Settings } from "../core/settings.js";
 import { Layout, PRESETS, RolesSchema } from "../modules/wiki/layout.js";
@@ -203,6 +204,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
       connectionErrors: conns.filter((x) => x.enabled && x.status === "error" && x.kind !== "storage").map((x) => ({ name: x.name, error: x.last_error })),
       moduleErrors: hub.moduleStatus.filter((m) => m.enabled && m.error).map((m) => ({ id: m.id, error: m.error })),
       otherConnections: conns.filter((x) => x.enabled && x.kind !== "storage").length,
+      stale: await staleSources(db, now(), on),
       checks: await checks(c),
     });
   });

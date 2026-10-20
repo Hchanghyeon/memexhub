@@ -3,6 +3,7 @@ import { defineTool, type DayEvent, type ModuleContext, type WeekNumber } from "
 import { pick, T } from "../../core/i18n.js";
 import { addDays, localDate, weekdayMon0 } from "../../core/time.js";
 import { buildScenes, sceneLines } from "./scenes.js";
+import { staleLines, staleSources } from "../../core/freshness.js";
 
 const DOW = { en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], ko: ["월", "화", "수", "목", "금", "토", "일"] };
 
@@ -67,6 +68,12 @@ export function summaryTools(ctx: ModuleContext) {
         if (events.some((e) => e.kind !== "transit")) {
           const lines = sceneLines(buildScenes(events), ctx.settings.timezone, l);
           if (lines.length) out.splice(1, 0, "", l === "ko" ? "## 장면 (일정·위치·결제를 시간으로 합침)" : "## Scenes (calendar, location and payments merged by time)", ...lines);
+        }
+        // Only for today: a source that stopped sending explains a thin day and should be fixed on the phone.
+        if (d === localDate(ctx.settings.timezone, ctx.platform.now())) {
+          const ids = new Set(ctx.summaries().map((s) => s.id));
+          const stale = staleLines(await staleSources(ctx.platform.db, ctx.platform.now(), (m) => ids.has(m)), l, ctx.settings.timezone);
+          if (stale.length) out.splice(1, 0, "", ...stale);
         }
         return out.length > 1 ? out.join("\n") : `${out[0]}\n${l === "ko" ? "기록 없음" : "no records"}`;
       },

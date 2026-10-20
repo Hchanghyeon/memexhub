@@ -1,6 +1,7 @@
 import { defineModule, defineTool } from "../../core/registry.js";
 import { T } from "../../core/i18n.js";
 import { summaryTools } from "./summary-tools.js";
+import { staleLines, staleSources } from "../../core/freshness.js";
 import { exportBackup } from "../../core/backup.js";
 
 export default defineModule({
@@ -64,7 +65,10 @@ export default defineModule({
             "oauth.client_registered": "new Claude connector registrations: expected only when you add a connector",
             "oauth.refresh_reuse_detected": "a reused refresh token (possible token theft): that connector was signed out",
           };
+          const ids = new Set(ctx.summaries().map((s) => s.id));
+          const stale = staleLines(await staleSources(db, ctx.platform.now(), (m) => ids.has(m)), ctx.settings.toolLanguage === "ko" ? "ko" : "en", ctx.settings.timezone);
           return [
+            ...(stale.length ? ["stopped sources:", ...stale, ""] : []),
             ...(signals.length ? ["⚠ last 24 h:", ...signals.map((x) => `- ${x.n} ${warn[x.action]}`), ""] : []),
             "connections:",
             ...conns.map((c) => `- ${c.kind}/${c.name} (${c.provider}) ${c.status ?? "unknown"}${c.last_ok_at ? ` · ok ${c.last_ok_at.slice(0, 16)}` : ""}`),

@@ -14,6 +14,7 @@ interface O {
   payments: { last: string | null; inbox: number } | null;
   location: { last: string | null; source: string | null } | null;
   health: { last: string | null } | null;
+  stale: { source: "location" | "health" | "ledger"; last: string; hours: number }[];
   devices: { tokens: number; last: string | null };
   backup: { last: string | null } | null;
   mcpAnthropicOnly: boolean; totp: boolean;
@@ -45,6 +46,11 @@ export function Overview() {
   const attention = [
     ...o.connectionErrors.map((x) => ({ text: t(`Connection "${x.name}" failed: ${x.error ?? ""}`, `연결 "${x.name}" 오류: ${x.error ?? ""}`), to: "/connections", high: true })),
     ...o.moduleErrors.map((x) => ({ text: `${x.id}: ${x.error}`, to: "/features", high: true })),
+    ...o.stale.map((x) => {
+      const name = { location: t("Location", "위치"), health: t("Health", "건강"), ledger: t("Payment", "결제") }[x.source];
+      const span = x.hours >= 48 ? t(`${Math.floor(x.hours / 24)} days`, `${Math.floor(x.hours / 24)}일째`) : t(`${x.hours} hours`, `${x.hours}시간째`);
+      return { text: t(`${name} records stopped: nothing for ${span}. Check the phone app or Shortcuts automation.`, `${name} 기록이 ${span} 안 들어와요. 폰 앱이나 단축어 자동화를 확인하세요.`), to: "/devices", high: false };
+    }),
     ...(o.payments?.inbox ? [{ text: t(`${o.payments.inbox} payment message(s) to check.`, `확인할 결제 메시지가 ${o.payments.inbox}개 있어요.`), to: "/recipes", high: false }] : []),
     ...o.checks.filter((c) => !c.ok && (!showSteps || c.level === "high")).map((c) => ({ text: checkText(t, c).text, to: checkText(t, c).fix ?? "/security", high: c.level === "high" })),
   ];
@@ -69,8 +75,8 @@ export function Overview() {
         <Tile to="/vault" label={t("Vault", "볼트")} tone={o.vault.connected ? "ok" : "err"} value={o.vault.connected ? t("Connected", "연결됨") : t("Not connected", "연결 안 됨")} sub={o.vault.preset ? presetName(t, o.vault.preset) : undefined} />
         <Tile to="/claude" label="Claude" tone={o.claude.used ? "ok" : "idle"} value={o.claude.used ? ago(t, o.claude.last, tz) : t("Not connected", "연결 안 됨")} sub={t(`${o.claude.apps} app(s)`, `앱 ${o.claude.apps}개`)} />
         {o.payments && <Tile to="/recipes" label={t("Payments", "결제")} tone={o.payments.inbox ? "warn" : undefined} value={ago(t, o.payments.last, tz)} sub={o.payments.inbox ? t(`${o.payments.inbox} to check`, `확인할 메시지 ${o.payments.inbox}개`) : t("Nothing to check", "확인할 것 없음")} />}
-        {o.location && <Tile to="/features" label={t("Location", "위치")} tone={recent(o.location.last, 6) ? "ok" : "err"} value={ago(t, o.location.last, tz)} sub={o.location.source ?? undefined} />}
-        {o.health && <Tile to="/features" label={t("Health", "건강")} value={ago(t, o.health.last, tz)} />}
+        {o.location && <Tile to="/features" label={t("Location", "위치")} tone={o.stale.some((x) => x.source === "location") ? "err" : o.location.last ? "ok" : "idle"} value={ago(t, o.location.last, tz)} sub={o.location.source ?? undefined} />}
+        {o.health && <Tile to="/features" label={t("Health", "건강")} tone={o.stale.some((x) => x.source === "health") ? "err" : undefined} value={ago(t, o.health.last, tz)} />}
         <Tile to="/devices" label={t("Devices", "기기")} value={ago(t, o.devices.last, tz)} sub={t(`${o.devices.tokens} token(s)`, `토큰 ${o.devices.tokens}개`)} />
         {o.backup && <Tile to="/backups" label={t("Backup", "백업")} tone={recent(o.backup.last, 48) ? "ok" : "err"} value={ago(t, o.backup.last, tz)} />}
       </Tiles>
