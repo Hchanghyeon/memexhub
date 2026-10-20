@@ -3,7 +3,7 @@ import { audit } from "../core/audit.js";
 import { sha256Hex } from "../core/crypto.js";
 import { matchesAny, normalizeVaultDir, normalizeVaultPath } from "./paths.js";
 import { StorageError, type FileInfo, type VaultStorage } from "./types.js";
-import type { SearchIndex } from "./search-index.js";
+import { inRange, noteDays, type SearchIndex } from "./search-index.js";
 import type { HistoryEntry, VaultHistory } from "./history.js";
 
 /** Helpers that follow the vault: its search index (+ a name; a different vault rebuilds it) and change history. */
@@ -226,28 +226,32 @@ export class SafeVault {
     return { from: a, to: b };
   }
 
-  async search(query: string, opts: { regex?: boolean; caseSensitive?: boolean; limit?: number }) {
+  /** Search notes. `since`/`until` (YYYY-MM-DD) keep notes dated in that period (see noteDays); with no query, list them. */
+  async search(query: string, opts: { regex?: boolean; caseSensitive?: boolean; limit?: number; since?: string; until?: string }) {
     const limit = Math.min(Math.max(opts.limit ?? 30, 1), 200);
     if (query.length > 300) throw new StorageError("invalid", "query too long");
+    const range = { since: opts.since, until: opts.until };
+    const dated = !!(range.since || range.until);
     // Plain searches use the index (ranked, fast); regex and case-sensitive ones keep exact scanning.
     if (!opts.regex && !opts.caseSensitive && this.search_) {
-      const hits = await this.search_.index.search(query, limit).catch(() => undefined);
+      const hits = await this.search_.index.search(query, limit, range).catch(() => undefined);
       if (hits) return hits;
     }
     const re = new RegExp(opts.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), opts.caseSensitive ? "" : "i");
-    if (this.store.capabilities.search && this.store.search) return this.store.search(re, { limit });
+    if (!dated && this.store.capabilities.search && this.store.search) return this.store.search(re, { limit });
     // Fallback: scan notes (cache/index for remote stores comes later).
     const files = (await this.list()).filter((f) => f.path.endsWith(".md")).sort((x, y) => +y.mtime - +x.mtime);
     const out: { path: string; lines: { n: number; text: string }[] }[] = [];
     for (const f of files) {
       if (out.length >= limit) break;
       const { text } = await this.store.read(f.path);
+      if (dated && !inRange(noteDays(f.path, text), range)) continue;
       const lines = text.split("\n");
       const hits: { n: number; text: string }[] = [];
       lines.forEach((l, i) => {
-        if (hits.length < 5 && re.test(l)) hits.push({ n: i + 1, text: l.slice(0, 300) });
+        if (query && hits.length < 5 && re.test(l)) hits.push({ n: i + 1, text: l.slice(0, 300) });
       });
-      if (hits.length) out.push({ path: f.path, lines: hits });
+      if (hits.length || (!query && dated)) out.push({ path: f.path, lines: hits });
     }
     return out;
   }

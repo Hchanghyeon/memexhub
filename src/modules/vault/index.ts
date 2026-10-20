@@ -9,6 +9,11 @@ import { gateWikiWrite } from "../wiki/gate.js";
 export type WriteGate = (vault: SafeVault, path: string, text: string) => Promise<{ text: string; notes: string[] }>;
 
 const fmtDate = (d: Date) => d.toISOString().slice(0, 19);
+/** A day or a month for date filters: "2026-10" means from its first to its last day. */
+const DayOrMonth = z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/);
+const startOf = (d: string) => (d.length === 7 ? `${d}-01` : d);
+const endOf = (d: string) => (d.length === 7 ? `${d}-${String(new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7), 0)).getUTCDate()).padStart(2, "0")}` : d);
+
 
 export function vaultTools(vault: SafeVault, gate?: WriteGate) {
   return [
@@ -43,19 +48,22 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
       name: "search_notes",
       readOnly: true,
       description: T(
-        "Full-text search across the vault, best matches first (a hit in the title, aliases or summary ranks higher). Every word must appear; \"quotes\" keep a phrase together. Returns matching lines per note. Use this before opening notes.",
-        "볼트 전체 본문 검색, 잘 맞는 노트부터 (제목·별칭·요약에 있으면 위로). 모든 단어가 들어 있어야 하고, \"따옴표\" 로 구절을 묶는다. 노트별 매칭 줄을 돌려준다. 노트를 열기 전에 먼저 쓴다.",
+        "Full-text search across the vault, best matches first (a hit in the title, aliases or summary ranks higher). Every word must appear; \"quotes\" keep a phrase together. Returns matching lines per note. Use this before opening notes. For time words (\"last month\", \"in spring\", \"2024\") turn them into since/until (YYYY-MM-DD or YYYY-MM) so other years do not mix in: a note's date is the date in its path (journals, monthly notes) or its frontmatter date/created–updated; undated notes are left out then. With since/until and no query it lists the notes of that period.",
+        "볼트 전체 본문 검색, 잘 맞는 노트부터 (제목·별칭·요약에 있으면 위로). 모든 단어가 들어 있어야 하고, \"따옴표\" 로 구절을 묶는다. 노트별 매칭 줄을 돌려준다. 노트를 열기 전에 먼저 쓴다. 시간 표현(\"지난달\", \"봄에\", \"2024년\")은 since/until (YYYY-MM-DD 또는 YYYY-MM) 로 바꿔 넣어 다른 해가 섞이지 않게 한다: 노트의 날짜는 경로의 날짜(일지·월별 노트) 또는 프론트매터 date/created~updated 이고, 이때 날짜 없는 노트는 빠진다. since/until 만 주고 query 를 비우면 그 기간 노트 목록.",
       ),
       input: {
-        query: z.string().min(1),
+        query: z.string().max(300).default(""),
         regex: z.boolean().default(false),
         case_sensitive: z.boolean().default(false),
         limit: z.number().int().min(1).max(200).default(30),
+        since: DayOrMonth.optional().describe("YYYY-MM-DD or YYYY-MM (from its first day)"),
+        until: DayOrMonth.optional().describe("YYYY-MM-DD or YYYY-MM (to its last day)"),
       },
-      async run({ query, regex, case_sensitive, limit }) {
-        const hits = await vault.search(query, { regex, caseSensitive: case_sensitive, limit });
+      async run({ query, regex, case_sensitive, limit, since, until }) {
+        if (!query.trim() && !since && !until) return "error: give a query, or since/until to list the notes of a period";
+        const hits = await vault.search(query.trim(), { regex, caseSensitive: case_sensitive, limit, since: since && startOf(since), until: until && endOf(until) });
         if (!hits.length) return "no matches";
-        return `${hits.length} notes\n\n` + hits.map((h) => `## ${h.path}\n` + h.lines.map((l) => `  L${l.n}: ${l.text}`).join("\n")).join("\n");
+        return `${hits.length} notes\n\n` + hits.map((h) => `## ${h.path}` + (h.lines.length ? "\n" + h.lines.map((l) => `  L${l.n}: ${l.text}`).join("\n") : "")).join("\n");
       },
     }),
     defineTool({

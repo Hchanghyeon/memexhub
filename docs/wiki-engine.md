@@ -77,6 +77,8 @@ Links resolve like Obsidian: exact path → path relative to the linking note �
 ## Search index ✅
 
 `search_notes` (and the admin Notes search) use a full-text index in the database: SQLite FTS5 with the **trigram** tokenizer, so words match inside words and Korean particles do not get in the way ("커넥션" finds "커넥션을").
+
+**By date.** `search_notes` takes `since`/`until` (`YYYY-MM-DD` or `YYYY-MM`). A note's date is the date in its path (a journal `2026-10-19`, a monthly note `2026-10` covers the month), else its frontmatter `date` or `created`–`updated`; undated notes are left out of a dated search. With no words it lists the notes of the period. The connector's instructions carry today's date so the AI can turn "last month" into dates (LongMemEval's time-aware query expansion).
 - **Ranking:** best match first, with a hit in the title (×10), aliases (×6) or summary (×4) above one in the body; ties go to the newest note.
 - **Query rules:** every word must appear; `"quotes"` keep a phrase. Words shorter than three letters are matched in the stored text.
 - **Exact modes:** `regex` and case-sensitive searches still scan the notes.

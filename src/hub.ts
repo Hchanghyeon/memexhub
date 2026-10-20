@@ -7,6 +7,7 @@ import { SettingsStore, type Settings } from "./core/settings.js";
 import { Connections } from "./core/connections.js";
 import { EventBus } from "./core/events.js";
 import { pick, type Text } from "./core/i18n.js";
+import { nowIn } from "./core/time.js";
 import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
@@ -255,7 +256,11 @@ export class Hub {
     const tools = await this.visibleTools();
     const has = (n: string) => tools.some((t) => t.name === n);
     const core = await this.coreMemory(s);
-    const server = new McpServer({ name: "memexhub", version: "0.1.0" }, { instructions: pick(serverInstructions(has, core), s.toolLanguage) });
+    // Today's date, so "last month" or "yesterday" can become dates for search_notes and the summaries.
+    const now = nowIn(s.timezone, this.platform.now());
+    const date = `${now.y}-${String(now.m).padStart(2, "0")}-${String(now.d).padStart(2, "0")}`;
+    const today = s.toolLanguage === "ko" ? `\n오늘: ${date} (${s.timezone})` : `\nToday: ${date} (${s.timezone})`;
+    const server = new McpServer({ name: "memexhub", version: "0.1.0" }, { instructions: pick(serverInstructions(has, core), s.toolLanguage) + today });
     for (const t of tools) {
       server.registerTool(
         t.name,

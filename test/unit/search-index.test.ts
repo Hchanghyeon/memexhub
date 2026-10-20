@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, writeFileSync, utimesSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fields, SearchIndex, terms } from "../../src/storage/search-index.js";
+import { fields, noteDays, SearchIndex, terms } from "../../src/storage/search-index.js";
 import { SafeVault } from "../../src/storage/safe-vault.js";
 import { FsStorage } from "../../src/storage/fs.js";
 import { sqliteDb } from "../../src/platform/node.js";
@@ -92,5 +92,36 @@ describe("search index", () => {
     const blob = await exportBackup(db, "k".repeat(48));
     const json = await decrypt("k".repeat(48), "backup", blob.trim().split("\n")[1]!, "memexhub-backup-v1");
     expect(Object.keys(JSON.parse(json).tables).filter((t) => t.startsWith("vault_search") || t === "map_tiles")).toEqual([]);
+  });
+});
+
+describe("searching by date", () => {
+  it("dates a note by its path, else by its frontmatter", () => {
+    expect(noteDays("40-일지/2026/10/2026-10-19.md", "x")).toEqual({ from: "2026-10-19", to: "2026-10-19" });
+    expect(noteDays("40-일지/결제/2026-10.md", "x")).toEqual({ from: "2026-10-01", to: "2026-10-31" });
+    expect(noteDays("wiki/a.md", "---\ncreated: 2024-03-02\nupdated: 2024-05-01\n---\n")).toEqual({ from: "2024-03-02", to: "2024-05-01" });
+    expect(noteDays("wiki/b.md", "no frontmatter")).toBeUndefined();
+  });
+
+  it("keeps notes of the period, with the index and without it", async () => {
+    write("wiki/old.md", "---\ncreated: 2024-09-01\n---\n커넥션 예전 이야기\n");
+    await v.reindex();
+    const paths = async (vault: SafeVault, q: string, o: { since?: string; until?: string }) => (await vault.search(q, { limit: 20, ...o })).map((h) => h.path).sort();
+    expect(await paths(v, "커넥션", { since: "2026-10-01", until: "2026-10-31" })).toEqual(["journal/2026-10-16.md"]);
+    expect(await paths(v, "커넥션", { until: "2024-12-31" })).toEqual(["wiki/old.md"]);
+    expect(await paths(v, "", { since: "2026-10-16", until: "2026-10-16" })).toEqual(["journal/2026-10-16.md"]); // no words: the notes of that day
+    const plain = new SafeVault(new FsStorage(root), { readOnly: false, protectedPaths: [], maxWriteBytes: 1e6 }, db, "t"); // no index: scanning
+    expect(await paths(plain, "커넥션", { since: "2026-10-01" })).toEqual(["journal/2026-10-16.md"]);
+  });
+
+  it("rebuilds an index made before dates existed", async () => {
+    const old = sqliteDb(":memory:");
+    await old.run(`CREATE VIRTUAL TABLE vault_search USING fts5(path UNINDEXED, title, aliases, summary, body, tokenize = 'trigram')`);
+    await old.run(`CREATE TABLE vault_search_files (id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, sig TEXT NOT NULL, mtime TEXT NOT NULL, body_line INTEGER NOT NULL)`);
+    await old.run(`CREATE TABLE vault_search_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+    await old.run(`INSERT INTO vault_search_meta (key, value) VALUES ('ready', '1')`);
+    const ix = new SearchIndex(old);
+    expect(await ix.search("x", 5)).toBeUndefined(); // emptied: not ready until rebuilt
+    expect((await old.all<{ name: string }>(`PRAGMA table_info(vault_search_files)`)).map((c) => c.name)).toContain("day_from");
   });
 });
