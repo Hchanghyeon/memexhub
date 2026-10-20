@@ -111,6 +111,14 @@ describe("connector flow", () => {
     // Every AI is told once how to use the second brain (search first; offer to save decisions when that tool exists).
     const info = await init.json();
     expect(info.result.instructions).toMatch(/search_notes/);
+    // Core memory: the profile note is given to every connected AI, without its frontmatter.
+    const st = await hub.settings.get();
+    await hub.settings.set("wiki", { ...st.wiki, roles: { ...st.wiki.roles, profile: "me/profile.md" } });
+    await hub.vault!.write("me/profile.md", "---\ntitle: me\n---\n- Sample person, backend developer\n");
+    const init2 = await (await rpc({ method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } } })).json();
+    expect(init2.result.instructions).toContain("- Sample person, backend developer");
+    expect(init2.result.instructions).not.toContain("title: me");
+    await hub.settings.set("wiki", st.wiki);
     const list = await (await rpc({ method: "tools/list" })).json();
     const names = list.result.tools.map((t: any) => t.name);
     expect(names).toEqual(expect.arrayContaining(["list_notes", "read_note", "search_notes", "vault_stats", "write_note", "append_note", "hub_status", "wiki_layout"]));

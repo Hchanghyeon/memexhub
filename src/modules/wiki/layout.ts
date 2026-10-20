@@ -19,6 +19,7 @@ export const RolesSchema = z.object({
   rules: z.array(z.string()).default([]), // globs of rule notes — protected from tools
   archive: z.string().optional(),
   recipes: z.string().optional(), // message recipe notes (docs/recipes.md); <recipes>/*.md protected, <recipes>/proposed/ writable
+  profile: z.string().optional(), // core memory: one short note every connected AI is given at the start
 });
 export type Roles = z.infer<typeof RolesSchema>;
 
@@ -30,6 +31,7 @@ export const PRESETS: Record<string, Roles> = {
     log: "wiki/log.md",
     rules: ["CLAUDE.md", "AGENTS.md"],
     recipes: "recipes",
+    profile: "profile.md",
   },
   para: {
     sources: "Resources/Sources",
@@ -40,6 +42,7 @@ export const PRESETS: Record<string, Roles> = {
     rules: ["CLAUDE.md", "AGENTS.md", "Templates/**"],
     archive: "Archives",
     recipes: "Resources/Recipes",
+    profile: "Areas/Profile.md",
   },
   "para-ko": {
     sources: "30-자료/원본",
@@ -50,14 +53,16 @@ export const PRESETS: Record<string, Roles> = {
     rules: ["CLAUDE.md", "AGENTS.md", "_템플릿/**"],
     archive: "90-보관",
     recipes: "30-자료/레시피",
+    profile: "20-영역/나/핵심 기억.md",
   },
   zettelkasten: {
     sources: "sources",
     wiki: "",
     index: { style: "none" },
     rules: ["CLAUDE.md", "AGENTS.md"],
+    profile: "profile.md",
   },
-  flat: { wiki: "", index: { style: "none" }, rules: ["CLAUDE.md", "AGENTS.md"] },
+  flat: { wiki: "", index: { style: "none" }, rules: ["CLAUDE.md", "AGENTS.md"], profile: "profile.md" },
 };
 
 export const DEFAULT_RECIPES = "memexhub/recipes";

@@ -47,6 +47,10 @@ New tools that make routines cheap ✅:
 Each module contributes its own part (a module added later shows up in the summaries by itself).
 - `hub_status()` ✅: connection health and last received records (never settings or secrets)
 
+## Core memory
+
+One short note (layout role `profile`, e.g. `profile.md`) holds who you are and what is going on now: work, goals, ongoing matters, preferences. Every connected AI receives it in the connector's instructions at the start of a conversation, so it does not have to search for the basics, and is asked to update that note when something in it changes (under 3,000 characters; details go to other notes). If the note does not exist yet, the AI is asked to start it. The idea comes from MemGPT/Letta's always-in-context memory blocks.
+
 ## Routines
 
 Scheduled Claude routines keep their instructions in vault notes (e.g. "read `rules/nightly.md` and follow the code block"). Put those notes under **protected paths** so a prompt-injected Claude cannot rewrite tomorrow's instructions.

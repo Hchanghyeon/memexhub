@@ -311,12 +311,15 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({ ok: true });
   });
   api.post("/wiki/roles", async (c) => {
-    const f = await body(c, z.object({ sources: z.string().max(200), wiki: z.string().max(200), index: z.enum(["none", "folder-note", "index-file"]), indexFile: z.string().max(100), log: z.string().max(300), daily: z.string().max(300), rules: z.array(z.string().max(300)).max(50), archive: z.string().max(200) }));
+    const f = await body(c, z.object({ sources: z.string().max(200), wiki: z.string().max(200), index: z.enum(["none", "folder-note", "index-file"]), indexFile: z.string().max(100), log: z.string().max(300), daily: z.string().max(300), rules: z.array(z.string().max(300)).max(50), archive: z.string().max(200), profile: z.string().max(300).optional() }));
     const str = (v: string) => v.trim() || undefined;
+    const before = (await hub.settings.get()).wiki.roles;
     const parsed = RolesSchema.safeParse({
       sources: str(f.sources), wiki: f.wiki.trim() === "/" ? "" : str(f.wiki),
       index: f.index === "index-file" ? { style: "index-file", file: str(f.indexFile) ?? "index.md" } : { style: f.index },
       log: str(f.log), daily: str(f.daily), rules: f.rules.map((x) => x.trim()).filter(Boolean), archive: str(f.archive),
+      // Roles this form does not show are kept.
+      recipes: before.recipes, profile: f.profile === undefined ? before.profile : str(f.profile),
     });
     if (!parsed.success) throw new Fail("invalid_layout");
     const s = await hub.settings.get();

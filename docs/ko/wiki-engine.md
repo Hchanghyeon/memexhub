@@ -25,6 +25,7 @@
 | `daily` | 일지 경로 패턴, 예 `Journal/{YYYY-MM-DD}.md` | 이후 모듈에서 사용 |
 | `rules` | 규칙 노트 glob | **보호**: 도구로는 절대 못 써요 |
 | `archive` | 보관 폴더 | 이후 모듈에서 사용 |
+| `profile` | 핵심 기억 노트: 연결된 AI가 대화를 시작할 때마다 받고 최신으로 고쳐 두는 몇 줄짜리 나 소개 | 핵심 기억 |
 | `recipes` | [메시지 레시피](recipes.md) 노트 폴더 (기본 `memexhub/recipes`) | `<recipes>/`는 도구로 못 쓰는 **보호** 경로. Claude는 `<recipes>/proposed/`에 제안만 써요 |
 
 역할을 비우면 그 기능이 꺼지고, 관련 도구도 Claude에게 안 보여요.

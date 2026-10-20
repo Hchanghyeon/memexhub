@@ -17,6 +17,7 @@ import { SPOTIFY_SIGNIN } from "./providers/music/spotify.js";
 import { Cursors } from "./core/cursors.js";
 import { SafeVault } from "./storage/safe-vault.js";
 import { Layout } from "./modules/wiki/layout.js";
+import { parseFrontmatter } from "./modules/wiki/parse.js";
 import { StorageError } from "./storage/types.js";
 import { AdminAuth } from "./auth/admin.js";
 import { OAuthServer } from "./auth/oauth.js";
@@ -227,12 +228,34 @@ export class Hub {
     return this.tools.filter((t) => !s.disabledTools.includes(t.name) && (!t.destructive || s.enabledDestructive.includes(t.name)));
   }
 
+  private coreCache?: { key: string; at: number; value: CoreMemory | undefined };
+  /** The core memory note (layout role "profile"), without frontmatter, cut to CORE_MAX. Cached for a minute. */
+  async coreMemory(s: Settings): Promise<CoreMemory | undefined> {
+    const path = s.wiki.roles.profile;
+    if (!path || !this.vault) return undefined;
+    const now = +this.platform.now();
+    if (this.coreCache && this.coreCache.key === path && now - this.coreCache.at < 60_000) return this.coreCache.value;
+    let value: CoreMemory | undefined = { path, text: "" };
+    try {
+      if (await this.vault.stat(path)) {
+        const raw = (await this.vault.read(path)).text;
+        const body = raw.split(/\r?\n/).slice(parseFrontmatter(raw).bodyStart).join("\n").trim(); // bodyStart is a line number
+        value = { path, text: body.length > CORE_MAX ? `${body.slice(0, CORE_MAX)}\n…(cut: keep this note under ${CORE_MAX} characters)` : body };
+      }
+    } catch {
+      value = undefined;
+    }
+    this.coreCache = { key: path, at: now, value };
+    return value;
+  }
+
   /** Builder: a fresh stateless MCP server per request (works the same on Node and Workers). */
   async buildMcpServer(actor: string): Promise<McpServer> {
     const s: Settings = await this.settings.get();
     const tools = await this.visibleTools();
     const has = (n: string) => tools.some((t) => t.name === n);
-    const server = new McpServer({ name: "memexhub", version: "0.1.0" }, { instructions: pick(serverInstructions(has), s.toolLanguage) });
+    const core = await this.coreMemory(s);
+    const server = new McpServer({ name: "memexhub", version: "0.1.0" }, { instructions: pick(serverInstructions(has, core), s.toolLanguage) });
     for (const t of tools) {
       server.registerTool(
         t.name,
@@ -267,13 +290,21 @@ export class Hub {
  * What every connected AI is told once (MCP server instructions). The Claude app has no "end of chat" hook,
  * so saving what a conversation decided is asked for here: offer, then save on yes.
  */
-function serverInstructions(has: (tool: string) => boolean): Text {
+export interface CoreMemory { path: string; text: string }
+const CORE_MAX = 3000;
+
+export function serverInstructions(has: (tool: string) => boolean, core?: CoreMemory): Text {
   const en = [
     "memexhub is the user's second brain: their notes (an LLM Wiki in an Obsidian-style vault) and life logs. Use it to answer from what they wrote and recorded.",
     "Find before you read: search_notes first (cheap, matching lines only), then open only the 2–3 notes you need.",
     ...(has("wiki_layout") ? ["Before filing anything, call wiki_layout and follow the vault's rule notes."] : []),
     ...(has("conversation_save")
       ? ["When a conversation reaches a decision, a new fact about the user or their work, or a to-do worth keeping, ask once near the end whether to save it, and on yes call conversation_save (short: decisions, facts, to-dos). Do not offer it for small talk or one-off questions."]
+      : []),
+    ...(core
+      ? core.text
+        ? [`\nCore memory (the note "${core.path}": who the user is and what is going on now). Use it without searching. When something in it changes (work, goals, ongoing matters, preferences), update that note with write_note: replace the outdated line, keep it under ${CORE_MAX} characters, and put details in other notes.\n---\n${core.text}\n---`]
+        : [`\nThere is no core memory note yet. When you learn lasting facts about the user (work, goals, ongoing matters, preferences), create "${core.path}" with write_note: short lines, under ${CORE_MAX} characters.`]
       : []),
   ];
   const ko = [
@@ -282,6 +313,11 @@ function serverInstructions(has: (tool: string) => boolean): Text {
     ...(has("wiki_layout") ? ["무언가 저장하기 전에 wiki_layout 을 부르고 볼트 규칙 노트를 따른다."] : []),
     ...(has("conversation_save")
       ? ["대화에서 결정, 사용자나 그 일에 대한 새 사실, 남길 만한 할 일이 나오면 끝 무렵에 한 번 저장할지 묻고, 그러자고 하면 conversation_save 를 부른다 (짧게: 결정·사실·남은 일). 잡담이나 일회성 질문에는 묻지 않는다."]
+      : []),
+    ...(core
+      ? core.text
+        ? [`\n핵심 기억 (노트 "${core.path}": 사용자가 누구이고 지금 무슨 일이 있는지). 검색 없이 바로 쓴다. 여기 적힌 것이 바뀌면(일, 목표, 진행 중인 일, 선호) write_note 로 그 노트를 고친다: 낡은 줄은 바꾸고, ${CORE_MAX}자 아래로 짧게, 자세한 건 다른 노트에.\n---\n${core.text}\n---`]
+        : [`\n아직 핵심 기억 노트가 없다. 사용자에 대해 오래갈 사실(일, 목표, 진행 중인 일, 선호)을 알게 되면 write_note 로 "${core.path}" 를 만든다: 짧은 줄로, ${CORE_MAX}자 아래.`]
       : []),
   ];
   return { en: en.join("\n"), ko: ko.join("\n") };

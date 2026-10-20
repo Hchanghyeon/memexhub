@@ -25,6 +25,7 @@ The engine knows roles. Map them in the admin UI (*Wiki layout*) or pick a prese
 | `daily` | daily note pattern, e.g. `Journal/{YYYY-MM-DD}.md` | used by later modules |
 | `rules` | globs of rule notes | **protected**: tools can never write them |
 | `archive` | archive folder | used by later modules |
+| `profile` | core memory note: a few lines about you that every connected AI gets at the start and keeps current | core memory |
 | `recipes` | folder of [message recipe](recipes.md) notes (default `memexhub/recipes`) | `<recipes>/` is **protected** from tools; Claude writes proposals to `<recipes>/proposed/` |
 
 An empty role switches the related feature off (its tools are not shown to Claude).

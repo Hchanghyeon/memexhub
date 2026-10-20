@@ -10,7 +10,7 @@ interface V {
   dav: { enabled: boolean; maxFileMb: number; available: boolean };
   search: { available: boolean; ready: boolean; notes: number; updated: string | null } | null;
   history: { on: boolean; available: boolean; stats: { commits: number } | null };
-  wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string }; lint: { id: string; enabled: boolean }[] };
+  wiki: { preset: string | null; presets: string[]; gate: boolean; roles: { sources?: string; wiki?: string; index: { style: string; file?: string }; log?: string; daily?: string; rules: string[]; archive?: string; profile?: string }; lint: { id: string; enabled: boolean }[] };
 }
 
 /** Each check in plain words: a name and what it finds. The rule id stays visible for docs and Claude. */
@@ -94,7 +94,7 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
   const { busy, run } = useAction();
   const [preset, setPreset] = useState(v.wiki.preset ?? "");
   const r = v.wiki.roles;
-  const [roles, setRoles] = useState({ sources: r.sources ?? "", wiki: r.wiki === "" ? "/" : r.wiki ?? "", index: r.index.style, indexFile: r.index.file ?? "index.md", log: r.log ?? "", daily: r.daily ?? "", rules: r.rules.join(", "), archive: r.archive ?? "" });
+  const [roles, setRoles] = useState({ sources: r.sources ?? "", wiki: r.wiki === "" ? "/" : r.wiki ?? "", index: r.index.style, indexFile: r.index.file ?? "index.md", log: r.log ?? "", daily: r.daily ?? "", rules: r.rules.join(", "), archive: r.archive ?? "", profile: r.profile ?? "" });
   const [lint, setLint] = useState(v.wiki.lint);
   useEffect(() => setPreset(v.wiki.preset ?? ""), [v.wiki.preset]);
   return (
@@ -116,6 +116,7 @@ function Layout({ v, reload }: { v: V; reload: () => void }) {
         </Fields>
         <Input label={t("Rule notes Claude may not change", "Claude가 못 고치는 규칙 노트")} hint={t("Comma separated, * allowed.", "쉼표로 구분, * 사용 가능.")} value={roles.rules} onChange={(x) => setRoles({ ...roles, rules: x })} mono />
         <Input label={t("Archive folder", "보관 폴더")} value={roles.archive} onChange={(x) => setRoles({ ...roles, archive: x })} mono />
+        <Input label={t("Core memory note", "핵심 기억 노트")} hint={t("Who you are and what is going on now, in a few lines. Every connected AI gets it at the start, and keeps it current. Empty = off.", "내가 누구이고 지금 무슨 일이 있는지 몇 줄로 적는 노트예요. 연결된 AI가 대화를 시작할 때마다 받고, 바뀌면 고쳐 둬요. 비우면 꺼요.")} value={roles.profile} onChange={(x) => setRoles({ ...roles, profile: x })} placeholder="profile.md" mono />
         <div><Button kind="secondary" busy={busy} onClick={() => run(() => post("/wiki/roles", { ...roles, rules: roles.rules.split(",") }), t("Layout saved.", "구조를 저장했어요."), reload)}>{t("Save folders", "폴더 저장")}</Button></div>
       </More>
       <Toggle checked={v.wiki.gate} disabled={busy} onChange={(on) => run(() => post("/wiki/gate", { on }), t("Saved.", "저장했어요."), reload)}
