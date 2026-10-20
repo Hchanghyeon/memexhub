@@ -98,6 +98,13 @@ const MIGRATIONS: { id: number; sql: string[] }[] = [
        WHERE EXISTS (SELECT 1 FROM admins) AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'recipePacks')`,
     ],
   },
+  {
+    id: 9,
+    sql: [
+      // "Stay signed in": a session with an end date instead of the 30-minute idle limit.
+      `ALTER TABLE admin_sessions ADD COLUMN expires_at TEXT`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db): Promise<number> {

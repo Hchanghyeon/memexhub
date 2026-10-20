@@ -45,7 +45,7 @@ flowchart TB
 |---|---|---|---|---|
 | MCP | 8787 | Claude (Anthropic servers); your browser during connector login | OAuth 2.1 | yes, behind HTTPS; optionally Anthropic IPs only |
 | Ingest | 8790 | any HTTP sender: phone automations (iOS Shortcuts, Android Tasker / MacroDroid), apps, scripts, home automation | device token with scopes | yes, behind HTTPS |
-| Admin | 8791 | you | password + optional TOTP (off the home network; remembered browsers 30 days), session cookie, CSRF | private networks only by default |
+| Admin | 8791 | you | password + optional TOTP (off the home network), session cookie (30 idle minutes, or 30 days with "stay signed in"), CSRF | private networks only by default |
 
 `LISTEN=single` serves everything on one port with path routing (simple setups, Workers).
 

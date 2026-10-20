@@ -45,7 +45,7 @@ flowchart TB
 |---|---|---|---|---|
 | MCP | 8787 | Claude(Anthropic 서버), 커넥터 로그인 때 내 브라우저 | OAuth 2.1 | HTTPS 뒤로 열어요. Anthropic IP만 받게 할 수 있어요 |
 | 수집 | 8790 | HTTP로 보낼 수 있는 모든 것: 폰 자동화(iOS 단축어, Android Tasker·MacroDroid), 앱, 스크립트, 홈 자동화 | 범위(scope)가 있는 기기 토큰 | HTTPS 뒤로 열어요 |
-| 관리 | 8791 | 나 | 비밀번호 + TOTP 선택, 세션 쿠키, CSRF | 기본은 내부망만 |
+| 관리 | 8791 | 나 | 비밀번호 + TOTP 선택(집 밖에서), 세션 쿠키(30분 안 쓰면 끝, "로그인 유지"면 30일), CSRF | 기본은 내부망만 |
 
 `LISTEN=single`이면 한 포트에서 경로로 나눠요 (간단한 설치, Workers).
 

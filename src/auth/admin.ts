@@ -4,6 +4,8 @@ import { audit } from "../core/audit.js";
 
 const SESSION_IDLE_MS = 30 * 60 * 1000;
 const TRUST_MS = 30 * 86_400_000;
+/** "Stay signed in": the session lives this long from sign-in, however idle. */
+export const STAY_MS = 30 * 86_400_000;
 
 /**
  * Admin accounts, sessions and the first-run setup code.
@@ -98,11 +100,19 @@ export class AdminAuth {
     const row = await this.db.get<{ expires_at: string }>(`SELECT expires_at FROM admin_trusted WHERE id_hash = ? AND admin_id = ?`, [await sha256Hex(token), adminId]);
     return !!row && Date.parse(row.expires_at) > Date.now();
   }
+  /** Browsers that stay signed in or skip the code: the larger of the two counts (one browser usually has both). */
   async trustedCount(adminId: string) {
-    return (await this.db.get<{ n: number }>(`SELECT COUNT(*) n FROM admin_trusted WHERE admin_id = ? AND expires_at > ?`, [adminId, new Date().toISOString()]))?.n ?? 0;
+    const now = new Date().toISOString();
+    const a = (await this.db.get<{ n: number }>(`SELECT COUNT(*) n FROM admin_trusted WHERE admin_id = ? AND expires_at > ?`, [adminId, now]))?.n ?? 0;
+    const b = (await this.db.get<{ n: number }>(`SELECT COUNT(*) n FROM admin_sessions WHERE admin_id = ? AND expires_at > ?`, [adminId, now]))?.n ?? 0;
+    return Math.max(a, b);
   }
-  async forgetDevices(adminId: string) {
+  /** Forget every remembered browser: no more skipped codes, and long sessions end (this one becomes a normal session). */
+  async forgetDevices(adminId: string, currentSid?: string) {
     await this.db.run(`DELETE FROM admin_trusted WHERE admin_id = ?`, [adminId]);
+    const keep = currentSid ? await sha256Hex(currentSid) : "";
+    await this.db.run(`DELETE FROM admin_sessions WHERE admin_id = ? AND expires_at IS NOT NULL AND id_hash != ?`, [adminId, keep]);
+    await this.db.run(`UPDATE admin_sessions SET expires_at = NULL, last_seen_at = ? WHERE id_hash = ?`, [new Date().toISOString(), keep]);
   }
 
   /** New password: checks the current one, signs out every other session and forgets remembered browsers. */
@@ -170,12 +180,14 @@ export class AdminAuth {
     return !!(await this.db.get<{ x: string }>(`SELECT totp_secret_enc x FROM admins WHERE id = ? AND totp_secret_enc IS NOT NULL`, [adminId]));
   }
 
-  async createSession(adminId: string): Promise<{ sid: string; csrf: string }> {
+  /** A new session. Normal ones end after 30 idle minutes; with `stay` it lasts 30 days from now. */
+  async createSession(adminId: string, o: { stay?: boolean } = {}): Promise<{ sid: string; csrf: string }> {
     const sid = randomToken("ses_");
     const csrf = randomToken();
-    const now = new Date().toISOString();
-    await this.db.run(`INSERT INTO admin_sessions (id_hash, admin_id, csrf, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)`, [
-      await sha256Hex(sid), adminId, csrf, now, now,
+    const t = Date.now();
+    const now = new Date(t).toISOString();
+    await this.db.run(`INSERT INTO admin_sessions (id_hash, admin_id, csrf, created_at, last_seen_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`, [
+      await sha256Hex(sid), adminId, csrf, now, now, o.stay ? new Date(t + STAY_MS).toISOString() : null,
     ]);
     return { sid, csrf };
   }
@@ -183,12 +195,13 @@ export class AdminAuth {
   async session(sid: string | undefined): Promise<{ adminId: string; csrf: string } | null> {
     if (!sid) return null;
     const h = await sha256Hex(sid);
-    const row = await this.db.get<{ admin_id: string; csrf: string; last_seen_at: string }>(
-      `SELECT admin_id, csrf, last_seen_at FROM admin_sessions WHERE id_hash = ?`,
+    const row = await this.db.get<{ admin_id: string; csrf: string; last_seen_at: string; expires_at: string | null }>(
+      `SELECT admin_id, csrf, last_seen_at, expires_at FROM admin_sessions WHERE id_hash = ?`,
       [h],
     );
     if (!row) return null;
-    if (Date.now() - Date.parse(row.last_seen_at) > SESSION_IDLE_MS) {
+    const over = row.expires_at ? Date.now() > Date.parse(row.expires_at) : Date.now() - Date.parse(row.last_seen_at) > SESSION_IDLE_MS;
+    if (over) {
       await this.db.run(`DELETE FROM admin_sessions WHERE id_hash = ?`, [h]);
       return null;
     }

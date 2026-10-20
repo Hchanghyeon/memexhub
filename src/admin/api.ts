@@ -5,6 +5,7 @@ import type { Hub } from "../hub.js";
 import { inAny, PRIVATE_CIDRS } from "../core/ip.js";
 import { safeEqual } from "../core/crypto.js";
 import { audit } from "../core/audit.js";
+import { STAY_MS } from "../auth/admin.js";
 import { listAccess, recordAccess } from "../core/access.js";
 import { ANTHROPIC_OUTBOUND_CIDRS, type Settings } from "../core/settings.js";
 import { Layout, PRESETS, RolesSchema } from "../modules/wiki/layout.js";
@@ -125,8 +126,9 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     await recordAccess(db, { kind: "admin", ip: c.get("ip"), ok: !!id, who: id ? `admin:${id}` : undefined, detail: id ? undefined : `sign-in failed: ${f.username.slice(0, 40)}` }, { now: now() });
     if (!id) throw new Fail("login_failed", undefined, 401);
     if (offNetwork(c) && !(await hub.admin.hasTotp(id)) && !(await hub.admin.enrolWindowOpen(id))) throw new Fail("two_factor_required", undefined, 403);
-    const { sid } = await hub.admin.createSession(id);
-    setCookie(c, SESSION_COOKIE, sid, { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/" });
+    // "Stay signed in" keeps the session 30 days (cookie and server row), at home or outside.
+    const { sid } = await hub.admin.createSession(id, { stay: !!f.remember });
+    setCookie(c, SESSION_COOKIE, sid, { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/", ...(f.remember ? { maxAge: STAY_MS / 1000 } : {}) });
     if (r?.usedTotp && f.remember) setCookie(c, TRUST_COOKIE, await hub.admin.trustDevice(id), { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/", maxAge: 30 * 86_400 });
     return c.json({ ok: true });
   });
@@ -692,8 +694,11 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({ ok: true });
   });
   api.post("/forget-devices", async (c) => {
-    await hub.admin.forgetDevices(c.get("adminId"));
+    const sid = getCookie(c, SESSION_COOKIE);
+    await hub.admin.forgetDevices(c.get("adminId"), sid);
     deleteCookie(c, TRUST_COOKIE, { path: "/" });
+    // This browser stays signed in until it closes or idles 30 minutes, like a normal session.
+    if (sid) setCookie(c, SESSION_COOKIE, sid, { httpOnly: true, sameSite: "Strict", secure: secure(c), path: "/" });
     await audit(db, actor(c), "admin.forget_devices");
     return c.json({ ok: true });
   });

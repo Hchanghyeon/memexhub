@@ -26,12 +26,9 @@ export function Login({ onDone, error, home }: { onDone: () => void; error?: str
         <Input label={t("Username", "아이디")} value={f.username} onChange={(v) => setF({ ...f, username: v })} autoComplete="username" required />
         <Input label={t("Password", "비밀번호")} type="password" value={f.password} onChange={(v) => setF({ ...f, password: v })} autoComplete="current-password" required />
         {/* At home only the password is asked; from outside the authenticator code, unless this browser is remembered. */}
-        {!home && (
-          <>
-            <Input label={t("Authenticator code", "인증 앱 코드")} hint={t("Leave empty if this browser is remembered or two-factor is off.", "이 기기를 기억했거나 2단계 인증이 꺼져 있으면 비워 두세요.")} value={f.totp} onChange={(v) => setF({ ...f, totp: v })} inputMode="numeric" autoComplete="one-time-code" />
-            <Check checked={f.remember} onChange={(v) => setF({ ...f, remember: v })} label={t("Remember this browser for 30 days", "이 기기 30일 동안 기억")} hint={t("No code here again until then. Not on a shared computer.", "그동안 여기서는 코드를 다시 묻지 않아요. 공용 컴퓨터에서는 끄세요.")} />
-          </>
-        )}
+        {!home && <Input label={t("Authenticator code", "인증 앱 코드")} hint={t("Leave empty if this browser is remembered or two-factor is off.", "이 기기를 기억했거나 2단계 인증이 꺼져 있으면 비워 두세요.")} value={f.totp} onChange={(v) => setF({ ...f, totp: v })} inputMode="numeric" autoComplete="one-time-code" />}
+        <Check checked={f.remember} onChange={(v) => setF({ ...f, remember: v })} label={t("Stay signed in for 30 days", "30일 동안 로그인 유지")}
+          hint={home ? t("Off: signed out after 30 minutes without use. Not on a shared computer.", "끄면 30분 동안 안 쓰면 로그아웃돼요. 공용 컴퓨터에서는 끄세요.") : t("No password or code on this browser until then. Not on a shared computer.", "그동안 이 기기에서는 비밀번호도 코드도 다시 묻지 않아요. 공용 컴퓨터에서는 끄세요.")} />
         <Button type="submit" busy={busy} className="w-full">{t("Sign in", "로그인")}</Button>
       </form>
     </Frame>

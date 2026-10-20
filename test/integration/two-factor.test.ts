@@ -56,7 +56,22 @@ describe("two-factor where it matters", () => {
     const s2 = await hub.admin.startTotp(other);
     await hub.admin.confirmTotp(other, await totp(s2, Date.now()));
     expect((await login(OUTSIDE, { username: "other", password: "another-long-password" }, `mx_trust=${trust}`)).status).toBe(401);
-    expect(await hub.admin.trustedCount(adminId)).toBe(1);
+    expect(await hub.admin.trustedCount(adminId)).toBe(2); // the home and the outside browser both stay signed in
+  });
+
+  it("stays signed in for 30 days when asked, otherwise ends after 30 idle minutes", async () => {
+    const sid = (r: Response) => cookies(r).mx_admin!;
+    const stay = await login({}, { remember: true });
+    const short = await login({}, {});
+    expect(stay.headers.getSetCookie().find((c) => c.startsWith("mx_admin="))).toMatch(/Max-Age=2592000/);
+    expect(short.headers.getSetCookie().find((c) => c.startsWith("mx_admin="))).not.toMatch(/Max-Age/);
+    const db = hub.platform.db;
+    const hour = new Date(Date.now() - 3600_000).toISOString();
+    await db.run(`UPDATE admin_sessions SET last_seen_at = ?`, [hour]); // an hour without use
+    expect(await hub.admin.session(sid(stay))).not.toBeNull();
+    expect(await hub.admin.session(sid(short))).toBeNull();
+    await db.run(`UPDATE admin_sessions SET expires_at = ? WHERE expires_at IS NOT NULL`, [new Date(Date.now() - 1000).toISOString()]);
+    expect(await hub.admin.session(sid(stay))).toBeNull(); // 30 days are over
   });
 
   it("changing the password needs the current one, signs out other sessions and forgets browsers", async () => {
@@ -85,6 +100,8 @@ describe("two-factor where it matters", () => {
     expect((await me.json("/security")).trustedDevices).toBe(1);
     await me.post("/forget-devices");
     expect(await hub.admin.trustedCount(adminId)).toBe(0);
+    expect(await hub.admin.session(cookies(r).mx_admin)).toBeNull(); // the other browser is signed out
+    expect((await me.get("/overview")).status).toBe(200); // this one stays
     expect((await login(OUTSIDE, { password: "a-brand-new-password" }, `mx_trust=${cookies(r).mx_trust}`)).status).toBe(401);
   });
 });

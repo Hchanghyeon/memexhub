@@ -22,15 +22,11 @@ export function Security() {
         </List>
       </Card>
       <Card title={t("Two-factor sign-in", "2단계 인증")} badge={recommended} sub={t("A code from an authenticator app on top of the password. Needed to open this page from outside.", "비밀번호에 더해 인증 앱의 코드를 넣어요. 밖에서 이 화면을 열려면 필요해요.")}>
-        {data.totp ? (
-          <>
-            <Status tone="ok">{t("On: asked only from outside your home network", "켜져 있어요: 집 네트워크 밖에서만 물어요")}</Status>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Hint>{t(`${data.trustedDevices} browser(s) remembered for 30 days.`, `30일 동안 기억한 기기 ${data.trustedDevices}개.`)}</Hint>
-              {data.trustedDevices > 0 && <Button kind="secondary" size="sm" busy={busy} onClick={() => run(() => post("/forget-devices"), t("Every browser will be asked again.", "모든 기기에서 다시 코드를 물어요."), reload)}>{t("Forget them all", "모두 잊기")}</Button>}
-            </div>
-          </>
-        ) : enrolling ? <TwoFactorSetup onDone={() => { setEnrolling(false); reload(); }} /> : <div><Button onClick={() => setEnrolling(true)}>{t("Turn on", "켜기")}</Button></div>}
+        {data.totp ? <Status tone="ok">{t("On: asked only from outside your home network", "켜져 있어요: 집 네트워크 밖에서만 물어요")}</Status> : enrolling ? <TwoFactorSetup onDone={() => { setEnrolling(false); reload(); }} /> : <div><Button onClick={() => setEnrolling(true)}>{t("Turn on", "켜기")}</Button></div>}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Hint>{t(`${data.trustedDevices} browser(s) stay signed in (30 days from sign-in).`, `로그인 유지 중인 기기 ${data.trustedDevices}개 (로그인한 날부터 30일).`)}</Hint>
+          {data.trustedDevices > 0 && <Button kind="secondary" size="sm" busy={busy} onClick={() => run(() => post("/forget-devices"), t("Other browsers are signed out; every browser is asked again next time.", "다른 기기는 로그아웃되고, 다음 로그인 때 모든 기기에서 다시 물어요."), reload)}>{t("Forget them all", "모두 잊기")}</Button>}
+        </div>
       </Card>
       <Card title={t("Who may connect", "누가 접속할 수 있나")} badge={recommended}>
         <Toggle checked={data.mcpAnthropicOnly} disabled={busy} onChange={(v) => run(() => post("/mcp-allow", { enforce: v }), t("Saved.", "저장했어요."), reload)}
