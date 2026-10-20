@@ -414,6 +414,33 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     if (!m) throw new Fail("module_off", "location", 409);
     return m;
   };
+  api.get("/location/suggestions", async (c) => c.json(await locationAdmin().suggestions()));
+  /** Name a place (from a suggestion): stays within the radius are shown by this name from now on. */
+  api.post("/location/places", async (c) => {
+    const f = await body(c, z.object({ name: z.string().trim().min(1).max(60), lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180), radius: z.number().min(30).max(1000).default(150) }));
+    const s = await hub.settings.get();
+    if (s.location.places.length >= 200) throw new Fail("invalid_input", "200 places at most");
+    const places = [...s.location.places.filter((p) => p.name !== f.name), { name: f.name, lat: f.lat, lon: f.lon, radius: f.radius }];
+    await hub.settings.set("location", { ...s.location, places });
+    await audit(db, actor(c), "location.place_named");
+    await hub.reload();
+    return c.json({ ok: true });
+  });
+  api.post("/location/places/remove", async (c) => {
+    const f = await body(c, z.object({ name: z.string().max(60) }));
+    const s = await hub.settings.get();
+    await hub.settings.set("location", { ...s.location, places: s.location.places.filter((p) => p.name !== f.name) });
+    await hub.reload();
+    return c.json({ ok: true });
+  });
+  /** "Not worth a name": this spot is not suggested again. */
+  api.post("/location/suggestions/dismiss", async (c) => {
+    const f = await body(c, z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }));
+    const s = await hub.settings.get();
+    await hub.settings.set("location", { ...s.location, dismissed: [...s.location.dismissed, [f.lat, f.lon] as [number, number]].slice(-200) });
+    await hub.reload();
+    return c.json({ ok: true });
+  });
   api.get("/location/day", async (c) => {
     const d = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(c.req.query("date"));
     if (!d.success) throw new Fail("invalid_input");

@@ -90,4 +90,17 @@ describe("map screen API", () => {
     expect((await anon.get("/location/day?date=2026-10-14")).status).toBe(401);
     expect((await anon.get("/map/tile/15/27948/12700")).status).toBe(401);
   });
+
+  it("names a place from the map: the stay shows the name from then on, and the name can be removed", async () => {
+    expect((await a.json("/location/suggestions")).connected).toBe(true); // one day of data: nothing frequent yet
+    expect((await a.post("/location/places", { name: "Sample Office", lat: 37.51, lon: 127.0 })).status).toBe(200);
+    const d = await a.json("/location/day?date=2026-10-14");
+    expect(d.stays.map((s: { name: string; named: boolean }) => [s.name, s.named])).toEqual([["Home", true], ["Sample Office", true]]);
+    expect((await a.json("/location/suggestions")).places).toEqual([{ name: "Sample Office", radius: 150 }]);
+    expect((await a.post("/location/places", { name: "", lat: 37.51, lon: 127.0 })).status).toBe(400);
+    expect((await a.post("/location/places/remove", { name: "Sample Office" })).status).toBe(200);
+    expect((await a.json("/location/day?date=2026-10-14")).stays[1].named).toBe(false);
+    expect((await a.post("/location/suggestions/dismiss", { lat: 37.51, lon: 127.0 })).status).toBe(200);
+    expect((await hub.settings.get()).location.dismissed).toEqual([[37.51, 127.0]]);
+  });
 });

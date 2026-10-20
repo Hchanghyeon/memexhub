@@ -22,7 +22,7 @@ A read-only view of the vault.
 <img src="assets/screens/en/notes.jpg" alt="Notes" width="720">
 
 ## Map
-The day's route and the places you stayed. Only you see it; Claude and the vault never get coordinates. The map background (OpenStreetMap) is opt-in; this server fetches and keeps the pictures for 30 days.
+The day's route and the places you stayed. Only you see it; Claude and the vault never get coordinates. The map background (OpenStreetMap) is opt-in; this server fetches and keeps the pictures for 30 days. **Name the places you go often:** from the last 30 days it suggests unnamed spots you keep coming back to (2+ days and 2+ hours, or 4+ visits); a name there ("Gym") is used in the journal and payments from then on. An unnamed stay also has *Name it*. *Not needed* stops a suggestion.
 
 <img src="assets/screens/en/map.jpg" alt="Map" width="720">
 

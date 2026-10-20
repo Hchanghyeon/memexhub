@@ -4,13 +4,15 @@ import { T } from "../../core/i18n.js";
 import { addDays, dayBounds, localDate, nowIn, zonedIso } from "../../core/time.js";
 import type { Geocoder, LocationProvider } from "../../providers/location/types.js";
 import { areaAt, cleanPoints, pathKm, stays, stripLot } from "../../providers/location/stays.js";
-import { placeResolver } from "./places.js";
+import { frequentSpots, placeResolver, type Spot } from "./places.js";
 import type { MapTiles } from "../../providers/maptiles/osm.js";
 
 /** What the admin Map screen asks for (never reached by tools: coordinates stay out of Claude and the vault). */
 export interface LocationAdmin {
   day(date: string): Promise<LocationDay>;
   tile(z: number, x: number, y: number): Promise<{ bytes: Uint8Array<ArrayBuffer>; type: string } | undefined>;
+  /** Unnamed places you often stay at in the last 30 days, with a name hint from the geocoder. */
+  suggestions(): Promise<{ connected: boolean; spots: Spot[]; places: { name: string; radius: number }[] }>;
 }
 export interface LocationDay {
   date: string;
@@ -59,7 +61,7 @@ export default defineModule({
       loc: await provider<LocationProvider>("location", s().connection).catch(() => undefined),
       geo: await provider<Geocoder>("geocoder", s().geocoder).catch(() => undefined),
     });
-    const places = placeResolver(get, { privateAreas: () => s().privateAreas, now: () => +platform.now() });
+    const places = placeResolver(get, { privateAreas: () => s().privateAreas, now: () => +platform.now(), places: () => s().places });
     const tz = () => settings.timezone;
     const hhmm = (t: number) => new Intl.DateTimeFormat("en-GB", { timeZone: tz(), hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t * 1000));
 
@@ -81,6 +83,19 @@ export default defineModule({
         const step = Math.ceil(pts.length / MAX_PATH);
         const path = pts.filter((_, i) => i % step === 0 || i === pts.length - 1).map((p) => [p.lat, p.lon, p.t] as [number, number, number]);
         return { ...base, km: Math.round(pathKm(pts) * 10) / 10, path, stays: out };
+      },
+      async suggestions() {
+        const { loc } = await get();
+        const mine = s().places.map((p) => ({ name: p.name, radius: p.radius }));
+        if (!loc) return { connected: false, spots: [], places: mine };
+        const today = localDate(tz(), platform.now());
+        const [from] = dayBounds(tz(), addDays(today, -30));
+        const [, to] = dayBounds(tz(), today);
+        const list = stays(cleanPoints(await loc.points(from, to)), s().stay).map((x) => ({ ...x, day: localDate(tz(), new Date(x.start * 1000)) }));
+        const found = frequentSpots(list, { named: await places.areas(), dismissed: s().dismissed, radiusM: s().stay.radiusM });
+        const spots: Spot[] = [];
+        for (const x of found) spots.push({ ...x, hint: (await places.nameAt!(x.lat, x.lon)) || "" });
+        return { connected: true, spots, places: mine };
       },
       async tile(z, x, y) {
         const tiles = await provider<MapTiles>("maptiles").catch(() => undefined);

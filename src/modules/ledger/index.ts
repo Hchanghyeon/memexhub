@@ -29,7 +29,7 @@ export default defineModule({
         loc: await provider<LocationProvider>("location", settings.location.connection).catch(() => undefined),
         geo: await provider<Geocoder>("geocoder", settings.location.geocoder).catch(() => undefined),
       }),
-      { privateAreas: () => settings.location.privateAreas, now: () => +platform.now() },
+      { privateAreas: () => settings.location.privateAreas, now: () => +platform.now(), places: () => settings.location.places },
     );
     const ledger = new Ledger(bus, { officePlaces: settings.ledger.officePlaces, places, now: () => platform.now() });
     const tz = settings.timezone;

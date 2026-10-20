@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { post } from "../api";
 import { useT } from "../i18n";
 import { Link } from "../router";
-import { Actions, Button, Callout, Card, DateInput, Empty, Item, List, Loading, Page, useAction, useData } from "../ui/kit";
+import { Actions, Button, Callout, Card, DateInput, Empty, Input, Item, List, Loading, Page, useAction, useData } from "../ui/kit";
 
 interface Day {
   date: string;
@@ -27,6 +27,7 @@ export function MapPage() {
   const [date, setDate] = useState(today);
   const { data, error, reload } = useData<Day>(`/location/day?date=${date}`);
   const [focus, setFocus] = useState<number>();
+  const [naming, setNaming] = useState<number>();
   const dur = (m: number) => (m >= 60 ? t(`${Math.floor(m / 60)} h ${m % 60} min`, `${Math.floor(m / 60)}시간 ${m % 60}분`) : t(`${m} min`, `${m}분`));
   const day = data?.date === date ? data : undefined;
   return (
@@ -56,14 +57,72 @@ export function MapPage() {
                   <Item key={s.start} icon={<span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs font-semibold">{i + 1}</span>}
                     title={s.name || t("No name found", "이름 못 찾음")}
                     meta={`${hhmm(s.start)}–${hhmm(s.end)} · ${dur(s.minutes)}`}
-                    actions={<Button kind="ghost" size="sm" onClick={() => setFocus(i)}>{t("Show", "지도에서 보기")}</Button>} />
+                    actions={<>
+                      <Button kind="ghost" size="sm" onClick={() => setFocus(i)}>{t("Show", "지도에서 보기")}</Button>
+                      {!s.named && <Button kind="ghost" size="sm" onClick={() => setNaming(naming === i ? undefined : i)}>{t("Name it", "이름 붙이기")}</Button>}
+                    </>}>
+                    {naming === i && <NameForm lat={s.lat} lon={s.lon} hint={s.name} onDone={() => { setNaming(undefined); reload(); }} />}
+                  </Item>
                 ))}
               </List>
             </Card>
           )}
+          <Suggestions onChange={reload} />
         </>
       )}
     </Page>
+  );
+}
+
+interface Sug { connected: boolean; spots: { lat: number; lon: number; visits: number; days: number; minutes: number; hint: string }[]; places: { name: string; radius: number }[] }
+
+/** A name for a spot. Stays within about 150 m show by this name from now on, in notes and payments too. */
+function NameForm({ lat, lon, hint, onDone }: { lat: number; lon: number; hint?: string; onDone: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const [name, setName] = useState("");
+  return (
+    <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={(e) => { e.preventDefault(); void run(() => post("/location/places", { name, lat, lon }), t(`Named “${name}”.`, `“${name}”(으)로 이름 붙였어요.`), onDone); }}>
+      <div className="min-w-0 flex-1"><Input label={t("Name", "이름")} value={name} onChange={setName} placeholder={hint || t("e.g. Gym, Office, Parents' home", "예: 헬스장, 회사, 본가")} hint={t("Stays within about 150 m show by this name from now on, in the journal and payments too.", "이제 이 근처(약 150m)에 머물면 이 이름으로 보여요. 일지와 결제에도요.")} required /></div>
+      <Button type="submit" size="sm" busy={busy}>{t("Save", "저장")}</Button>
+    </form>
+  );
+}
+
+/** Unnamed places you keep coming back to (last 30 days), and the places you named. */
+function Suggestions({ onChange }: { onChange: () => void }) {
+  const { t } = useT();
+  const { busy, run } = useAction();
+  const { data, reload } = useData<Sug>("/location/suggestions");
+  const [open, setOpen] = useState<number>();
+  if (!data?.connected || (!data.spots.length && !data.places.length)) return null;
+  const done = () => { setOpen(undefined); reload(); onChange(); };
+  const hours = (m: number) => (m >= 60 ? t(`${Math.round(m / 60)} h`, `${Math.round(m / 60)}시간`) : t(`${m} min`, `${m}분`));
+  return (
+    <Card title={t("Name the places you go often", "자주 가는 곳에 이름 붙이기")} sub={t("From the last 30 days. A name makes the journal say “Gym” instead of a neighbourhood.", "최근 30일 기록에서 찾았어요. 이름을 붙이면 일지에 동네 이름 대신 “헬스장”처럼 써요.")}>
+      {data.spots.length > 0 && (
+        <List>
+          {data.spots.map((x, i) => (
+            <Item key={`${x.lat},${x.lon}`} title={x.hint || t("A place without a name", "이름 없는 곳")}
+              meta={t(`${x.days} day(s) · ${x.visits} visit(s) · ${hours(x.minutes)} in all`, `${x.days}일 · ${x.visits}번 · 모두 ${hours(x.minutes)}`)}
+              actions={open !== i && <>
+                <Button size="sm" onClick={() => setOpen(i)}>{t("Name it", "이름 붙이기")}</Button>
+                <Button size="sm" kind="ghost" disabled={busy} onClick={() => void run(() => post("/location/suggestions/dismiss", { lat: x.lat, lon: x.lon }), t("Won't suggest it again.", "다시 제안하지 않을게요."), reload)}>{t("Not needed", "필요 없어요")}</Button>
+              </>}>
+              {open === i && <NameForm lat={x.lat} lon={x.lon} hint={x.hint} onDone={done} />}
+            </Item>
+          ))}
+        </List>
+      )}
+      {data.places.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-[0.8125rem]">{t("Named here:", "여기서 붙인 이름:")}</span>
+          {data.places.map((p) => (
+            <Button key={p.name} size="sm" kind="secondary" disabled={busy} title={t("Remove this name", "이 이름 지우기")} onClick={() => void run(() => post("/location/places/remove", { name: p.name }), t(`Removed “${p.name}”.`, `“${p.name}” 이름을 지웠어요.`), done)}>{p.name} ×</Button>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 

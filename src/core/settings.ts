@@ -62,8 +62,12 @@ export const SettingsSchema = z.object({
       stay: z.object({ radiusM: z.number().min(30).max(1000), minMinutes: z.number().min(3).max(240), mergeM: z.number().min(0).max(2000) }).default({ radiusM: 150, minMinutes: 15, mergeM: 200 }),
       /** Points sent to /ingest/owntracks are deleted after this many days. */
       keepDays: z.number().int().min(1).max(3650).default(400),
+      /** Places named on the admin map. Used together with the location provider's own named areas. */
+      places: z.array(z.object({ name: z.string().trim().min(1).max(60), lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180), radius: z.number().min(30).max(1000) })).max(200).default([]),
+      /** Suggested spots the owner chose not to name ([lat, lon]); not suggested again. */
+      dismissed: z.array(z.tuple([z.number(), z.number()])).max(200).default([]),
     })
-    .default({ language: "en", privateAreas: [], stay: { radiusM: 150, minMinutes: 15, mergeM: 200 }, keepDays: 400 }),
+    .default({ language: "en", privateAreas: [], stay: { radiusM: 150, minMinutes: 15, mergeM: 200 }, keepDays: 400, places: [], dismissed: [] }),
   /** Built-in WebDAV (/dav/) for syncing a vault the server holds itself. Off by default. */
   dav: z
     .object({ enabled: z.boolean().default(false), maxFileMb: z.number().int().min(1).max(500).default(50) })
