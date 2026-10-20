@@ -26,6 +26,8 @@ export interface LedgerAdmin {
   resolve(id: string, action: "record" | "ignore", fields: Partial<ReadPayment>): Promise<string>;
   /** Record a waiting message and, from it, make a recipe so the same sender is read by itself next time. */
   learn(id: string, fields: Partial<ReadPayment>): Promise<{ recorded: string; learned: boolean; name?: string; reason?: string }>;
+  /** Never ask about this sender again: an "ignore" recipe on its address, and its other waiting messages closed. */
+  ignoreSender(id: string): Promise<{ sender: string; closed: number }>;
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -175,6 +177,28 @@ export function ledgerAdmin(d: {
       } catch (e) {
         return { recorded, learned: false, reason: (e as Error).message.slice(0, 200) };
       }
+    },
+    async ignoreSender(id) {
+      const it = await d.inbox.get<PendingMessage>("ledger", id);
+      if (!it?.data || it.status !== "pending") throw new Error("This item is no longer pending.");
+      const m = it.data.message;
+      // The address inside <…>, else the whole sender (an SMS number or a bare address).
+      const sender = (m.from?.match(/<([^<>\s]+)>/)?.[1] ?? m.from ?? "").trim().slice(0, 120);
+      if (!sender) throw new Error("This message has no sender to ignore.");
+      const channel = m.channel ?? "sms";
+      const raw = { id: `custom.ignore.${slug(sender)}.${channel}`, name: `${sender} (not payments)`, channels: [channel], match: { from: esc(sender) }, kind: "ignore" };
+      const failed = (await loadRecipes([{ id: "check", list: () => [raw] }])).errors;
+      if (failed.length) throw new Error(failed[0]!.error);
+      await this.approve(await writeProposal(raw));
+      let closed = 0;
+      for (const other of await d.inbox.list<PendingMessage>("ledger", { status: "pending", limit: 200 })) {
+        const o = other.data?.message;
+        if (other.id === id || (o && (o.channel ?? "sms") === channel && (o.from ?? "").includes(sender))) {
+          await d.inbox.close("ledger", other.id, "ignored");
+          closed++;
+        }
+      }
+      return { sender, closed };
     },
   };
 }

@@ -138,7 +138,7 @@ Typical use: *"Look at the ledger inbox and handle it."* Claude reads the active
 
 On the **Messages** page ✅ ([page guide](admin-ui.md#messages)):
 
-- **Please check** (the inbox). *It's a payment* records it (values can be corrected); with **read messages like this by themselves** on, a recipe is made from that message and your answer and switched on (`POST /inbox/:id/learn`). *Not a payment* ignores it.
+- **Please check** (the inbox). *It's a payment* records it (values can be corrected); with **read messages like this by themselves** on, a recipe is made from that message and your answer and switched on (`POST /inbox/:id/learn`). *Not a payment* ignores it. *Always skip this sender* (when the message has a sender) adds an `ignore` recipe on its address and closes its other waiting messages (`POST /inbox/:id/ignore-sender`). Mail bodies count as a payment only when they say one happened (승인, 영수증, 결제 완료, order number …), not just because they mention a price and "buy".
 - **Read by themselves.** Active recipes. Claude's proposals are switched on here (approve moves the note into `<recipes>/`); **Turn off** sets `enabled: false`, or for a collection recipe just switches it off again.
 - **Recipe collection.** The bundled recipes in `recipes/`, off by default, switched on per install (`settings.recipePacks`). Installs that existed before 2026-10-18 keep the four built-ins on.
 - **What is a recipe?** The four steps and an example key by key, with *start from this example*.

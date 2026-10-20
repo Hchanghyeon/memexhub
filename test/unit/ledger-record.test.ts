@@ -66,5 +66,8 @@ describe("which unrecognised mails reach the inbox", () => {
     expect(looksLikePayment("이번 주 소식", "지금 구매하면 9,900원\n수신거부")).toBe(false);
     expect(looksLikePayment("이번 주 소식", "신상 9,900원")).toBe(false);
     expect(looksLikePayment(undefined, "")).toBe(false);
+    // An advert with a price and a buying word but no sign that a payment happened.
+    expect(looksLikePayment("[보고서] 시장 분석 자료", "가격 480,000원 → 432,000원. 도서와 PDF 함께 구매시 50%")).toBe(false);
+    expect(looksLikePayment("안내", "주문번호 A-1 · 결제금액 15,000원")).toBe(true);
   });
 });

@@ -35,18 +35,21 @@ const mailTime = (s: string, tz: string) => {
 const AD = /^\s*[\[(（]\s*(광고|AD)\s*[\])）]/i;
 const PAYMENT_WORDS = /결제|승인|영수증|주문|구매|청구|납부|이용\s*내역|입금|출금|receipt|payment|order|invoice|charged|paid|purchase|billing/i;
 const BULK = /수신\s*거부|구독\s*취소|unsubscribe/i;
+/** In the body, broad words (구매, 주문, 청구) appear in every advert; a receipt says that a payment happened. */
+const PAID_WORDS = /승인|영수증|결제\s*(완료|금액|내역|일시|정보|되었|됐|취소)|카드\s*결제|주문\s*번호|거래\s*(일시|번호)|receipt|invoice|order\s*(number|no\.?|#)|you\s+paid|charged|payment\s+(received|confirm)/i;
 
 /**
  * Whether an unrecognised mail with an amount is worth a person's look. Advertising (subject marked
  * "(광고)", required by Korean law) never is. Otherwise the subject must say it is about a payment, or the body
- * must, unless the mail is bulk mail (has an unsubscribe line) — newsletters mention prices all the time.
+ * must say a payment happened (승인, 영수증, 결제 완료 …, not just 구매), unless the mail is bulk mail (has an
+ * unsubscribe line): newsletters mention prices all the time.
  */
 export function looksLikePayment(subject: string | undefined, text: string): boolean {
   const subj = subject ?? "";
   if (AD.test(subj)) return false;
   if (PAYMENT_WORDS.test(subj)) return true;
   const body = text.slice(0, 4000);
-  return PAYMENT_WORDS.test(body) && !BULK.test(text);
+  return PAID_WORDS.test(body) && !BULK.test(text);
 }
 
 /**

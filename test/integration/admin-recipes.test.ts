@@ -97,4 +97,18 @@ describe("admin API: recipes & inbox", () => {
     expect(next.inbox).toBeUndefined();
     expect((await a.json("/recipes")).inbox).toHaveLength(0);
   });
+
+  it("skips a sender for good: an ignore recipe on its address, its other waiting messages closed", async () => {
+    const send = async (text: string, from: string) =>
+      (await (await ingest.request(`${BASE}/ingest/message`, { method: "POST", headers: { "x-ingest-token": token, "content-type": "application/json" }, body: JSON.stringify({ channel: "notification", from, text }) })).json()) as { inbox?: string };
+    const one = await send("광고샵 결제 특가 9,900원", "Sample Ads <ads@example.com>");
+    const two = await send("광고샵 결제 이벤트 19,900원", "Sample Ads <ads@example.com>");
+    const keep = await send("다른곳 결제 5,000원", "Other <other@example.com>");
+    expect([one.inbox, two.inbox, keep.inbox].every(Boolean)).toBe(true);
+    const r = await (await a.post(`/inbox/${one.inbox}/ignore-sender`, {})).json();
+    expect(r).toEqual({ sender: "ads@example.com", closed: 2 });
+    expect((await a.json("/recipes")).inbox.map((x: { id: string }) => x.id)).toEqual([keep.inbox]);
+    expect((await send("광고샵 결제 특가 29,900원", "Sample Ads <ads@example.com>")).inbox).toBeUndefined(); // skipped from now on
+    expect((await (await a.post(`/inbox/${one.inbox}/ignore-sender`, {})).json()).error).toBe("resolve_failed"); // already closed
+  });
 });

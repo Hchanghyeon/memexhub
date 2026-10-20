@@ -65,6 +65,7 @@ function Waiting({ i, reload }: { i: R["inbox"][number]; reload: () => void }) {
   const [f, setF] = useState({ merchant, amount: i.guess?.amount ?? "", card: i.guess?.card ?? "", time: i.guess?.time ?? "" });
   const ch = CHANNEL[i.channel] ?? [i.channel, i.channel];
   const notPayment = () => run(() => post(`/inbox/${i.id}`, { action: "ignore" }), t("Marked as not a payment.", "결제가 아닌 걸로 했어요."), reload);
+  const ignoreSender = () => run(() => post<{ sender: string; closed: number }>(`/inbox/${i.id}/ignore-sender`), (r) => t(`Messages from ${r.sender} are skipped from now on (${r.closed} closed).`, `이제 ${r.sender} 에서 온 메시지는 건너뛰어요 (${r.closed}개 정리).`), reload);
   const record = () =>
     learn
       ? run(() => post<{ learned: boolean; name?: string; reason?: string }>(`/inbox/${i.id}/learn`, f), (r) => (r.learned ? t(`Recorded. Messages from “${r.name}” are now read by themselves.`, `기록했어요. 이제 “${r.name}” 메시지는 알아서 읽어요.`) : t(`Recorded. Could not learn this sender (${r.reason ?? ""}): Claude can try.`, `기록했어요. 이곳을 알아서 읽는 법은 못 만들었어요 (${r.reason ?? ""}). Claude에게 맡겨 보세요.`)), reload)
@@ -75,6 +76,7 @@ function Waiting({ i, reload }: { i: R["inbox"][number]; reload: () => void }) {
       actions={!open && <>
         <Button size="sm" onClick={() => setOpen(true)}>{t("It's a payment", "결제 맞아요")}</Button>
         <Button size="sm" kind="secondary" disabled={busy} onClick={() => void notPayment()}>{t("Not a payment", "결제 아니에요")}</Button>
+        {i.from && <Button size="sm" kind="ghost" disabled={busy} onClick={() => void ignoreSender()}>{t("Always skip this sender", "이 보낸 곳은 늘 건너뛰기")}</Button>}
       </>}>
       {open && (
         <>
