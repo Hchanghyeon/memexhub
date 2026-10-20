@@ -50,6 +50,9 @@ An empty role switches the related feature off (its tools are not shown to Claud
 | `wiki_log` ✅ | appends `- YYYY-MM-DD entry` to the log | `log` set |
 | `wiki_index` ✅ | adds `- [[page]]: description` to the page's index, once, optionally under `## section` | index style ≠ `none` |
 | `wiki_backlinks` ✅ | notes linking to a note, with the line | always |
+| `wiki_related` ✅ | notes related to a note or to unsaved text, with why (unlinked mention, shared tags, close in the link graph by personalized PageRank) | always |
+| `wiki_review` ✅ | pages whose facts should be confirmed again | always |
+| `wiki_checked` ✅ | marks a page confirmed today (`checked:`) | always |
 | `wiki_check` ✅ | one page, checked exactly like the engine does: `PASS` or what to fix | always |
 | `wiki_pending` ✅ | sources no wiki page cites yet (what is left to ingest) | `sources` set |
 | `conversation_save` ✅ | what a conversation decided (decisions · facts · to-dos, short) saved as a source; the nightly ingest files the lasting parts | `sources` set |

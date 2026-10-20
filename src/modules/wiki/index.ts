@@ -8,6 +8,7 @@ import { addToIndex, appendLog, backlinks, conversationNote, pendingSources, saf
 import { nowIn } from "../../core/time.js";
 import { normalizeVaultPath } from "../../storage/paths.js";
 import { setFrontmatter } from "./gate.js";
+import { relatedNotes, seedOf } from "./related.js";
 
 /** How Claude should work the wiki (the LLM Wiki loop). Vault rule notes add the owner's own rules on top. */
 const WORKFLOW = [
@@ -202,6 +203,30 @@ export default defineModule({
             const date = today(settings.timezone, platform.now());
             await v.write(p, setFrontmatter((await v.read(p)).text, "checked", date), { why: "checked" });
             return `checked: ${p} (${date})`;
+          },
+        }),
+        defineTool({
+          name: "wiki_related",
+          readOnly: true,
+          description: T(
+            "Notes related to a note (path) or to text not saved yet (text), best first, with why: its name appears without a link (a link to add), shared tags, close in the link graph. Use it after saving a source to find the wiki pages it should update, and before creating a page to merge into an existing one instead.",
+            "노트(path) 또는 아직 저장 안 한 글(text)과 관련된 노트, 잘 맞는 순서로 이유와 함께: 이름이 링크 없이 나옴(링크를 걸 곳), 같은 태그, 링크 그래프에서 가까움. 원본을 저장한 뒤 고칠 위키 페이지를 찾을 때, 새 페이지를 만들기 전에 합칠 기존 페이지가 있는지 볼 때 쓴다.",
+          ),
+          input: {
+            path: z.string().min(1).max(500).optional(),
+            text: z.string().max(20_000).optional(),
+            title: z.string().max(200).optional(),
+            scope: z.enum(["wiki", "all"]).default("all"),
+            limit: z.number().int().min(1).max(50).default(10),
+          },
+          async run({ path, text, title, scope, limit }) {
+            if (!path && !text) return "error: give a path or a text";
+            const g = await LinkGraph.build(vault!);
+            const seed = seedOf(g, { path: path ? normalizeVaultPath(path) : undefined, text, title });
+            if (!seed) return `error: no such note: ${path}`;
+            const list = relatedNotes(g, layout, seed, { limit, scope });
+            if (!list.length) return "nothing related found";
+            return list.map((r) => `- ${r.path}${r.linked ? " (already linked)" : ""} · ${r.score.toFixed(1)}: ${r.why.map((w) => w.detail).join("; ")}`).join("\n");
           },
         }),
         defineTool({

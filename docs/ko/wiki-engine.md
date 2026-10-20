@@ -50,6 +50,9 @@
 | `wiki_log` ✅ | 로그에 `- YYYY-MM-DD 내용` 한 줄 추가 | `log` 설정 시 |
 | `wiki_index` ✅ | 페이지를 목차에 `- [[페이지]]: 설명`으로 한 번만, `## 섹션` 아래에도 | 목차 방식 ≠ `none` |
 | `wiki_backlinks` ✅ | 이 노트를 가리키는 노트와 그 줄 | 항상 |
+| `wiki_related` ✅ | 노트나 아직 저장 안 한 글과 관련된 노트, 이유와 함께(링크 없이 나온 이름, 같은 태그, 링크 그래프에서 가까움: personalized PageRank) | 항상 |
+| `wiki_review` ✅ | 다시 확인할 사실이 있는 페이지 | 항상 |
+| `wiki_checked` ✅ | 페이지를 오늘 확인했다고 표시(`checked:`) | 항상 |
 | `wiki_check` ✅ | 페이지 하나를 엔진과 똑같이 점검: `PASS` 또는 고칠 것 | 항상 |
 | `conversation_save` ✅ | 대화에서 정한 것(결정·사실·남은 일, 짧게)을 원본으로 저장. 오래 쓸 부분은 밤 수집이 위키에 | `sources` 설정 시 |
 | `wiki_pending` ✅ | 아직 어떤 위키 페이지도 인용하지 않은 원본 (정리할 차례) | `sources` 설정 시 |
