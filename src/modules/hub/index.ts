@@ -6,6 +6,7 @@ import { exportBackup } from "../../core/backup.js";
 
 export default defineModule({
   id: "hub",
+  kind: "basic",
   title: T("Hub status", "허브 상태"),
   setup: (ctx) => ({
     jobs: [

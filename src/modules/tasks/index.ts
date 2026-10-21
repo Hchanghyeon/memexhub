@@ -8,6 +8,7 @@ const fmt = (t: Task) =>
 
 export default defineModule({
   id: "tasks",
+  kind: "services",
   title: T("Tasks", "할 일"),
   setup: async ({ provider, connections }) => {
     const accounts = await connections("tasks");

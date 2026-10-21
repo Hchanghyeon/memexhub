@@ -1,13 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { useState } from "react";
-import { post } from "../api";
+import { post, refreshSession } from "../api";
 import { useT } from "../i18n";
 import { Link } from "../router";
-import { Badge, Button, Card, Field, Fields, Hint, Input, Loading, More, Page, Segmented, Select, TextArea, Toggle, useAction, useData } from "../ui/kit";
+import { Badge, Button, Card, Field, Fields, Hint, Input, Item, List, Loading, More, Page, Segmented, Select, TextArea, Toggle, useAction, useData } from "../ui/kit";
 
 interface F {
-  modules: { id: string; enabled: boolean; error?: string }[];
+  modules: { id: string; kind: "basic" | "records" | "services" | "export"; enabled: boolean; error?: string }[];
   ledger: { officePlaces: string[]; paymentsNote: string; moneyNote: string; language: "en" | "ko"; inboxDays: number; mailSources: { connection: string; folder: string }[] };
   health: { note: string; language: "en" | "ko" };
   meals: { note: string; language: "en" | "ko" };
@@ -33,7 +33,12 @@ const MOD: Record<string, [string, string, string, string]> = {
   music: ["Music", "음악", "What you listened to (Last.fm, Spotify) in the journal.", "들은 음악(Last.fm·Spotify)을 일지에 넣어요."],
   weather: ["Weather", "날씨", "The day's weather in summaries and the journal.", "그날 날씨를 요약과 일지에 넣어요."],
 };
-const BASIC = ["vault", "wiki", "hub"];
+/** Optional features by what they do. Basic ones are always on. */
+const GROUPS: { kind: F["modules"][number]["kind"]; title: [string, string]; sub: [string, string] }[] = [
+  { kind: "records", title: ["Collect records", "기록 모으기"], sub: ["What your phone sends or you tell Claude: payments, places, health, meals, photos.", "폰이 보내거나 Claude에게 말한 것: 결제, 다닌 곳, 건강, 식단, 사진."] },
+  { kind: "services", title: ["Read your services", "내 서비스 읽기"], sub: ["Accounts Claude may read: mail, calendar, tasks, home, music, weather. Each needs a connection.", "Claude가 읽을 계정: 메일, 캘린더, 할 일, 집, 음악, 날씨. 각각 연결이 필요해요."] },
+  { kind: "export", title: ["Copy elsewhere", "다른 곳으로 복사"], sub: ["Copies records to another app.", "기록을 다른 앱으로 복사해요."] },
+];
 
 export function Features() {
   const { t } = useT();
@@ -41,19 +46,29 @@ export function Features() {
   const { busy, run } = useAction();
   if (!data) return <Page title={t("Features", "기능")}><Loading error={error} reload={reload} /></Page>;
   const on = (id: string) => !!data.modules.find((m) => m.id === id)?.enabled;
-  const toggle = (id: string, v: boolean) => run(() => post("/modules", { on: data.modules.filter((m) => (m.id === id ? v : m.enabled)).map((m) => m.id) }), v ? t("Turned on.", "켰어요.") : t("Turned off.", "껐어요."), reload);
+  const toggle = (id: string, v: boolean) => run(() => post("/modules", { on: data.modules.filter((m) => (m.id === id ? v : m.enabled)).map((m) => m.id) }), v ? t("Turned on.", "켰어요.") : t("Turned off.", "껐어요."), () => { reload(); refreshSession(); });
+  const label = (id: string) => MOD[id] ?? [id, id, "", ""];
+  const basic = data.modules.filter((m) => m.kind === "basic");
   return (
-    <Page title={t("Features", "기능")} sub={t("Basic features are always on. Turn on the optional ones you need: their settings appear below.", "기본 기능은 항상 켜져 있어요. 필요한 선택 기능만 켜면 아래에 설정이 나와요.")}>
-      <Card title={t("Features", "기능")}>
-        {data.modules.map((m) => {
-          const n = MOD[m.id] ?? [m.id, m.id, "", ""];
-          const basic = BASIC.includes(m.id);
-          return (
-            <Toggle key={m.id} checked={m.enabled} disabled={basic || busy} onChange={(v) => void toggle(m.id, v)} label={t(n[0], n[1])} badge={<Badge tone={basic ? "basic" : "optional"}>{basic ? t("Basic", "기본") : t("Optional", "선택")}</Badge>}
-              hint={<>{t(n[2], n[3])}{m.error && <span className="text-destructive">: {m.error}</span>}</>} />
-          );
-        })}
+    <Page title={t("Features", "기능")} sub={t("The basics are always on. Turn on only the optional features you need: their pages and settings appear when they are on.", "기본 기능은 항상 켜져 있어요. 선택 기능은 필요한 것만 켜세요: 켜면 그 화면과 설정이 나타나요.")}>
+      <Card title={t("Basic", "기본")} badge={<Badge tone="basic">{t("Always on", "항상 켜짐")}</Badge>} sub={t("Your notes, the wiki engine and the day summary: what memexhub is.", "노트, 위키 엔진, 하루 요약: memexhub의 핵심이에요.")}>
+        <List>
+          {basic.map((m) => <Item key={m.id} tone={m.error ? "err" : "ok"} title={t(label(m.id)[0], label(m.id)[1])} meta={m.error ?? t(label(m.id)[2], label(m.id)[3])} />)}
+        </List>
       </Card>
+      {GROUPS.map((g) => {
+        const mods = data.modules.filter((m) => m.kind === g.kind);
+        if (!mods.length) return null;
+        const n = mods.filter((m) => m.enabled).length;
+        return (
+          <Card key={g.kind} title={t(...g.title)} badge={<Badge tone="optional">{t(`Optional · ${n} on`, `선택 · ${n}개 켜짐`)}</Badge>} sub={t(...g.sub)}>
+            {mods.map((m) => (
+              <Toggle key={m.id} checked={m.enabled} disabled={busy} onChange={(v) => void toggle(m.id, v)} label={t(label(m.id)[0], label(m.id)[1])}
+                hint={<>{t(label(m.id)[2], label(m.id)[3])}{m.error && <span className="text-destructive">: {m.error}</span>}</>} />
+            ))}
+          </Card>
+        );
+      })}
       {on("ledger") && <Ledger f={data} reload={reload} />}
       {on("location") && <Location f={data} reload={reload} />}
       {on("health") && <Health f={data} reload={reload} />}

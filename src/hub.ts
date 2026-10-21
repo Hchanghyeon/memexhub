@@ -8,7 +8,7 @@ import { Connections } from "./core/connections.js";
 import { EventBus } from "./core/events.js";
 import { pick, type Text } from "./core/i18n.js";
 import { nowIn } from "./core/time.js";
-import type { IngestRoute, JobDef, ModuleDef, ToolDef } from "./core/registry.js";
+import type { IngestRoute, JobDef, ModuleDef, ModuleKind, ToolDef } from "./core/registry.js";
 import type { ProviderDef } from "./providers/types.js";
 import { guardedFetch } from "./core/guarded-fetch.js";
 import { SearchIndex } from "./storage/search-index.js";
@@ -45,7 +45,9 @@ export class Hub {
   davFiles?: import("./storage/files.js").RawFiles;
   tools: ToolDef<any>[] = [];
   ingest: IngestRoute[] = [];
-  moduleStatus: { id: string; enabled: boolean; error?: string }[] = [];
+  moduleStatus: { id: string; kind: ModuleKind; enabled: boolean; error?: string }[] = [];
+  /** Which module each tool comes from (for the admin's tool list). */
+  toolModule = new Map<string, string>();
   /** Admin-only module APIs (see ModuleInstance.admin). */
   moduleAdmin = new Map<string, unknown>();
   /** Full-text index of the vault's notes (rebuildable; see storage/search-index). */
@@ -116,16 +118,18 @@ export class Hub {
     const ingest: IngestRoute[] = [];
     const jobs: { module: string; job: JobDef }[] = [];
     this.moduleStatus = [];
+    this.toolModule.clear();
     this.moduleAdmin.clear();
     const summaries: typeof this.summaries = [];
     for (const m of this.modules) {
-      const enabled = s.modules[m.id]?.enabled ?? ["vault", "wiki", "hub"].includes(m.id);
+      // Basic modules are always on; optional ones only when turned on.
+      const enabled = m.kind === "basic" || (s.modules[m.id]?.enabled ?? false);
       if (!enabled) {
-        this.moduleStatus.push({ id: m.id, enabled: false });
+        this.moduleStatus.push({ id: m.id, kind: m.kind, enabled: false });
         continue;
       }
       if (m.needs?.includes("vault") && !this.vault) {
-        this.moduleStatus.push({ id: m.id, enabled: true, error: "vault not connected" });
+        this.moduleStatus.push({ id: m.id, kind: m.kind, enabled: true, error: "vault not connected" });
         continue;
       }
       try {
@@ -136,13 +140,14 @@ export class Hub {
           summaries: () => this.summaries,
         });
         tools.push(...(inst.tools ?? []));
+        for (const t of inst.tools ?? []) this.toolModule.set(t.name, m.id);
         ingest.push(...(inst.ingest ?? []));
         jobs.push(...(inst.jobs ?? []).map((job) => ({ module: m.id, job })));
         if (inst.admin) this.moduleAdmin.set(m.id, inst.admin);
         if (inst.summary) summaries.push({ id: m.id, title: m.title, summary: inst.summary });
-        this.moduleStatus.push({ id: m.id, enabled: true });
+        this.moduleStatus.push({ id: m.id, kind: m.kind, enabled: true });
       } catch (e) {
-        this.moduleStatus.push({ id: m.id, enabled: true, error: (e as Error).message });
+        this.moduleStatus.push({ id: m.id, kind: m.kind, enabled: true, error: (e as Error).message });
       }
     }
     // Connection status follows reality, not only the admin's "Test" button: every 6 hours (and right after start)

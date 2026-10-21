@@ -34,6 +34,7 @@ const RULES = [
 
 export default defineModule({
   id: "photos",
+  kind: "records",
   title: T("Photos", "사진"),
   setup: ({ settings, provider, platform }) => {
     const tz = () => settings.timezone;

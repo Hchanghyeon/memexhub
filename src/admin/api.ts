@@ -107,7 +107,9 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     // Off-network without two-factor: only enrolment is allowed (and only in the first 24 h).
     const mustEnrol = offNetwork(c) && !totp;
     if (mustEnrol && !(await hub.admin.enrolWindowOpen(sess.adminId))) return c.json({ ...base, signedIn: false, error: "two_factor_required" });
-    return c.json({ ...base, signedIn: true, csrf: sess.csrf, username: row?.username, totp, mustEnrol, onboarded: s.onboarded });
+    // Optional pages (map, money, messages) show only when their module is on.
+    const modules = hub.moduleStatus.filter((m) => m.enabled).map((m) => m.id);
+    return c.json({ ...base, signedIn: true, csrf: sess.csrf, username: row?.username, totp, mustEnrol, onboarded: s.onboarded, modules });
   });
 
   api.post("/setup", async (c) => {
@@ -610,7 +612,7 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
   });
   api.post("/modules", async (c) => {
     const f = await body(c, z.object({ on: z.array(z.string().max(40)).max(40) }));
-    await hub.settings.set("modules", Object.fromEntries(hub.moduleStatus.map((m) => [m.id, { enabled: m.id === "vault" || m.id === "hub" || f.on.includes(m.id) }])));
+    await hub.settings.set("modules", Object.fromEntries(hub.moduleStatus.map((m) => [m.id, { enabled: m.kind === "basic" || f.on.includes(m.id) }])));
     await hub.reload();
     return c.json({ ok: true, modules: hub.moduleStatus });
   });
@@ -669,7 +671,10 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({
       url: `${hub.env.PUBLIC_URL}/mcp`,
       clients: (await hub.oauth.clients()).map((x) => ({ id: x.client_id, name: x.client_name ?? x.client_id, createdAt: x.created_at, lastUsed: x.last_token_at ?? null, revoked: !!x.revoked_at })),
-      tools: (await hub.visibleTools()).map((t) => ({ name: t.name, readOnly: !!t.readOnly, destructive: !!t.destructive })),
+      tools: (await hub.visibleTools()).map((t) => {
+        const module = hub.toolModule.get(t.name) ?? "hub";
+        return { name: t.name, readOnly: !!t.readOnly, destructive: !!t.destructive, module, basic: hub.moduleStatus.find((m) => m.id === module)?.kind === "basic" };
+      }),
       toolLanguage: s.toolLanguage,
       destructive: hub.tools.filter((t) => t.destructive).map((t) => ({ name: t.name, description: t.description, enabled: s.enabledDestructive.includes(t.name) })),
     });

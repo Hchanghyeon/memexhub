@@ -13,6 +13,7 @@ const YMD = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export default defineModule({
   id: "mail",
+  kind: "services",
   title: T("Mail (read-only)", "메일 (읽기 전용)"),
   setup: async ({ provider, connections, settings, platform }) => {
     const accounts = await connections("mail");

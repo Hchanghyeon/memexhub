@@ -21,6 +21,7 @@ import { placeResolver } from "../location/places.js";
 
 export default defineModule({
   id: "ledger",
+  kind: "records",
   title: T("Ledger", "결제"),
   setup: ({ settings, bus, vault, platform, provider }) => {
     // Payment places come from the location module's sources (if connected): coordinates → a name, or the place at that time.

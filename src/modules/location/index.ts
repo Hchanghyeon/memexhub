@@ -54,6 +54,7 @@ const L = {
 
 export default defineModule({
   id: "location",
+  kind: "records",
   title: T("Location", "위치"),
   setup: ({ settings, provider, platform }) => {
     const s = () => settings.location;

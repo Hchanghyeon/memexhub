@@ -37,6 +37,9 @@ export function App() {
   useEffect(() => {
     void refresh();
     whenSignedOut(() => void refresh());
+    const again = () => void refresh();
+    window.addEventListener("mx:session", again);
+    return () => window.removeEventListener("mx:session", again);
   }, [refresh]);
   const lang = pickLang(session?.language);
   useEffect(() => void (document.documentElement.lang = lang), [lang]);
@@ -70,21 +73,35 @@ export function App() {
   );
 }
 
-const NAV: { group?: [string, string]; path: string; label: [string, string]; icon: LucideIcon }[] = [
+/** `module`: an optional page, shown only while that feature is on. */
+const NAV: { group?: [string, string]; path: string; label: [string, string]; icon: LucideIcon; module?: string }[] = [
   { path: "/", label: ["Overview", "개요"], icon: LayoutDashboard },
   { path: "/notes", label: ["Notes", "노트"], icon: BookOpen },
-  { path: "/map", label: ["Map", "지도"], icon: MapIcon },
-  { path: "/money", label: ["Money", "돈"], icon: Wallet },
+  { path: "/map", label: ["Map", "지도"], icon: MapIcon, module: "location" },
+  { path: "/money", label: ["Money", "돈"], icon: Wallet, module: "ledger" },
   { group: ["Set up", "설정"], path: "/vault", label: ["Vault", "볼트"], icon: FolderOpen },
   { path: "/claude", label: ["Claude app", "Claude 앱"], icon: Bot },
   { path: "/devices", label: ["Devices", "기기"], icon: Smartphone },
   { path: "/connections", label: ["Connections", "연결"], icon: Cable },
   { path: "/features", label: ["Features", "기능"], icon: Puzzle },
-  { group: ["Records", "기록"], path: "/recipes", label: ["Messages", "메시지"], icon: Inbox },
+  { group: ["Records", "기록"], path: "/recipes", label: ["Messages", "메시지"], icon: Inbox, module: "ledger" },
   { path: "/activity", label: ["Activity", "활동"], icon: ActivityIcon },
   { group: ["Safety", "안전"], path: "/security", label: ["Security", "보안"], icon: ShieldCheck },
   { path: "/backups", label: ["Backups", "백업"], icon: Archive },
 ];
+
+/** The menu without pages of features that are off; a hidden page's group heading moves to the next one shown. */
+function visibleNav(session: Session) {
+  const out: typeof NAV = [];
+  let heading: [string, string] | undefined;
+  for (const n of NAV) {
+    if (n.group) heading = n.group;
+    if (n.module && session.modules && !session.modules.includes(n.module)) continue;
+    out.push(heading ? { ...n, group: heading } : { ...n, group: undefined });
+    heading = undefined;
+  }
+  return out;
+}
 
 function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; path: string; onSignOut: () => void; onNavigate?: () => void }) {
   const { t, lang, setLanguage } = useT();
@@ -92,7 +109,7 @@ function Sidebar({ session, path, onSignOut, onNavigate }: { session: Session; p
     <div className="flex h-full flex-col gap-1 px-3 py-4">
       <div className="flex h-10 items-center gap-2.5 px-2.5 text-[0.9375rem] font-semibold"><Brand />memexhub</div>
       <nav className="flex flex-col gap-0.5" aria-label={t("Sections", "메뉴")}>
-        {NAV.map((n) => (
+        {visibleNav(session).map((n) => (
           <div key={n.path} className="contents">
             {n.group && <div className="text-muted-foreground px-2.5 pt-5 pb-1 text-xs font-medium">{t(...n.group)}</div>}
             <Link to={n.path} onClick={onNavigate} className={cn("text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm no-underline transition-colors [&_svg]:size-4", (path === n.path || (n.path !== "/" && path.startsWith(`${n.path}/`))) && "bg-accent text-foreground font-medium")}>

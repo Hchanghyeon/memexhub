@@ -25,6 +25,7 @@ export function weatherLine(d: WeatherDay, lang: "en" | "ko") {
 
 export default defineModule({
   id: "weather",
+  kind: "services",
   title: T("Weather", "날씨"),
   setup: async ({ provider, connections, settings, platform }) => {
     const names = await connections("weather");

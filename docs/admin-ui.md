@@ -66,7 +66,7 @@ Outside services, all optional.
 <img src="assets/screens/en/connections.jpg" alt="Connections" width="720">
 
 ## Features
-Optional features and their settings (payment note paths, office places, receipt-mail folders; location source and private places; health note …). Adding a connection switches its feature on.
+**Basic** features are always on: the vault, the wiki engine and summaries (what memexhub is). Everything else is **optional** and off on a new install, in three groups: *collect records* (payments, location, health, meals, photos), *read your services* (mail, calendar, tasks, home, music, weather) and *copy elsewhere* (Notion). An optional feature brings its tools, its pages (Map needs location; Money and Messages need payments) and its settings only while it is on. Adding a connection switches its feature on.
 
 <img src="assets/screens/en/features.jpg" alt="Features" width="720">
 

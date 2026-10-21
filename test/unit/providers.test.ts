@@ -57,7 +57,7 @@ describe("provider factory and scheduler", () => {
   });
   it("runs due jobs once per interval", async () => {
     let runs = 0;
-    const m = defineModule({ id: "jobby", title: T("j", "j"), setup: () => ({ jobs: [{ id: "tick", everyMinutes: 30, run: async () => void runs++ }] }) });
+    const m = defineModule({ id: "jobby", title: T("j", "j"), kind: "services", setup: () => ({ jobs: [{ id: "tick", everyMinutes: 30, run: async () => void runs++ }] }) });
     const hub = mkHub([], [m]);
     const log = console.log; console.log = () => {}; await hub.init(); console.log = log;
     await hub.settings.set("modules", { jobby: { enabled: true } });

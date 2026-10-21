@@ -3,7 +3,7 @@ import { ago, useT, when } from "../i18n";
 import { Badge, Button, Card, Copy, Empty, Field, Hint, Item, List, Loading, More, Page, Segmented, Steps, Sub, Tags, Toggle, useAction, useConfirm, useData } from "../ui/kit";
 import { ROUTINES } from "./routines";
 
-interface C { url: string; clients: { id: string; name: string; createdAt: string; lastUsed: string | null; revoked: boolean }[]; tools: { name: string; readOnly: boolean; destructive: boolean }[]; toolLanguage: "en" | "ko" | "both"; destructive: { name: string; description: { en: string; ko: string }; enabled: boolean }[] }
+interface C { url: string; clients: { id: string; name: string; createdAt: string; lastUsed: string | null; revoked: boolean }[]; tools: { name: string; readOnly: boolean; destructive: boolean; module: string; basic: boolean }[]; toolLanguage: "en" | "ko" | "both"; destructive: { name: string; description: { en: string; ko: string }; enabled: boolean }[] }
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function Claude() {
@@ -47,7 +47,14 @@ export function Claude() {
         ) : <Empty>{t("No app has signed in yet.", "아직 로그인한 앱이 없어요.")}</Empty>}
       </Card>
       <Card title={t("What Claude can do", "Claude가 할 수 있는 일")} sub={t(`${data.tools.length} tools. Tools that delete or move notes are hidden unless switched on.`, `도구 ${data.tools.length}개. 노트를 지우거나 옮기는 도구는 따로 켜야만 보여요.`)}>
-        <Tags>{data.tools.map((x) => <Badge key={x.name} tone={x.destructive ? "required" : "neutral"}>{x.name}</Badge>)}</Tags>
+        <Sub>{t(`Basic: ${data.tools.filter((x) => x.basic).length}`, `기본: ${data.tools.filter((x) => x.basic).length}개`)}</Sub>
+        <Tags>{data.tools.filter((x) => x.basic).map((x) => <Badge key={x.name} tone={x.destructive ? "required" : "neutral"}>{x.name}</Badge>)}</Tags>
+        {data.tools.some((x) => !x.basic) && (
+          <>
+            <Sub>{t(`From optional features you turned on: ${data.tools.filter((x) => !x.basic).length}`, `켜 둔 선택 기능에서: ${data.tools.filter((x) => !x.basic).length}개`)}</Sub>
+            <Tags>{data.tools.filter((x) => !x.basic).map((x) => <Badge key={x.name} tone={x.destructive ? "required" : "neutral"}>{x.name}</Badge>)}</Tags>
+          </>
+        )}
         <Field label={t("Language Claude sees for tool descriptions", "Claude가 보는 도구 설명 언어")}>
           <Segmented value={data.toolLanguage} onChange={(v) => run(() => post("/claude/language", { toolLanguage: v }), t("Saved.", "저장했어요."), reload)} options={[{ value: "ko", label: "한국어" }, { value: "en", label: "English" }, { value: "both", label: t("Both", "둘 다") }]} />
         </Field>

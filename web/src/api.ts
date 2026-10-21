@@ -50,4 +50,9 @@ export interface Session {
   mustEnrol?: boolean;
   onboarded?: boolean;
   error?: string;
+  /** Modules that are on: optional pages show only for these. */
+  modules?: string[];
 }
+
+/** Ask the app to read the session again (after turning a feature on or off, so the menu follows). */
+export const refreshSession = () => window.dispatchEvent(new Event("mx:session"));

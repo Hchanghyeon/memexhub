@@ -23,6 +23,7 @@ export function onDay(e: CalendarEvent, date: string, tz: string) {
 
 export default defineModule({
   id: "calendar",
+  kind: "services",
   title: T("Calendar", "캘린더"),
   setup: async ({ provider, connections, settings, platform }) => {
     const accounts = await connections("calendar");

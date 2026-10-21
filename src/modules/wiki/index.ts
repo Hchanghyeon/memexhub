@@ -30,6 +30,7 @@ const Shared = z.object({
 
 export default defineModule({
   id: "wiki",
+  kind: "basic",
   title: T("Wiki engine", "위키 엔진"),
   needs: ["vault"],
   setup: ({ settings, vault, platform }) => {

@@ -13,6 +13,7 @@ const MAX_LINES = 40;
 
 export default defineModule({
   id: "home",
+  kind: "services",
   title: T("Home", "집"),
   setup: async ({ provider, connections, settings, platform }) => {
     const names = await connections("home");

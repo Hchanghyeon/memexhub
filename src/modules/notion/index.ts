@@ -38,6 +38,7 @@ const MAX_PER_RUN = 500;
  */
 export default defineModule({
   id: "notion",
+  kind: "export",
   title: T("Notion", "Notion"),
   setup: ({ settings, provider, platform, bus }) => {
     const db = platform.db;

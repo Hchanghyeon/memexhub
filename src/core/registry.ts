@@ -101,9 +101,16 @@ export interface ModuleInstance {
 }
 
 /** Plugin contract. Adding a module = new folder + one line in src/modules/index.ts. */
+/**
+ * Where a module sits. basic: always on (the vault, the wiki engine, summaries). The rest are optional and off
+ * until turned on: records (things you send or your phone collects), services (accounts it reads), export.
+ */
+export type ModuleKind = "basic" | "records" | "services" | "export";
+
 export interface ModuleDef {
   id: string;
   title: Text;
+  kind: ModuleKind;
   needs?: ("vault")[];
   setup(ctx: ModuleContext): ModuleInstance | Promise<ModuleInstance>;
 }

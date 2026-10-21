@@ -19,6 +19,7 @@ export function musicLine(plays: Play[], lang: "en" | "ko") {
 
 export default defineModule({
   id: "music",
+  kind: "services",
   title: T("Music", "음악"),
   setup: async ({ provider, connections, settings, platform, bus }) => {
     const names = await connections("music");

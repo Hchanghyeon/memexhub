@@ -9,6 +9,7 @@ const Body = z.record(z.string().max(40), z.unknown()).refine((o) => Object.keys
 
 export default defineModule({
   id: "health",
+  kind: "records",
   title: T("Health", "건강"),
   setup: ({ settings, bus, vault, platform }) => {
     const tz = () => settings.timezone;

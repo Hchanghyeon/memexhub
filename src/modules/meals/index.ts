@@ -15,6 +15,7 @@ const Item = z.object({
 
 export default defineModule({
   id: "meals",
+  kind: "records",
   title: T("Meals", "식단"),
   setup: ({ settings, bus, vault, platform }) => {
     const tz = () => settings.timezone;

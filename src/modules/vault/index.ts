@@ -152,6 +152,7 @@ export function vaultTools(vault: SafeVault, gate?: WriteGate) {
 
 export default defineModule({
   id: "vault",
+  kind: "basic",
   title: T("Vault", "볼트"),
   needs: ["vault"],
   setup: ({ vault, settings }) => {
