@@ -3,6 +3,7 @@ import type { Hub } from "../hub.js";
 import { readBodyLimited, rateLimit, securityHeaders } from "./common.js";
 import { davRoutes } from "./dav.js";
 import { recordAccess } from "../core/access.js";
+import { deviceStatus } from "../core/freshness.js";
 
 type Vars = { Variables: { ip: string } };
 
@@ -30,6 +31,17 @@ export function ingestApp(hub: Hub) {
   app.use("*", securityHeaders);
   app.get("/healthz", (c) => c.text("ok"));
   davRoutes(app, hub);
+  // The phone app asks every 15 minutes what needs a look. Any live token, answered for its own scopes.
+  app.get("/ingest/status", rateLimit(30, (c) => ingestToken(c).slice(0, 12) || c.get("ip")), async (c) => {
+    if (!(await hub.admin.hasAdmin())) return c.json({ error: "setup_required" }, 503);
+    const tok = await hub.ingestTokens.identify(ingestToken(c));
+    if (!tok) {
+      await recordAccess(hub.platform.db, { kind: "device", ip: c.get("ip"), ok: false, detail: c.req.path }, { now: hub.platform.now(), windowMinutes: 10 });
+      return c.json({ error: "unauthorized" }, 401);
+    }
+    const on = (id: string) => !!hub.moduleStatus.find((m) => m.id === id)?.enabled;
+    return c.json({ now: hub.platform.now().toISOString(), ...(await deviceStatus(hub.platform.db, hub.platform.now(), on, tok.scopes)) });
+  });
   app.post("/ingest/*", rateLimit(60, (c) => ingestToken(c).slice(0, 12) || c.get("ip")), async (c) => {
     if (!(await hub.admin.hasAdmin())) return c.json({ error: "setup_required" }, 503);
     const route = hub.ingest.find((r) => r.path === c.req.path);

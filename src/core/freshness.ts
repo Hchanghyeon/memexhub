@@ -29,6 +29,30 @@ export async function staleSources(db: Db, now: Date, enabled: (module: string) 
   return out;
 }
 
+/**
+ * What the phone app may know about its own records: stopped sources, messages waiting to be
+ * checked, and connections in error. Only for the token's scopes, and only counts, times and
+ * connection names: never amounts, merchants, coordinates or message text.
+ */
+export interface DeviceStatus {
+  stale: Stale[];
+  inbox?: { pending: number; newest: string | null };
+  connectionErrors: string[];
+}
+
+export async function deviceStatus(db: Db, now: Date, enabled: (module: string) => boolean, scopes: string[]): Promise<DeviceStatus> {
+  const may = (s: string) => scopes.includes(s) || scopes.includes("*");
+  const stale = (await staleSources(db, now, enabled)).filter((s) => may(s.source));
+  const out: DeviceStatus = { stale, connectionErrors: [] };
+  if (may("ledger") && enabled("ledger")) {
+    const r = await db.get<{ n: number; newest: string | null }>(`SELECT COUNT(*) AS n, MAX(received_at) AS newest FROM inbox WHERE module = 'ledger' AND status = 'pending'`);
+    out.inbox = { pending: r?.n ?? 0, newest: r?.newest ?? null };
+  }
+  const conns = await db.all<{ name: string }>(`SELECT name FROM connections WHERE enabled = 1 AND status = 'error' AND kind != 'storage' ORDER BY name`);
+  out.connectionErrors = conns.map((c) => c.name);
+  return out;
+}
+
 const NAME = { location: ["location", "위치"], health: ["health", "건강"], ledger: ["payments", "결제"] } as const;
 
 /** "⚠ health: nothing for 2 days (last 10-18 22:03)": one line per stopped source, for tools. Times in `tz`. */

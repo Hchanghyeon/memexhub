@@ -27,16 +27,21 @@ export class IngestTokens {
   }
 
   async verify(token: string, scope: string): Promise<{ id: string } | null> {
+    const t = await this.identify(token);
+    if (!t || (!t.scopes.includes(scope) && !t.scopes.includes("*"))) return null;
+    await this.db.run(`UPDATE ingest_tokens SET last_used_at = ? WHERE id = ?`, [new Date().toISOString(), t.id]);
+    return { id: t.id };
+  }
+
+  /** A live token and its scopes, without counting as a use (status checks are not records). */
+  async identify(token: string): Promise<{ id: string; scopes: string[] } | null> {
     if (!token || token.length > 200) return null;
     const row = await this.db.get<{ id: string; scopes: string; revoked_at: string | null }>(
       `SELECT id, scopes, revoked_at FROM ingest_tokens WHERE token_hash = ?`,
       [await sha256Hex(token)],
     );
     if (!row || row.revoked_at) return null;
-    const scopes: string[] = JSON.parse(row.scopes);
-    if (!scopes.includes(scope) && !scopes.includes("*")) return null;
-    await this.db.run(`UPDATE ingest_tokens SET last_used_at = ? WHERE id = ?`, [new Date().toISOString(), row.id]);
-    return { id: row.id };
+    return { id: row.id, scopes: JSON.parse(row.scopes) as string[] };
   }
 
   async list() {

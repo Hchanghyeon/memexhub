@@ -26,7 +26,7 @@ Every control below is designed so that one broken layer is caught by the next. 
 |---|---|---|---|
 | T1 | Internet attackers who read the code | auth on every surface · admin private by default · optional Anthropic-only `/mcp` · rate limits · no internal details in errors | ✅ |
 | T2 | OAuth abuse (rogue client registration, redirect tricks, token replay) | redirect URIs https on allow-listed hosts · PKCE S256 required · exact redirect match · 60 s one-time codes · admin login (+TOTP) on consent · 1 h opaque access tokens · rotating refresh with family revocation on reuse · tokens bound to resource · revoke in UI | ✅ |
-| T3 | Device token leak (lost phone) | per-device 256-bit tokens · scopes · hashed · last-use shown · revoke one · ingest is append-only · strict schema and size limits · rate limits | ✅ |
+| T3 | Device token leak (lost phone) | per-device 256-bit tokens · scopes · hashed · last-use shown · revoke one · ingest is append-only; the one read, `GET /ingest/status`, returns only counts, times and connection names for the token's own scopes · strict schema and size limits · rate limits | ✅ |
 | T4 | Prompt injection | see below | ✅ |
 | T5 | Supply chain | 5 runtime deps · lockfile + `npm ci` · Dependabot with review · Actions pinned by SHA · no secrets for fork PRs · CodeQL · OSV-Scanner · signed images | ✅ |
 | T6 | RCE blast radius | non-root image · read-only root FS · `cap_drop: ALL` · `no-new-privileges` · writable only `DATA_DIR` and the vault · no Docker socket · memory/pids limits | ✅ (compose example) |
