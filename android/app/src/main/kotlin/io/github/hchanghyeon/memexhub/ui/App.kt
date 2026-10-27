@@ -21,7 +21,16 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.runtime.mutableIntStateOf
+import io.github.hchanghyeon.memexhub.notes.NotesScreen
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
@@ -86,7 +95,42 @@ fun App(vm: AppViewModel = viewModel()) {
             LaunchedEffect(on[Record.Location]) { if (on[Record.Location] == true) vm.ensureLocation() }
             AskForNotifications()
             LaunchedEffect(Unit) { vm.scheduleNotices() }
-            HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) }
+            MainTabs(
+                notes = { NotesScreen(c.server.url) },
+                records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) } },
+            )
+        }
+    }
+}
+
+/** Notes and Records: a bottom bar on phones and cover screens, a side rail when unfolded or on tablets. */
+@Composable
+private fun MainTabs(notes: @Composable () -> Unit, records: @Composable () -> Unit) {
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val tabs = listOf(
+        Triple(R.string.tab_notes, Icons.AutoMirrored.Filled.List, notes),
+        Triple(R.string.tab_records, Icons.AutoMirrored.Filled.Send, records),
+    )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (maxWidth >= TwoPaneWidth) {
+            Row(Modifier.fillMaxSize()) {
+                NavigationRail {
+                    tabs.forEachIndexed { i, (label, icon, _) ->
+                        NavigationRailItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
+                    }
+                }
+                Box(Modifier.weight(1f)) { tabs[tab].third() }
+            }
+        } else {
+            Scaffold(
+                bottomBar = {
+                    NavigationBar {
+                        tabs.forEachIndexed { i, (label, icon, _) ->
+                            NavigationBarItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
+                        }
+                    }
+                },
+            ) { pad -> Box(Modifier.padding(pad).consumeWindowInsets(pad)) { tabs[tab].third() } }
         }
     }
 }

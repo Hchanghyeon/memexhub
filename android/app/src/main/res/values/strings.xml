@@ -62,4 +62,30 @@
     <string name="notice_permission_body">Open the app and turn it on again.</string>
     <string name="notice_token">The server refused this phone\'s token</string>
     <string name="notice_token_body">Disconnect in the app and connect again with a new device token.</string>
+    <string name="tab_notes">Notes</string>
+    <string name="tab_records">Records</string>
+    <string name="signin_title">Sign in to read your notes</string>
+    <string name="signin_body">Use the admin app\'s account. The device token only sends records; it can never read the vault.</string>
+    <string name="signin_user">Username</string>
+    <string name="signin_password">Password</string>
+    <string name="signin_code">Authenticator code</string>
+    <string name="signin_code_hint">Needed outside your home network only. This phone is remembered for 30 days.</string>
+    <string name="signin_button">Sign in</string>
+    <string name="signin_wrong">The username or password is not right.</string>
+    <string name="signin_need_code">You are outside your home network: enter the authenticator code.</string>
+    <string name="signin_home_only">This server opens the admin app on its home network only.</string>
+    <string name="signin_unreachable">Could not reach the server.</string>
+    <string name="notes_search">Search notes</string>
+    <string name="notes_recent">Recently changed</string>
+    <string name="notes_root">Vault</string>
+    <string name="notes_up">Up one folder</string>
+    <plurals name="notes_count">
+        <item quantity="one">%d note</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
+    <string name="notes_pick">Pick a note on the left.</string>
+    <string name="notes_refresh">Refresh</string>
+    <string name="notes_signout">Sign out</string>
+    <string name="notes_error">Could not load the notes. Pull refresh or check the connection.</string>
+    <string name="notes_missing">No note for this link: %s</string>
 </resources>

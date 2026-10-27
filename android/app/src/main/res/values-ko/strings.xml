@@ -57,4 +57,29 @@
     <string name="notice_permission_body">앱을 열어 다시 켜세요.</string>
     <string name="notice_token">서버가 이 폰의 토큰을 거부했어요</string>
     <string name="notice_token_body">앱에서 연결을 끊고 새 기기 토큰으로 다시 연결하세요.</string>
+    <string name="tab_notes">노트</string>
+    <string name="tab_records">기록</string>
+    <string name="signin_title">노트를 보려면 로그인</string>
+    <string name="signin_body">관리 화면 계정으로 로그인하세요. 기기 토큰은 기록을 보내기만 하고 볼트는 읽지 못해요.</string>
+    <string name="signin_user">아이디</string>
+    <string name="signin_password">비밀번호</string>
+    <string name="signin_code">인증 앱 코드</string>
+    <string name="signin_code_hint">집 밖에서만 필요해요. 이 폰은 30일 동안 기억해요.</string>
+    <string name="signin_button">로그인</string>
+    <string name="signin_wrong">아이디나 비밀번호가 맞지 않아요.</string>
+    <string name="signin_need_code">집 밖이라 인증 앱 코드가 필요해요.</string>
+    <string name="signin_home_only">이 서버는 관리 화면을 집 네트워크에서만 열어요.</string>
+    <string name="signin_unreachable">서버에 연결하지 못했어요.</string>
+    <string name="notes_search">노트 검색</string>
+    <string name="notes_recent">최근 고친 노트</string>
+    <string name="notes_root">볼트</string>
+    <string name="notes_up">위 폴더로</string>
+    <plurals name="notes_count">
+        <item quantity="other">노트 %d개</item>
+    </plurals>
+    <string name="notes_pick">왼쪽에서 노트를 고르세요.</string>
+    <string name="notes_refresh">새로고침</string>
+    <string name="notes_signout">로그아웃</string>
+    <string name="notes_error">노트를 불러오지 못했어요. 새로고침하거나 연결을 확인하세요.</string>
+    <string name="notes_missing">이 링크의 노트를 찾지 못했어요: %s</string>
 </resources>

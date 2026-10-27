@@ -32,9 +32,13 @@ Every 15 minutes (WorkManager, only with a network) the app asks `GET /ingest/st
 
 The status holds counts, times and connection names only. No push service is involved.
 
+### Notes
+
+The **Notes** tab reads the vault through the admin app's JSON API, signed in with the admin account (the authenticator code outside the home network; "stay signed in" keeps it 30 days). The device token is never used for reading. Read-only: folders, search, recently changed notes, and the note rendered from Markdown (headings, lists, task lists, tables, code, quotes, Obsidian callouts). `[[wiki links]]` open the note they name; `![[attachments]]` show their name. Session cookies are stored encrypted like the device token.
+
 ## Screens
 
-One layout for every size: under 600 dp wide (phones, a foldable's cover screen) it is a list that opens each record; from 600 dp (an unfolded foldable, tablets) the list and the selected record sit side by side. The selection survives folding and unfolding. The previews in `ui/App.kt` show phone, unfolded foldable and tablet.
+Two tabs, Notes and Records: a bottom bar under 600 dp, a side rail from 600 dp. Under 600 dp wide (phones, a foldable's cover screen) each tab is a list that opens one item; from 600 dp (an unfolded foldable, tablets) the list and the selected item sit side by side. The selection survives folding and unfolding. The previews in `ui/App.kt` show phone, unfolded foldable and tablet.
 
 ## Privacy
 
