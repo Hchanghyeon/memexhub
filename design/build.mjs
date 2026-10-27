@@ -1,7 +1,7 @@
 // Writes the app's and the admin web's token code from design/tokens.json.
 //   node design/build.mjs          write the files
 //   node design/build.mjs --check  exit 1 if they are out of date (CI)
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -96,7 +96,12 @@ const check = process.argv.includes("--check");
 let stale = 0;
 for (const [rel, text] of Object.entries(outputs)) {
   const p = join(root, rel);
-  const now = existsSync(p) ? readFileSync(p, "utf8") : "";
+  let now = "";
+  try {
+    now = readFileSync(p, "utf8");
+  } catch {
+    // not written yet
+  }
   if (now === text) continue;
   if (check) {
     console.error(`out of date: ${rel} (run npm run tokens)`);
