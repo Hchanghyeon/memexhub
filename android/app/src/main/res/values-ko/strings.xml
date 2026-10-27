@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setup_title">memexhub에 연결</string>
+    <string name="setup_body">관리 화면 → 기기에서 기기 토큰을 만들고, 기기 주소와 토큰을 여기에 넣으세요.</string>
+    <string name="setup_url">기기 주소</string>
+    <string name="setup_token">기기 토큰</string>
+    <string name="setup_connect">연결</string>
+    <string name="setup_https_only">https 주소를 넣으세요.</string>
+    <string name="setup_unreachable">서버에 연결하지 못했어요: 주소를 확인하세요.</string>
+    <string name="setup_checking">확인 중…</string>
+
+    <string name="home_server">서버</string>
+    <string name="home_connected">연결됨</string>
+    <string name="home_disconnect">연결 끊기</string>
+    <string name="home_records">이 폰이 보내는 기록</string>
+    <string name="home_pick">왼쪽에서 기록을 고르세요.</string>
+    <string name="back">뒤로</string>
+
+    <string name="feature_sms">카드 문자</string>
+    <string name="feature_sms_body">카드 결제 문자가 오면 바로 보냅니다.</string>
+    <string name="feature_pay">결제 알림</string>
+    <string name="feature_pay_body">월렛 · 교통카드 알림을 보냅니다.</string>
+    <string name="feature_location">위치</string>
+    <string name="feature_location_body">움직이는 동안 몇 분마다 위치를 보냅니다.</string>
+    <string name="feature_health">건강</string>
+    <string name="feature_health_body">매일 아침 Health Connect의 걸음 · 수면 · 심박을 보냅니다.</string>
+    <string name="feature_soon">다음 버전에서 추가돼요</string>
+</resources>

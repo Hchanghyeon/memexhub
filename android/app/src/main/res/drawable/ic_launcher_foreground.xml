@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A plain "m" mark on the accent color. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,70V44h6v3.2c1.6,-2.4 4,-3.8 7,-3.8c3.2,0 5.6,1.5 6.8,4.1c1.7,-2.6 4.3,-4.1 7.6,-4.1c4.9,0 7.6,3.2 7.6,8.6V70h-6V53c0,-3 -1.4,-4.5 -3.9,-4.5c-2.8,0 -4.6,2 -4.6,5.4V70h-6V53c0,-3 -1.4,-4.5 -3.9,-4.5c-2.8,0 -4.6,2 -4.6,5.4V70z" />
+</vector>

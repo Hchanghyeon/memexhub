@@ -1,0 +1,244 @@
+package io.github.hchanghyeon.memexhub.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.hchanghyeon.memexhub.R
+
+/** Records this app can send. Each one gets its own screen as it is built. */
+enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector) {
+    Sms(R.string.feature_sms, R.string.feature_sms_body, Icons.Filled.Email),
+    Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications),
+    Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn),
+    Health(R.string.feature_health, R.string.feature_health_body, Icons.Filled.Favorite),
+}
+
+/** From this width the screen shows the list and the selected record side by side (unfolded foldables, tablets). */
+private val TwoPaneWidth = 600.dp
+
+@Composable
+fun App(vm: AppViewModel = viewModel()) {
+    val connection by vm.connection.collectAsState()
+    val checking by vm.checking.collectAsState()
+    val error by vm.error.collectAsState()
+    when (val c = connection) {
+        Connection.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Connection.None -> SetupScreen(checking, error, vm::connect)
+        is Connection.Ready -> HomeScreen(c.server.url, vm::disconnect)
+    }
+}
+
+@Composable
+fun SetupScreen(checking: Boolean, error: SetupError?, onConnect: (String, String) -> Unit) {
+    var url by rememberSaveable { mutableStateOf("") }
+    var token by rememberSaveable { mutableStateOf("") }
+    Scaffold { pad ->
+        Box(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()), Alignment.TopCenter) {
+            Column(
+                Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Spacer(Modifier.size(24.dp))
+                Text(stringResource(R.string.setup_title), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.setup_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.setup_url)) },
+                    placeholder = { Text(stringResource(R.string.setup_url_hint)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it },
+                    label = { Text(stringResource(R.string.setup_token)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                error?.let {
+                    val msg = when (it) {
+                        SetupError.HttpsOnly -> R.string.setup_https_only
+                        SetupError.Unreachable -> R.string.setup_unreachable
+                    }
+                    Text(stringResource(msg), color = MaterialTheme.colorScheme.error)
+                }
+                Button(
+                    onClick = { onConnect(url, token) },
+                    enabled = !checking && url.isNotBlank() && token.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(if (checking) R.string.setup_checking else R.string.setup_connect))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(serverUrl: String, onDisconnect: () -> Unit) {
+    // Saved so the selection survives folding and unfolding (the activity is recreated).
+    var selected by rememberSaveable { mutableStateOf<Feature?>(null) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val twoPane = maxWidth >= TwoPaneWidth
+        val detail = selected
+        if (!twoPane && detail != null) {
+            BackHandler { selected = null }
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(stringResource(detail.title)) },
+                        navigationIcon = {
+                            IconButton(onClick = { selected = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                            }
+                        },
+                    )
+                },
+            ) { pad -> FeatureDetail(detail, Modifier.padding(pad)) }
+            return@BoxWithConstraints
+        }
+        Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { pad ->
+            Row(Modifier.fillMaxSize().padding(pad)) {
+                FeatureList(
+                    serverUrl = serverUrl,
+                    selected = if (twoPane) selected else null,
+                    onSelect = { selected = it },
+                    onDisconnect = onDisconnect,
+                    modifier = if (twoPane) Modifier.widthIn(max = 360.dp).fillMaxHeight() else Modifier.fillMaxSize(),
+                )
+                if (twoPane) {
+                    VerticalDivider()
+                    if (detail != null) {
+                        FeatureDetail(detail, Modifier.weight(1f))
+                    } else {
+                        Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) {
+                            Text(stringResource(R.string.home_pick), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatureList(
+    serverUrl: String,
+    selected: Feature?,
+    onSelect: (Feature) -> Unit,
+    onDisconnect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.verticalScroll(rememberScrollState())) {
+        ListItem(
+            overlineContent = { Text(stringResource(R.string.home_server)) },
+            headlineContent = { Text(serverUrl.removePrefix("https://")) },
+            supportingContent = { Text(stringResource(R.string.home_connected)) },
+            trailingContent = { TextButton(onClick = onDisconnect) { Text(stringResource(R.string.home_disconnect)) } },
+        )
+        HorizontalDivider()
+        Text(
+            stringResource(R.string.home_records),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+        )
+        Feature.entries.forEach { f ->
+            ListItem(
+                leadingContent = { Icon(f.icon, null) },
+                headlineContent = { Text(stringResource(f.title)) },
+                supportingContent = { Text(stringResource(R.string.feature_soon)) },
+                colors = if (f == selected) {
+                    ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                } else {
+                    ListItemDefaults.colors()
+                },
+                modifier = Modifier.clickable { onSelect(f) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeatureDetail(feature: Feature, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxHeight().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(feature.icon, null, tint = MaterialTheme.colorScheme.primary)
+        Text(stringResource(feature.title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(feature.body))
+        Text(stringResource(R.string.feature_soon), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Preview(name = "Phone · cover screen", widthDp = 360, heightDp = 780)
+@Preview(name = "Foldable unfolded", widthDp = 840, heightDp = 780)
+@Preview(name = "Tablet landscape", widthDp = 1280, heightDp = 800)
+@Composable
+private fun HomePreview() {
+    MemexhubTheme { HomeScreen("https://memexhub.example.com") {} }
+}
+
+@Preview(name = "Setup · phone", widthDp = 360, heightDp = 780)
+@Preview(name = "Setup · tablet", widthDp = 1280, heightDp = 800)
+@Composable
+private fun SetupPreview() {
+    MemexhubTheme { SetupScreen(checking = false, error = null) { _, _ -> } }
+}

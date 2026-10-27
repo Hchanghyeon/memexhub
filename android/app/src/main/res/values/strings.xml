@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">memexhub</string>
+
+    <string name="setup_title">Connect to your memexhub</string>
+    <string name="setup_body">In the admin app open Devices, make a device token, and enter the device address and the token here.</string>
+    <string name="setup_url">Device address</string>
+    <string name="setup_url_hint" translatable="false">https://memexhub.example.com</string>
+    <string name="setup_token">Device token</string>
+    <string name="setup_connect">Connect</string>
+    <string name="setup_https_only">Use an https address.</string>
+    <string name="setup_unreachable">Could not reach the server: check the address.</string>
+    <string name="setup_checking">Checking…</string>
+
+    <string name="home_server">Server</string>
+    <string name="home_connected">Connected</string>
+    <string name="home_disconnect">Disconnect</string>
+    <string name="home_records">Records this phone sends</string>
+    <string name="home_pick">Pick a record on the left.</string>
+    <string name="back">Back</string>
+
+    <string name="feature_sms">Card messages</string>
+    <string name="feature_sms_body">Card payment texts are sent as they arrive.</string>
+    <string name="feature_pay">Payment notifications</string>
+    <string name="feature_pay_body">Wallet and transit card notifications.</string>
+    <string name="feature_location">Location</string>
+    <string name="feature_location_body">Where you were, every few minutes while you move.</string>
+    <string name="feature_health">Health</string>
+    <string name="feature_health_body">Steps, sleep and heart rate from Health Connect, every morning.</string>
+    <string name="feature_soon">Coming in a later version</string>
+</resources>
