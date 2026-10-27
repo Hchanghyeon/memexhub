@@ -6,7 +6,7 @@ A phone app that sends your life logs to your own memexhub server: the job iOS S
 |---|---|---|
 | Card messages (SMS) | `/ingest/message` (channel `sms`, with sender and time) | ✅ |
 | Payment notifications (wallets, transit cards) | `/ingest/transaction` | 📝 |
-| Location | `/ingest/owntracks` (same format as OwnTracks) | 📝 |
+| Location | `/ingest/owntracks` (same format as OwnTracks) | ✅ |
 | Health (Health Connect) | `/ingest/health` | 📝 |
 
 Each record has its own switch. Records wait in a queue (WorkManager) until there is a network, so nothing is lost on the subway or in airplane mode; a busy or unreachable server is retried with backoff.
@@ -16,6 +16,10 @@ Each record has its own switch. Records wait in a queue (WorkManager) until ther
 Only texts containing 승인, 결제 or 취소 leave the phone; codes, chats and everything else stay. The server's recipes read the text, and texts it is unsure about wait on the admin app's Messages screen.
 
 Android 13+ treats SMS access of apps installed outside a store as a *restricted setting*. If the permission dialog does not appear: App info → ⋮ → **Allow restricted settings**, then turn the switch on again.
+
+### Location
+
+Like OwnTracks in Move mode: a point every 3 minutes (fused provider, balanced power; GPS and network before Android 12), fixes worse than 500 m dropped, sent in the OwnTracks format so the server's location module reads it unchanged. A foreground service with a quiet notification keeps it running with the screen off. Allowing location *All the time* lets it start again after a reboot or an app update; without it, opening the app starts it.
 
 ## Screens
 

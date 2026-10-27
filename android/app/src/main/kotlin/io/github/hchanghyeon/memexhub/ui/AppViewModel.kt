@@ -3,6 +3,7 @@ package io.github.hchanghyeon.memexhub.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hchanghyeon.memexhub.location.LocationService
 import io.github.hchanghyeon.memexhub.server.Delivery
 import io.github.hchanghyeon.memexhub.server.IngestClient
 import io.github.hchanghyeon.memexhub.server.Record
@@ -39,7 +40,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setEnabled(r: Record, on: Boolean) {
         viewModelScope.launch { records.setEnabled(r, on) }
+        if (r == Record.Location) {
+            if (on) LocationService.start(getApplication()) else LocationService.stop(getApplication())
+        }
     }
+
+    fun ensureLocation() = LocationService.start(getApplication())
 
     val connection: StateFlow<Connection> = config.server
         .map { if (it == null) Connection.None else Connection.Ready(it) }

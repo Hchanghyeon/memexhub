@@ -1,5 +1,6 @@
 package io.github.hchanghyeon.memexhub.ui
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,11 +50,13 @@ fun RecordPanel(
     privacy: String,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    optional: List<String> = emptyList(),
+    extra: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     var denied by rememberSaveable { mutableStateOf(false) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        val ok = result.values.all { it }
+        val ok = permissions.all { result[it] ?: context.granted(it) }
         denied = !ok
         if (ok) onToggle(true)
     }
@@ -73,7 +77,7 @@ fun RecordPanel(
                     when {
                         !want -> onToggle(false)
                         missing.isEmpty() -> onToggle(true)
-                        else -> ask.launch(missing.toTypedArray())
+                        else -> ask.launch((missing + optional.filterNot { context.granted(it) }).toTypedArray())
                     }
                 },
             )
@@ -82,8 +86,23 @@ fun RecordPanel(
             Text(stringResource(R.string.record_permission), color = MaterialTheme.colorScheme.error)
             OutlinedButton(onClick = { context.openAppInfo() }) { Text(stringResource(R.string.record_app_info)) }
         }
+        if (on && missing.isEmpty()) extra()
         Text(lastLine(context, last), color = if (last != null && !last.ok) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
         Text(privacy, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Second step for location: "all the time", so it can restart after a reboot or an update. */
+@Composable
+fun AlwaysLocation() {
+    if (android.os.Build.VERSION.SDK_INT < 29) return
+    val context = LocalContext.current
+    var granted by remember { mutableStateOf(context.granted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
+    if (granted) return
+    Text(stringResource(R.string.location_always), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    OutlinedButton(onClick = { ask.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }) {
+        Text(stringResource(R.string.location_always_button))
     }
 }
 

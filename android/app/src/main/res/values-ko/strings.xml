@@ -34,4 +34,9 @@
     <string name="record_permission">권한이 필요해요. 권한 창이 안 뜨면: 앱 정보 → ⋮ → 제한된 설정 허용 후 다시 켜세요.</string>
     <string name="record_app_info">앱 정보 열기</string>
     <string name="sms_privacy">‘승인’ · ‘결제’ · ‘취소’가 들어간 문자만 보내요. 다른 문자는 폰 밖으로 나가지 않아요. 서버가 못 읽은 문자는 관리 화면의 메시지에서 기다려요.</string>
+    <string name="location_privacy">켜 두면 3분마다 위치를 보내고, 조용한 알림이 하나 떠 있어요. 정확도 500m 안쪽 점만 보내요. 서버는 정한 기간(기본 400일)만 보관해요.</string>
+    <string name="location_always">폰을 다시 켜거나 앱을 업데이트한 뒤에도 계속 기록하려면 위치 권한을 ‘항상 허용’으로 바꾸세요.</string>
+    <string name="location_always_button">항상 허용하기</string>
+    <string name="location_channel">위치 기록</string>
+    <string name="location_notification">위치를 기록하는 중</string>
 </resources>

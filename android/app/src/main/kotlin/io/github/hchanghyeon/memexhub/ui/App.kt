@@ -1,5 +1,6 @@
 package io.github.hchanghyeon.memexhub.ui
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,7 +63,7 @@ import io.github.hchanghyeon.memexhub.server.Record
 enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector, val record: Record? = null) {
     Sms(R.string.feature_sms, R.string.feature_sms_body, Icons.Filled.Email, Record.Sms),
     Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications),
-    Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn),
+    Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn, Record.Location),
     Health(R.string.feature_health, R.string.feature_health_body, Icons.Filled.Favorite),
 }
 
@@ -78,6 +80,8 @@ fun App(vm: AppViewModel = viewModel()) {
         Connection.None -> SetupScreen(checking, error, vm::connect)
         is Connection.Ready -> {
             val on by vm.enabled.collectAsState()
+            // The app is in front: a good moment to (re)start location if Android stopped it.
+            LaunchedEffect(on[Record.Location]) { if (on[Record.Location] == true) vm.ensureLocation() }
             HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) }
         }
     }
@@ -95,7 +99,15 @@ private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier
             onToggle = { vm.setEnabled(r, it) },
             modifier = modifier,
         )
-        else -> SoonDetail(feature, modifier)
+        Record.Location -> RecordPanel(
+            feature, on[r] == true, last[r],
+            permissions = listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION),
+            optional = if (Build.VERSION.SDK_INT >= 33) listOf(android.Manifest.permission.POST_NOTIFICATIONS) else emptyList(),
+            privacy = stringResource(R.string.location_privacy),
+            onToggle = { vm.setEnabled(r, it) },
+            modifier = modifier,
+        ) { AlwaysLocation() }
+        null -> SoonDetail(feature, modifier)
     }
 }
 
