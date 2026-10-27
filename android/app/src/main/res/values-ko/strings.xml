@@ -39,4 +39,22 @@
     <string name="location_always_button">항상 허용하기</string>
     <string name="location_channel">위치 기록</string>
     <string name="location_notification">위치를 기록하는 중</string>
+    <string name="notice_channel_attention">확인할 것</string>
+    <string name="notice_channel_status">기록 상태</string>
+    <plurals name="notice_inbox">
+        <item quantity="other">확인할 결제 문자 %d건</item>
+    </plurals>
+    <string name="notice_inbox_body">서버가 확실히 읽지 못한 문자예요. 누르면 관리 화면 → 메시지가 열려요.</string>
+    <string name="notice_stale">%1$s: %2$s 안 들어와요</string>
+    <string name="notice_stale_body">앱을 열어 스위치와 권한을 확인하세요.</string>
+    <string name="notice_hours">%d시간째</string>
+    <plurals name="notice_days">
+        <item quantity="other">%d일째</item>
+    </plurals>
+    <string name="notice_connection">연결 오류: %s</string>
+    <string name="notice_connection_body">누르면 관리 화면 → 연결이 열려요.</string>
+    <string name="notice_permission">%s 꺼짐: 권한이 없어졌어요</string>
+    <string name="notice_permission_body">앱을 열어 다시 켜세요.</string>
+    <string name="notice_token">서버가 이 폰의 토큰을 거부했어요</string>
+    <string name="notice_token_body">앱에서 연결을 끊고 새 기기 토큰으로 다시 연결하세요.</string>
 </resources>

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hchanghyeon.memexhub.location.LocationService
+import io.github.hchanghyeon.memexhub.notify.NoticeWorker
 import io.github.hchanghyeon.memexhub.server.Delivery
 import io.github.hchanghyeon.memexhub.server.IngestClient
 import io.github.hchanghyeon.memexhub.server.Record
@@ -66,6 +67,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun disconnect() {
+        NoticeWorker.cancel(getApplication())
         viewModelScope.launch { config.clear() }
     }
+
+    /** Connected: check every 15 minutes for what needs a look (kept across restarts by WorkManager). */
+    fun scheduleNotices() = NoticeWorker.schedule(getApplication())
 }

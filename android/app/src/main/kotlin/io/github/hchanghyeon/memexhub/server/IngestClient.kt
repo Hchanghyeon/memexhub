@@ -36,6 +36,20 @@ class IngestClient(private val server: Server) {
         }
     }
 
+    /** GETs a read path (only `/ingest/status` exists) and returns the status and body. */
+    suspend fun get(path: String): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val conn = open(path).apply {
+            requestMethod = "GET"
+            setRequestProperty("X-Ingest-Token", server.token)
+        }
+        try {
+            val code = conn.responseCode
+            code to if (code in 200..299) conn.inputStream.bufferedReader().use { it.readText() } else ""
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     private fun open(path: String): HttpURLConnection =
         (URI(server.url.trimEnd('/') + path).toURL().openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000

@@ -2,6 +2,8 @@ package io.github.hchanghyeon.memexhub.ui
 
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,7 +84,23 @@ fun App(vm: AppViewModel = viewModel()) {
             val on by vm.enabled.collectAsState()
             // The app is in front: a good moment to (re)start location if Android stopped it.
             LaunchedEffect(on[Record.Location]) { if (on[Record.Location] == true) vm.ensureLocation() }
+            AskForNotifications()
+            LaunchedEffect(Unit) { vm.scheduleNotices() }
             HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) }
+        }
+    }
+}
+
+/** Notifications are how the app says a record stopped; ask once after connecting. */
+@Composable
+private fun AskForNotifications() {
+    if (Build.VERSION.SDK_INT < 33) return
+    var asked by rememberSaveable { mutableStateOf(false) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (!asked) {
+            asked = true
+            ask.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }

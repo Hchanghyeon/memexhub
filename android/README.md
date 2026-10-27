@@ -21,6 +21,17 @@ Android 13+ treats SMS access of apps installed outside a store as a *restricted
 
 Like OwnTracks in Move mode: a point every 3 minutes (fused provider, balanced power; GPS and network before Android 12), fixes worse than 500 m dropped, sent in the OwnTracks format so the server's location module reads it unchanged. A foreground service with a quiet notification keeps it running with the screen off. Allowing location *All the time* lets it start again after a reboot or an app update; without it, opening the app starts it.
 
+### Notifications
+
+Every 15 minutes (WorkManager, only with a network) the app asks `GET /ingest/status` and checks its own switches, then notifies only what is new and removes what got fixed:
+
+- a record this phone sends stopped (location, card texts), by the server's freshness rules
+- card texts waiting on the admin app's Messages screen (tap opens it)
+- a connection in error (tap opens Connections)
+- a permission was removed, or the server refused the token
+
+The status holds counts, times and connection names only. No push service is involved.
+
 ## Screens
 
 One layout for every size: under 600 dp wide (phones, a foldable's cover screen) it is a list that opens each record; from 600 dp (an unfolded foldable, tablets) the list and the selected record sit side by side. The selection survives folding and unfolding. The previews in `ui/App.kt` show phone, unfolded foldable and tablet.

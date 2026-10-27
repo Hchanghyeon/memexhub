@@ -42,4 +42,24 @@
     <string name="location_always_button">Allow all the time</string>
     <string name="location_channel">Location recording</string>
     <string name="location_notification">Recording location</string>
+    <string name="notice_channel_attention">To check</string>
+    <string name="notice_channel_status">Recording status</string>
+    <plurals name="notice_inbox">
+        <item quantity="one">%d card text to check</item>
+        <item quantity="other">%d card texts to check</item>
+    </plurals>
+    <string name="notice_inbox_body">The server could not read it for sure. Tap to open Messages in the admin app.</string>
+    <string name="notice_stale">%1$s: nothing for %2$s</string>
+    <string name="notice_stale_body">Open the app and check its switch and permissions.</string>
+    <string name="notice_hours">%d h</string>
+    <plurals name="notice_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="notice_connection">Connection error: %s</string>
+    <string name="notice_connection_body">Tap to open Connections in the admin app.</string>
+    <string name="notice_permission">%s is off: the permission was removed</string>
+    <string name="notice_permission_body">Open the app and turn it on again.</string>
+    <string name="notice_token">The server refused this phone\'s token</string>
+    <string name="notice_token_body">Disconnect in the app and connect again with a new device token.</string>
 </resources>
