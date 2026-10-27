@@ -41,9 +41,13 @@ The status holds counts, times and connection names only. No push service is inv
 
 The **Notes** tab reads the vault through the admin app's JSON API, signed in with the admin account (the authenticator code outside the home network; "stay signed in" keeps it 30 days). The device token is never used for reading. Read-only: folders, search, recently changed notes, and the note rendered from Markdown (headings, lists, task lists, tables, code, quotes, Obsidian callouts). `[[wiki links]]` open the note they name; `![[attachments]]` show their name. Session cookies are stored encrypted like the device token.
 
+### Today
+
+The first tab: today's to-dos (checkboxes under the "할 일" / "to-do" heading of the day's journal note, open ones first, with a progress bar), money spent today against yesterday and the month (`/admin/api/money`), places and distance (`/admin/api/location/day`), and whether this phone's records are flowing. Pull down to refresh. Without the admin sign-in it shows only this phone's records.
+
 ## Screens
 
-Two tabs, Notes and Records: a bottom bar under 600 dp, a side rail from 600 dp. Under 600 dp wide (phones, a foldable's cover screen) each tab is a list that opens one item; from 600 dp (an unfolded foldable, tablets) the list and the selected item sit side by side. The selection survives folding and unfolding. The previews in `ui/App.kt` show phone, unfolded foldable and tablet.
+Built only from design tokens (`design/tokens.json`) and the parts in `ui/kit` (big number card, to-do row, list row, status dot, button with press feedback and haptics). Three tabs, Today, Notes and Records: a bottom bar under 600 dp, a side rail from 600 dp. Under 600 dp wide (phones, a foldable's cover screen) each tab is a list that opens one item; from 600 dp (an unfolded foldable, tablets) the list and the selected item sit side by side. The selection survives folding and unfolding. `ScreenshotTest` renders each screen on the JVM as the Galaxy Z Fold shows it (cover 411 dp, unfolded 840 dp, light and dark, Korean): `./gradlew recordRoborazziDebug`; CI uploads them as the `screenshots` artifact.
 
 ## Privacy
 

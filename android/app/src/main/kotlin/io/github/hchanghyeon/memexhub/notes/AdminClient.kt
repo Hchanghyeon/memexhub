@@ -99,6 +99,12 @@ class AdminClient(context: Context, base: String) {
         }
     }
 
+    /** The month's money report (`/money`): days with totals, the month total. */
+    suspend fun money(month: String): JSONObject = JSONObject(get("/money?month=$month"))
+
+    /** One day of places (`/location/day`): distance and stays with names. */
+    suspend fun locationDay(date: String): JSONObject = JSONObject(get("/location/day?date=$date"))
+
     private suspend fun get(path: String, allowSignedOut: Boolean = false): String = withContext(Dispatchers.IO) {
         val conn = open(path, "GET", cookies())
         try {

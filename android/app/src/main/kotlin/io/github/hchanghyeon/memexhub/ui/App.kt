@@ -34,6 +34,11 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.runtime.mutableIntStateOf
 import io.github.hchanghyeon.memexhub.notes.NotesScreen
+import io.github.hchanghyeon.memexhub.notes.NotesViewModel
+import io.github.hchanghyeon.memexhub.today.TodayRoute
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
@@ -99,8 +104,21 @@ fun App(vm: AppViewModel = viewModel()) {
             LaunchedEffect(on[Record.Location]) { if (on[Record.Location] == true) vm.ensureLocation() }
             AskForNotifications()
             LaunchedEffect(Unit) { vm.scheduleNotices() }
+            val notesVm: NotesViewModel = viewModel()
+            val context = LocalContext.current
+            var tab by rememberSaveable { mutableIntStateOf(0) }
             MainTabs(
-                notes = { NotesScreen(c.server.url) },
+                tab = tab,
+                onTab = { tab = it },
+                today = {
+                    TodayRoute(
+                        c.server.url,
+                        onSignIn = { tab = 1 },
+                        onOpen = { path -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, (c.server.url + path).toUri())) } },
+                        onOpenNote = { path -> notesVm.bind(c.server.url); notesVm.open(path); tab = 1 },
+                    )
+                },
+                notes = { NotesScreen(c.server.url, notesVm) },
                 records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) } },
             )
         }
@@ -123,9 +141,9 @@ private val NotificationAccess = SpecialAccess(
 
 /** Notes and Records: a bottom bar on phones and cover screens, a side rail when unfolded or on tablets. */
 @Composable
-private fun MainTabs(notes: @Composable () -> Unit, records: @Composable () -> Unit) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+private fun MainTabs(tab: Int, onTab: (Int) -> Unit, today: @Composable () -> Unit, notes: @Composable () -> Unit, records: @Composable () -> Unit) {
     val tabs = listOf(
+        Triple(R.string.tab_today, Icons.Filled.DateRange, today),
         Triple(R.string.tab_notes, Icons.AutoMirrored.Filled.List, notes),
         Triple(R.string.tab_records, Icons.AutoMirrored.Filled.Send, records),
     )
@@ -134,7 +152,7 @@ private fun MainTabs(notes: @Composable () -> Unit, records: @Composable () -> U
             Row(Modifier.fillMaxSize()) {
                 NavigationRail {
                     tabs.forEachIndexed { i, (label, icon, _) ->
-                        NavigationRailItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
+                        NavigationRailItem(selected = tab == i, onClick = { onTab(i) }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
                     }
                 }
                 Box(Modifier.weight(1f)) { tabs[tab].third() }
@@ -144,7 +162,7 @@ private fun MainTabs(notes: @Composable () -> Unit, records: @Composable () -> U
                 bottomBar = {
                     NavigationBar {
                         tabs.forEachIndexed { i, (label, icon, _) ->
-                            NavigationBarItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
+                            NavigationBarItem(selected = tab == i, onClick = { onTab(i) }, icon = { Icon(icon, null) }, label = { Text(stringResource(label)) })
                         }
                     }
                 },

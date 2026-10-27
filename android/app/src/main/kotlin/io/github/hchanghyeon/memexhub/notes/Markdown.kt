@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -29,6 +30,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import io.github.hchanghyeon.memexhub.ui.theme.Mx
+import io.github.hchanghyeon.memexhub.ui.theme.MxRadius
+import io.github.hchanghyeon.memexhub.ui.theme.MxSpace
+import io.github.hchanghyeon.memexhub.ui.theme.MxType
 import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
 import org.commonmark.ext.gfm.tables.TableBlock
@@ -99,7 +104,8 @@ private fun ListBlock(list: Node, onLink: (String) -> Unit) {
     var n = (list as? OrderedList)?.markerStartNumber ?: 1
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         list.children().filterIsInstance<ListItem>().forEach { item ->
-            val task = item.firstChild?.firstChild as? TaskListItemMarker
+            // The marker sits before the item's paragraph (or inside it, depending on the parser version).
+            val task = (item.firstChild as? TaskListItemMarker) ?: (item.firstChild?.firstChild as? TaskListItemMarker)
             val marker = when {
                 task != null -> if (task.isChecked) "☑" else "☐"
                 list is OrderedList -> "${n++}."
@@ -124,17 +130,16 @@ private fun Quote(node: BlockQuote, onLink: (String) -> Unit) {
     val br = parts.indexOfFirst { it is SoftLineBreak || it is HardLineBreak }.let { if (it < 0) parts.size else it }
     val head = parts.take(br).joinToString("") { (it as? org.commonmark.node.Text)?.literal ?: "" }
     val callout = Regex("""^\[!(\w+)][+-]?\s*(.*)$""").find(head)
-    val colors = MaterialTheme.colorScheme
+    val colors = Mx.colors
     Column(
         Modifier.fillMaxWidth()
-            .background(if (callout != null) colors.surfaceContainer else colors.surface, RoundedCornerShape(8.dp))
-            .border(1.dp, colors.outline, RoundedCornerShape(8.dp))
-            .padding(12.dp),
+            .background(if (callout != null) colors.accentSoft else colors.sunken, RoundedCornerShape(MxRadius.control))
+            .padding(MxSpace.m),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (callout != null) {
             val (kind, title) = callout.destructured
-            Text(title.ifBlank { kind.replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.titleSmall, color = colors.primary)
+            Text(title.ifBlank { kind.replaceFirstChar { it.uppercase() } }, style = MxType.label, color = colors.accent)
             // The rest of the first paragraph after the [!type] line, then the other blocks.
             val rest = inline(parts.drop(br + 1), onLink)
             if (rest.isNotBlank()) Text(rest, style = MaterialTheme.typography.bodyMedium)
@@ -149,9 +154,9 @@ private fun Quote(node: BlockQuote, onLink: (String) -> Unit) {
 private fun CodeBox(code: String) {
     Box(
         Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
+            .background(Mx.colors.sunken, RoundedCornerShape(MxRadius.control))
             .horizontalScroll(rememberScrollState())
-            .padding(12.dp),
+            .padding(MxSpace.m),
     ) {
         Text(code, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
     }
@@ -162,11 +167,12 @@ private fun Table(table: TableBlock, onLink: (String) -> Unit) {
     val rows = table.children().flatMap { section -> section.children().filterIsInstance<TableRow>().map { (section is TableHead) to it } }
     Column(
         Modifier.horizontalScroll(rememberScrollState())
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(MxRadius.control))
+            .border(1.dp, Mx.colors.line, RoundedCornerShape(MxRadius.control)),
     ) {
         rows.forEachIndexed { i, (head, row) ->
             if (i > 0) HorizontalDivider()
-            Row(if (head) Modifier.background(MaterialTheme.colorScheme.surfaceContainer) else Modifier) {
+            Row(if (head) Modifier.background(Mx.colors.sunken) else Modifier) {
                 row.children().filterIsInstance<TableCell>().forEach { cell ->
                     Text(
                         inline(cell, onLink),
@@ -185,8 +191,8 @@ private fun inline(node: Node, onLink: (String) -> Unit): AnnotatedString = inli
 
 @Composable
 private fun inline(nodes: List<Node>, onLink: (String) -> Unit): AnnotatedString {
-    val link = TextLinkStyles(SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline))
-    val codeBg = MaterialTheme.colorScheme.surfaceContainer
+    val link = TextLinkStyles(SpanStyle(color = Mx.colors.accent, textDecoration = TextDecoration.Underline))
+    val codeBg = Mx.colors.sunken
     return buildAnnotatedString {
         fun walk(n: Node) {
             when (n) {

@@ -91,4 +91,32 @@
     <string name="pay_privacy">Only Samsung Wallet notifications with 승인 · 결제 · 취소 in them are sent. Notifications the server cannot read wait on the Messages screen of the admin app.</string>
     <string name="access_hint">Needs notification access. Turn memexhub on in the page that opens. If it is greyed out: App info → ⋮ → Allow restricted settings, then try again.</string>
     <string name="access_open">Open notification access</string>
+    <string name="tab_today">Today</string>
+    <string name="today_failed">Part of today could not be loaded. Pull down to try again.</string>
+    <string name="today_todo">Today\'s to-dos</string>
+    <string name="today_todo_no_note">No journal page for today yet. The night routine writes it.</string>
+    <string name="today_todo_none">Nothing to do today.</string>
+    <plurals name="today_more">
+        <item quantity="one">%d more</item>
+        <item quantity="other">%d more</item>
+    </plurals>
+    <string name="today_money">Spent today</string>
+    <string name="won">won</string>
+    <plurals name="today_payments">
+        <item quantity="one">%d payment</item>
+        <item quantity="other">%d payments</item>
+    </plurals>
+    <string name="today_less">%s less</string>
+    <string name="today_more_spent">%s more</string>
+    <string name="today_vs_yesterday">%1$s · %2$s than yesterday</string>
+    <string name="today_month">This month %s won</string>
+    <string name="today_money_open">See this month</string>
+    <string name="today_places">Places · %s km</string>
+    <string name="today_places_none">No places yet today.</string>
+    <string name="today_place_unnamed">Unnamed place</string>
+    <string name="today_records">This phone\'s records</string>
+    <string name="today_waiting">Waiting for the first one</string>
+    <string name="today_failed_code">Failed (%d)</string>
+    <string name="today_signin_title">Sign in to see your day</string>
+    <string name="today_signin_body">To-dos, money and places come from your memexhub. Sign in once with the admin account; this phone is remembered for 30 days.</string>
 </resources>
