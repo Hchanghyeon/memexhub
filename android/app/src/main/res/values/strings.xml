@@ -28,4 +28,13 @@
     <string name="feature_health">Health</string>
     <string name="feature_health_body">Steps, sleep and heart rate from Health Connect, every morning.</string>
     <string name="feature_soon">Coming in a later version</string>
+    <string name="record_send">Send</string>
+    <string name="record_on">On</string>
+    <string name="record_off">Off</string>
+    <string name="record_never">Nothing sent yet.</string>
+    <string name="record_last_ok">Last sent: %1$s</string>
+    <string name="record_last_failed">Last send failed (%2$d): %1$s</string>
+    <string name="record_permission">Needs permission. If no permission dialog appears: App info → ⋮ → Allow restricted settings, then turn it on again.</string>
+    <string name="record_app_info">Open app info</string>
+    <string name="sms_privacy">Only texts with 승인 · 결제 · 취소 in them are sent. Other texts never leave the phone. Texts the server cannot read wait on the Messages screen of the admin app.</string>
 </resources>

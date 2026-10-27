@@ -25,4 +25,13 @@
     <string name="feature_health">건강</string>
     <string name="feature_health_body">매일 아침 Health Connect의 걸음 · 수면 · 심박을 보냅니다.</string>
     <string name="feature_soon">다음 버전에서 추가돼요</string>
+    <string name="record_send">보내기</string>
+    <string name="record_on">켜짐</string>
+    <string name="record_off">꺼짐</string>
+    <string name="record_never">아직 보낸 게 없어요.</string>
+    <string name="record_last_ok">마지막 전송: %1$s</string>
+    <string name="record_last_failed">마지막 전송 실패 (%2$d): %1$s</string>
+    <string name="record_permission">권한이 필요해요. 권한 창이 안 뜨면: 앱 정보 → ⋮ → 제한된 설정 허용 후 다시 켜세요.</string>
+    <string name="record_app_info">앱 정보 열기</string>
+    <string name="sms_privacy">‘승인’ · ‘결제’ · ‘취소’가 들어간 문자만 보내요. 다른 문자는 폰 밖으로 나가지 않아요. 서버가 못 읽은 문자는 관리 화면의 메시지에서 기다려요.</string>
 </resources>

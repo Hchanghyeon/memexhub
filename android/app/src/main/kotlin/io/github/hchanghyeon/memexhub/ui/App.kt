@@ -55,10 +55,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hchanghyeon.memexhub.R
+import io.github.hchanghyeon.memexhub.server.Record
 
-/** Records this app can send. Each one gets its own screen as it is built. */
-enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector) {
-    Sms(R.string.feature_sms, R.string.feature_sms_body, Icons.Filled.Email),
+/** Records this app can send. [record] is set once the record is built; the rest say "coming". */
+enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector, val record: Record? = null) {
+    Sms(R.string.feature_sms, R.string.feature_sms_body, Icons.Filled.Email, Record.Sms),
     Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications),
     Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn),
     Health(R.string.feature_health, R.string.feature_health_body, Icons.Filled.Favorite),
@@ -75,7 +76,26 @@ fun App(vm: AppViewModel = viewModel()) {
     when (val c = connection) {
         Connection.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         Connection.None -> SetupScreen(checking, error, vm::connect)
-        is Connection.Ready -> HomeScreen(c.server.url, vm::disconnect)
+        is Connection.Ready -> {
+            val on by vm.enabled.collectAsState()
+            HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) }
+        }
+    }
+}
+
+@Composable
+private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier) {
+    val on by vm.enabled.collectAsState()
+    val last by vm.last.collectAsState()
+    when (val r = feature.record) {
+        Record.Sms -> RecordPanel(
+            feature, on[r] == true, last[r],
+            permissions = listOf(android.Manifest.permission.RECEIVE_SMS),
+            privacy = stringResource(R.string.sms_privacy),
+            onToggle = { vm.setEnabled(r, it) },
+            modifier = modifier,
+        )
+        else -> SoonDetail(feature, modifier)
     }
 }
 
@@ -131,18 +151,23 @@ fun SetupScreen(checking: Boolean, error: SetupError?, onConnect: (String, Strin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(serverUrl: String, onDisconnect: () -> Unit) {
+fun HomeScreen(
+    serverUrl: String,
+    on: Map<Record, Boolean>,
+    onDisconnect: () -> Unit,
+    detail: @Composable (Feature, Modifier) -> Unit,
+) {
     // Saved so the selection survives folding and unfolding (the activity is recreated).
     var selected by rememberSaveable { mutableStateOf<Feature?>(null) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val twoPane = maxWidth >= TwoPaneWidth
-        val detail = selected
-        if (!twoPane && detail != null) {
+        val picked = selected
+        if (!twoPane && picked != null) {
             BackHandler { selected = null }
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text(stringResource(detail.title)) },
+                        title = { Text(stringResource(picked.title)) },
                         navigationIcon = {
                             IconButton(onClick = { selected = null }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
@@ -150,13 +175,14 @@ fun HomeScreen(serverUrl: String, onDisconnect: () -> Unit) {
                         },
                     )
                 },
-            ) { pad -> FeatureDetail(detail, Modifier.padding(pad)) }
+            ) { pad -> detail(picked, Modifier.padding(pad)) }
             return@BoxWithConstraints
         }
         Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) }) { pad ->
             Row(Modifier.fillMaxSize().padding(pad)) {
                 FeatureList(
                     serverUrl = serverUrl,
+                    on = on,
                     selected = if (twoPane) selected else null,
                     onSelect = { selected = it },
                     onDisconnect = onDisconnect,
@@ -164,8 +190,8 @@ fun HomeScreen(serverUrl: String, onDisconnect: () -> Unit) {
                 )
                 if (twoPane) {
                     VerticalDivider()
-                    if (detail != null) {
-                        FeatureDetail(detail, Modifier.weight(1f))
+                    if (picked != null) {
+                        detail(picked, Modifier.weight(1f))
                     } else {
                         Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) {
                             Text(stringResource(R.string.home_pick), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -180,6 +206,7 @@ fun HomeScreen(serverUrl: String, onDisconnect: () -> Unit) {
 @Composable
 private fun FeatureList(
     serverUrl: String,
+    on: Map<Record, Boolean>,
     selected: Feature?,
     onSelect: (Feature) -> Unit,
     onDisconnect: () -> Unit,
@@ -203,7 +230,13 @@ private fun FeatureList(
             ListItem(
                 leadingContent = { Icon(f.icon, null) },
                 headlineContent = { Text(stringResource(f.title)) },
-                supportingContent = { Text(stringResource(R.string.feature_soon)) },
+                supportingContent = {
+                    val state = when (f.record) {
+                        null -> R.string.feature_soon
+                        else -> if (on[f.record] == true) R.string.record_on else R.string.record_off
+                    }
+                    Text(stringResource(state))
+                },
                 colors = if (f == selected) {
                     ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                 } else {
@@ -216,7 +249,7 @@ private fun FeatureList(
 }
 
 @Composable
-private fun FeatureDetail(feature: Feature, modifier: Modifier = Modifier) {
+private fun SoonDetail(feature: Feature, modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxHeight().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -233,7 +266,9 @@ private fun FeatureDetail(feature: Feature, modifier: Modifier = Modifier) {
 @Preview(name = "Tablet landscape", widthDp = 1280, heightDp = 800)
 @Composable
 private fun HomePreview() {
-    MemexhubTheme { HomeScreen("https://memexhub.example.com") {} }
+    MemexhubTheme {
+        HomeScreen("https://memexhub.example.com", mapOf(Record.Sms to true), onDisconnect = {}) { f, m -> SoonDetail(f, m) }
+    }
 }
 
 @Preview(name = "Setup · phone", widthDp = 360, heightDp = 780)

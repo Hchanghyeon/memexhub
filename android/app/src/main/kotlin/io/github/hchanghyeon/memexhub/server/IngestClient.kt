@@ -8,12 +8,12 @@ import java.net.URI
 /** Talks to memexhub's ingest surface. Write-only: it can add records, never read them back. */
 class IngestClient(private val server: Server) {
 
-    /** The address answers `/healthz`. */
+    /** The address answers `/healthz` with memexhub's plain "ok" (a web page that answers 200 is not enough). */
     suspend fun reachable(): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val conn = open("/healthz").apply { requestMethod = "GET" }
             try {
-                conn.responseCode == 200
+                conn.responseCode == 200 && conn.inputStream.bufferedReader().use { it.readLine() }?.trim() == "ok"
             } finally {
                 conn.disconnect()
             }
@@ -43,9 +43,12 @@ class IngestClient(private val server: Server) {
         }
 
     companion object {
+        /** Paths people copy from the browser by mistake: the admin app, the Claude connector, an ingest URL. */
+        private val pastedSuffix = Regex("/(admin|mcp|ingest)(/.*)?$")
+
         /** Only https: the token travels in every request. */
         fun normalize(input: String): String? {
-            val url = input.trim().trimEnd('/')
+            val url = input.trim().trimEnd('/').replace(pastedSuffix, "")
             val uri = runCatching { URI(url) }.getOrNull() ?: return null
             return if (uri.scheme == "https" && !uri.host.isNullOrBlank()) url else null
         }

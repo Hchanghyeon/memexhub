@@ -19,7 +19,8 @@ class ServerConfig(private val context: Context) {
     val server: Flow<Server?> = context.store.data.map { p ->
         val url = p[urlKey] ?: return@map null
         val token = p[tokenKey]?.let(TokenCipher::decrypt) ?: return@map null
-        Server(url, token)
+        // 0.1.0 saved addresses like https://host/admin as they were typed; read them cleaned.
+        Server(IngestClient.normalize(url) ?: url, token)
     }
 
     suspend fun save(server: Server) {
