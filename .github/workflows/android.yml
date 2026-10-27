@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     defaults:
       run:
         working-directory: android
@@ -29,3 +31,29 @@ jobs:
           name: memexhub-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+      # Pushes to develop/main also build the APK signed with the app key, so it installs over the
+      # previous version. Needs the repository secrets ANDROID_KEYSTORE_BASE64 and
+      # ANDROID_KEYSTORE_PASSWORD (android/README.md → Release builds); skipped in forks and PRs.
+      - name: version
+        id: version
+        run: echo "name=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+      - name: signed release APK
+        if: github.event_name == 'push' && env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          ./gradlew --no-daemon assembleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.jks" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias=memexhub \
+            -Pandroid.injected.signing.key.password="$KEYSTORE_PASSWORD"
+          rm -f "$RUNNER_TEMP/release.jks"
+          mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/memexhub-android-${{ steps.version.outputs.name }}.apk"
+      - if: github.event_name == 'push' && env.HAS_KEY == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: memexhub-android-${{ steps.version.outputs.name }}
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30

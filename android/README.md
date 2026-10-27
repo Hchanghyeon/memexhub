@@ -41,4 +41,17 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties   # or set ANDROID_HOME
 
 Needs JDK 21 or newer and the Android SDK platform 37.2. CI builds a debug APK on every change under `android/` (workflow `android`, artifact `memexhub-debug-apk`).
 
-Not on Google Play: Play rarely allows apps to read SMS. Install the APK directly; signed release builds on GitHub Releases are planned.
+Not on Google Play: Play rarely allows apps to read SMS. Install the APK directly.
+
+## Release builds
+
+Every version must be signed with the same key, or Android refuses to install it over the previous one. Keep the key outside the repository and back it up.
+
+```bash
+keytool -genkeypair -keystore release.jks -storetype PKCS12 -alias memexhub -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=memexhub"
+./gradlew assembleRelease \
+  -Pandroid.injected.signing.store.file=/path/to/release.jks \
+  -Pandroid.injected.signing.store.password=… -Pandroid.injected.signing.key.alias=memexhub -Pandroid.injected.signing.key.password=…
+```
+
+To let CI sign: add the repository secrets `ANDROID_KEYSTORE_BASE64` (`base64 -w0 release.jks`) and `ANDROID_KEYSTORE_PASSWORD`. Each push to `develop` or `main` that touches `android/` then uploads `memexhub-android-<version>` (the signed APK, kept 30 days) next to the debug build.
