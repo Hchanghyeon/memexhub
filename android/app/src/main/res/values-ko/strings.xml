@@ -17,9 +17,9 @@
     <string name="back">뒤로</string>
 
     <string name="feature_sms">카드 문자</string>
-    <string name="feature_sms_body">카드 결제 문자가 오면 바로 보냅니다.</string>
+    <string name="feature_sms_body">카드사 문자가 오면 메시지 앱 알림에서 읽어 바로 보내요.</string>
     <string name="feature_pay">결제 알림</string>
-    <string name="feature_pay_body">월렛 · 교통카드 알림을 보냅니다.</string>
+    <string name="feature_pay_body">삼성 월렛이 알려 주는 결제를 보내요.</string>
     <string name="feature_location">위치</string>
     <string name="feature_location_body">움직이는 동안 몇 분마다 위치를 보냅니다.</string>
     <string name="feature_health">건강</string>
@@ -33,7 +33,7 @@
     <string name="record_last_failed">마지막 전송 실패 (%2$d): %1$s</string>
     <string name="record_permission">권한이 필요해요. 권한 창이 안 뜨면: 앱 정보 → ⋮ → 제한된 설정 허용 후 다시 켜세요.</string>
     <string name="record_app_info">앱 정보 열기</string>
-    <string name="sms_privacy">‘승인’ · ‘결제’ · ‘취소’가 들어간 문자만 보내요. 다른 문자는 폰 밖으로 나가지 않아요. 서버가 못 읽은 문자는 관리 화면의 메시지에서 기다려요.</string>
+    <string name="sms_privacy">메시지 앱 알림 중 ‘승인’ · ‘결제’ · ‘취소’가 들어간 문자만 보내요. 다른 문자와 다른 앱 알림은 폰 밖으로 나가지 않아요. 서버가 못 읽은 문자는 관리 화면의 메시지에서 기다려요.</string>
     <string name="location_privacy">켜 두면 3분마다 위치를 보내고, 조용한 알림이 하나 떠 있어요. 정확도 500m 안쪽 점만 보내요. 서버는 정한 기간(기본 400일)만 보관해요.</string>
     <string name="location_always">폰을 다시 켜거나 앱을 업데이트한 뒤에도 계속 기록하려면 위치 권한을 ‘항상 허용’으로 바꾸세요.</string>
     <string name="location_always_button">항상 허용하기</string>
@@ -82,4 +82,7 @@
     <string name="notes_signout">로그아웃</string>
     <string name="notes_error">노트를 불러오지 못했어요. 새로고침하거나 연결을 확인하세요.</string>
     <string name="notes_missing">이 링크의 노트를 찾지 못했어요: %s</string>
+    <string name="pay_privacy">삼성 월렛 알림 중 ‘승인’ · ‘결제’ · ‘취소’가 들어간 것만 보내요. 서버가 못 읽은 알림은 관리 화면의 메시지에서 기다려요.</string>
+    <string name="access_hint">알림 접근 권한이 필요해요. 열리는 화면에서 memexhub를 켜세요. 회색으로 막혀 있으면: 앱 정보 → ⋮ → 제한된 설정 허용 후 다시 하세요.</string>
+    <string name="access_open">알림 접근 설정 열기</string>
 </resources>

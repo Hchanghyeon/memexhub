@@ -20,9 +20,9 @@
     <string name="back">Back</string>
 
     <string name="feature_sms">Card messages</string>
-    <string name="feature_sms_body">Card payment texts are sent as they arrive.</string>
+    <string name="feature_sms_body">Card company texts are sent as they arrive, read from the Messages app\'s notification.</string>
     <string name="feature_pay">Payment notifications</string>
-    <string name="feature_pay_body">Wallet and transit card notifications.</string>
+    <string name="feature_pay_body">Payments notified by Samsung Wallet.</string>
     <string name="feature_location">Location</string>
     <string name="feature_location_body">Where you were, every few minutes while you move.</string>
     <string name="feature_health">Health</string>
@@ -36,7 +36,7 @@
     <string name="record_last_failed">Last send failed (%2$d): %1$s</string>
     <string name="record_permission">Needs permission. If no permission dialog appears: App info → ⋮ → Allow restricted settings, then turn it on again.</string>
     <string name="record_app_info">Open app info</string>
-    <string name="sms_privacy">Only texts with 승인 · 결제 · 취소 in them are sent. Other texts never leave the phone. Texts the server cannot read wait on the Messages screen of the admin app.</string>
+    <string name="sms_privacy">Only text notifications from the Messages app with 승인 · 결제 · 취소 in them are sent. Other texts and other apps\' notifications never leave the phone. Texts the server cannot read wait on the Messages screen of the admin app.</string>
     <string name="location_privacy">While on, the phone sends where it is every 3 minutes and shows a quiet notification. Only fixes better than 500 m are sent. The server keeps points for its keep-days setting (400 days by default).</string>
     <string name="location_always">To keep recording after the phone restarts or the app updates, allow location “All the time”.</string>
     <string name="location_always_button">Allow all the time</string>
@@ -88,4 +88,7 @@
     <string name="notes_signout">Sign out</string>
     <string name="notes_error">Could not load the notes. Pull refresh or check the connection.</string>
     <string name="notes_missing">No note for this link: %s</string>
+    <string name="pay_privacy">Only Samsung Wallet notifications with 승인 · 결제 · 취소 in them are sent. Notifications the server cannot read wait on the Messages screen of the admin app.</string>
+    <string name="access_hint">Needs notification access. Turn memexhub on in the page that opens. If it is greyed out: App info → ⋮ → Allow restricted settings, then try again.</string>
+    <string name="access_open">Open notification access</string>
 </resources>

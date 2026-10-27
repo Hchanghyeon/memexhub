@@ -33,7 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.hchanghyeon.memexhub.R
 import io.github.hchanghyeon.memexhub.server.Delivery
 
@@ -51,6 +54,7 @@ fun RecordPanel(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     optional: List<String> = emptyList(),
+    access: SpecialAccess? = null,
     extra: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -60,8 +64,15 @@ fun RecordPanel(
         denied = !ok
         if (ok) onToggle(true)
     }
-    // Permissions can be taken away in system settings while the switch is on.
-    val missing = permissions.filterNot { context.granted(it) }
+    // Permissions can be taken away in system settings while the switch is on; re-check on return.
+    var resumed by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumed++
+        onPauseOrDispose {}
+    }
+    val missing = remember(resumed, permissions) {
+        permissions.filterNot { context.granted(it) } + listOfNotNull(access?.takeUnless { it.granted(context) }?.let { "access" })
+    }
     Column(
         modifier.fillMaxHeight().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -77,13 +88,21 @@ fun RecordPanel(
                     when {
                         !want -> onToggle(false)
                         missing.isEmpty() -> onToggle(true)
+                        access != null && !access.granted(context) -> {
+                            // Special access is a settings page, not a dialog: switch on, then come back.
+                            onToggle(true)
+                            access.open(context)
+                        }
                         else -> ask.launch((missing + optional.filterNot { context.granted(it) }).toTypedArray())
                     }
                 },
             )
         }
         if (denied || (on && missing.isNotEmpty())) {
-            Text(stringResource(R.string.record_permission), color = MaterialTheme.colorScheme.error)
+            Text(stringResource(access?.hint ?: R.string.record_permission), color = MaterialTheme.colorScheme.error)
+            if (access != null) {
+                OutlinedButton(onClick = { access.open(context) }) { Text(stringResource(R.string.access_open)) }
+            }
             OutlinedButton(onClick = { context.openAppInfo() }) { Text(stringResource(R.string.record_app_info)) }
         }
         if (on && missing.isEmpty()) extra()
@@ -91,6 +110,9 @@ fun RecordPanel(
         Text(privacy, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/** A permission granted on a settings page (notification access), not in a dialog. */
+class SpecialAccess(val granted: (Context) -> Boolean, val open: (Context) -> Unit, @StringRes val hint: Int)
 
 /** Second step for location: "all the time", so it can restart after a reboot or an update. */
 @Composable

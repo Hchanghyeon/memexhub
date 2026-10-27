@@ -1,6 +1,9 @@
 package io.github.hchanghyeon.memexhub.ui
 
+import android.content.Intent
 import android.os.Build
+import android.provider.Settings
+import io.github.hchanghyeon.memexhub.payments.PaymentListener
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,7 +76,7 @@ import io.github.hchanghyeon.memexhub.server.Record
 /** Records this app can send. [record] is set once the record is built; the rest say "coming". */
 enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector, val record: Record? = null) {
     Sms(R.string.feature_sms, R.string.feature_sms_body, Icons.Filled.Email, Record.Sms),
-    Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications),
+    Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications, Record.Pay),
     Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn, Record.Location),
     Health(R.string.feature_health, R.string.feature_health_body, Icons.Filled.Favorite),
 }
@@ -102,6 +105,20 @@ fun App(vm: AppViewModel = viewModel()) {
         }
     }
 }
+
+private val NotificationAccess = SpecialAccess(
+    granted = { PaymentListener.allowed(it) },
+    open = { ctx ->
+        val intent = if (Build.VERSION.SDK_INT >= 30) {
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+                .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, PaymentListener.component(ctx).flattenToString())
+        } else {
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+        }
+        runCatching { ctx.startActivity(intent) }.onFailure { ctx.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+    },
+    hint = R.string.access_hint,
+)
 
 /** Notes and Records: a bottom bar on phones and cover screens, a side rail when unfolded or on tablets. */
 @Composable
@@ -154,12 +171,13 @@ private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier
     val on by vm.enabled.collectAsState()
     val last by vm.last.collectAsState()
     when (val r = feature.record) {
-        Record.Sms -> RecordPanel(
+        Record.Sms, Record.Pay -> RecordPanel(
             feature, on[r] == true, last[r],
-            permissions = listOf(android.Manifest.permission.RECEIVE_SMS),
-            privacy = stringResource(R.string.sms_privacy),
+            permissions = emptyList(),
+            privacy = stringResource(if (r == Record.Sms) R.string.sms_privacy else R.string.pay_privacy),
             onToggle = { vm.setEnabled(r, it) },
             modifier = modifier,
+            access = NotificationAccess,
         )
         Record.Location -> RecordPanel(
             feature, on[r] == true, last[r],

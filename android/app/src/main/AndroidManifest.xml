@@ -3,9 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <!-- Tablets without a SIM can still install the app; card messages just stay off. -->
-    <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Only to restart location after a reboot or an app update; asked for separately. -->
@@ -49,13 +46,15 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".sms.SmsReceiver"
+        <!-- Card texts and wallet payments, read from their notifications (no SMS permission). -->
+        <service
+            android:name=".payments.PaymentListener"
             android:exported="true"
-            android:permission="android.permission.BROADCAST_SMS">
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+                <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
-        </receiver>
+        </service>
     </application>
 </manifest>

@@ -4,18 +4,23 @@ A phone app that sends your life logs to your own memexhub server: the job iOS S
 
 | Record | Sends to | Status |
 |---|---|---|
-| Card messages (SMS) | `/ingest/message` (channel `sms`, with sender and time) | ✅ |
-| Payment notifications (wallets, transit cards) | `/ingest/transaction` | 📝 |
+| Card messages (from the Messages app's notifications) | `/ingest/message` (channel `sms`, with sender and time) | ✅ |
+| Payment notifications (Samsung Wallet) | `/ingest/message` (channel `notification`) | ✅ |
 | Location | `/ingest/owntracks` (same format as OwnTracks) | ✅ |
 | Health (Health Connect) | `/ingest/health` | 📝 |
 
 Each record has its own switch. Records wait in a queue (WorkManager) until there is a network, so nothing is lost on the subway or in airplane mode; a busy or unreachable server is retried with backoff.
 
-### Card messages
+### Card messages and wallet payments
 
-Only texts containing 승인, 결제 or 취소 leave the phone; codes, chats and everything else stay. The server's recipes read the text, and texts it is unsure about wait on the admin app's Messages screen.
+No SMS permission: Galaxy phones sold in Korea refuse to install a sideloaded app that receives texts ("suspected malicious app", and the block cannot be turned off), because that is what smishing apps do. The app reads notifications instead, with notification access:
 
-Android 13+ treats SMS access of apps installed outside a store as a *restricted setting*. If the permission dialog does not appear: App info → ⋮ → **Allow restricted settings**, then turn the switch on again.
+- the Messages app's notifications (Samsung Messages, Google Messages) → channel `sms`, sender and full text
+- Samsung Wallet's notifications → channel `notification`
+
+Only notifications from those apps containing 승인, 결제 or 취소 leave the phone; each message is sent once even when the app re-posts it. The server's recipes read the text, and what it is unsure about waits on the admin app's Messages screen.
+
+Android 13+ treats notification access of apps installed outside a store as a *restricted setting*: if memexhub is greyed out in the notification access list, App info → ⋮ → **Allow restricted settings** first.
 
 ### Location
 

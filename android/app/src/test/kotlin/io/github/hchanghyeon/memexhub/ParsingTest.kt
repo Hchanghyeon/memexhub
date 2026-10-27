@@ -1,7 +1,7 @@
 package io.github.hchanghyeon.memexhub
 
 import io.github.hchanghyeon.memexhub.server.IngestClient
-import io.github.hchanghyeon.memexhub.sms.CardMessages
+import io.github.hchanghyeon.memexhub.payments.CardMessages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

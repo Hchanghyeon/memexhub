@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /** A kind of record the phone sends. The key names its switch and its last delivery. */
-enum class Record(val key: String) { Sms("sms"), Location("location") }
+enum class Record(val key: String) { Sms("sms"), Pay("pay"), Location("location") }
 
 /** How the last send went: when, and the HTTP status (2xx is ok). */
 data class Delivery(val at: Long, val code: Int) {

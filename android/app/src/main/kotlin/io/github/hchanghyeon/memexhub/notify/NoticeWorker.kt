@@ -23,6 +23,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.github.hchanghyeon.memexhub.MainActivity
 import io.github.hchanghyeon.memexhub.R
+import io.github.hchanghyeon.memexhub.payments.PaymentListener
 import io.github.hchanghyeon.memexhub.server.IngestClient
 import io.github.hchanghyeon.memexhub.server.Record
 import io.github.hchanghyeon.memexhub.server.Records
@@ -51,10 +52,15 @@ class NoticeWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val on = Record.entries.associateWith { records.isEnabled(it) }
         val now = mutableListOf<Notice>()
 
-        for ((r, perm) in listOf(Record.Sms to Manifest.permission.RECEIVE_SMS, Record.Location to Manifest.permission.ACCESS_FINE_LOCATION)) {
-            if (on[r] == true && ContextCompat.checkSelfPermission(ctx, perm) != PackageManager.PERMISSION_GRANTED) {
-                val name = ctx.getString(if (r == Record.Sms) R.string.feature_sms else R.string.feature_location)
-                now += Notice("perm:${r.key}", ctx.getString(R.string.notice_permission, name), ctx.getString(R.string.notice_permission_body), appIntent(ctx))
+        val names = mapOf(Record.Sms to R.string.feature_sms, Record.Pay to R.string.feature_pay, Record.Location to R.string.feature_location)
+        val allowed = mapOf(
+            Record.Sms to PaymentListener.allowed(ctx),
+            Record.Pay to PaymentListener.allowed(ctx),
+            Record.Location to (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED),
+        )
+        for (r in Record.entries) {
+            if (on[r] == true && allowed[r] == false) {
+                now += Notice("perm:${r.key}", ctx.getString(R.string.notice_permission, ctx.getString(names.getValue(r))), ctx.getString(R.string.notice_permission_body), appIntent(ctx))
             }
         }
 
@@ -78,7 +84,7 @@ class NoticeWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             for (i in 0 until list.length()) {
                 val o = list.getJSONObject(i)
                 val src = o.optString("source")
-                if (on[mine[src]] != true) continue
+                if (on[mine[src]] != true && !(src == "ledger" && on[Record.Pay] == true)) continue
                 val hours = o.optInt("hours")
                 val span = if (hours >= 48) ctx.resources.getQuantityString(R.plurals.notice_days, hours / 24, hours / 24) else ctx.getString(R.string.notice_hours, hours)
                 out += Notice("stale:$src", ctx.getString(R.string.notice_stale, ctx.getString(names.getValue(src)), span), ctx.getString(R.string.notice_stale_body), appIntent(ctx))
