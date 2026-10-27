@@ -26,6 +26,8 @@ Pages are built **only** from the parts in `web/src/ui/kit.tsx`. A page never se
 
 **Tokens**
 
+The brand tokens (colors, type, spacing, radii, motion) live in [`design/tokens.json`](../design/tokens.json) and are shared with the Android app; `npm run tokens` writes `web/src/tokens.css` (`--mx-*` variables) and the app's `Tokens.kt`. See [design/README.md](../design/README.md). The table below is the admin app's current layout scale.
+
 | | Value |
 |---|---|
 | Font | Pretendard (bundled), system fallbacks |

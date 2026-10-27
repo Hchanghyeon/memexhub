@@ -18,7 +18,9 @@
     "test:e2e": "playwright test",
     "check:worker": "esbuild src/worker.ts --bundle --format=esm --platform=browser --outfile=dist-worker/worker.js --log-level=warning",
     "build:web": "vite build --config web/vite.config.ts",
-    "dev:web": "vite --config web/vite.config.ts"
+    "dev:web": "vite --config web/vite.config.ts",
+    "tokens": "node design/build.mjs",
+    "tokens:check": "node design/build.mjs --check && node design/lint-android.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",

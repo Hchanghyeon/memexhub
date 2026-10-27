@@ -19,6 +19,8 @@ jobs:
       - run: npm ci
       - name: no known vulnerabilities in runtime dependencies
         run: npm audit --omit=dev --audit-level=low
+      - name: design tokens are generated and screens use them
+        run: npm run tokens:check
       - run: npm run typecheck
       - run: npm run build
       - run: npm run build:web

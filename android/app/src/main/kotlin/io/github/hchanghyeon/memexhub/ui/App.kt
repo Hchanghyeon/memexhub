@@ -72,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.hchanghyeon.memexhub.R
 import io.github.hchanghyeon.memexhub.server.Record
+import io.github.hchanghyeon.memexhub.ui.theme.MemexhubTheme
 
 /** Records this app can send. [record] is set once the record is built; the rest say "coming". */
 enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon: ImageVector, val record: Record? = null) {

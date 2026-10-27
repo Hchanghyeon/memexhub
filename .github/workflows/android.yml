@@ -2,10 +2,10 @@ name: android
 # The phone app in android/. Runs only when it (or this file) changes, so server PRs stay fast.
 on:
   pull_request:
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "design/**", ".github/workflows/android.yml"]
   push:
     branches: [main, develop]
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "design/**", ".github/workflows/android.yml"]
 permissions:
   contents: read
 jobs:
@@ -25,6 +25,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: design tokens are generated and screens use them
+        run: node ../design/build.mjs --check && node ../design/lint-android.mjs
       - run: ./gradlew --no-daemon lint testDebugUnitTest assembleDebug
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

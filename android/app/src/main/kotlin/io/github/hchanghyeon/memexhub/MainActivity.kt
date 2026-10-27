@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import io.github.hchanghyeon.memexhub.ui.App
-import io.github.hchanghyeon.memexhub.ui.MemexhubTheme
+import io.github.hchanghyeon.memexhub.ui.theme.MemexhubTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
