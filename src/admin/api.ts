@@ -754,13 +754,32 @@ export function adminApi(hub: Hub, opts: { vaultRoots: string[]; base: string })
     return c.json({ ok: true });
   });
   api.post("/totp/start", async (c) => {
-    if (await hub.admin.hasTotp(c.get("adminId"))) throw new Fail("already_on", undefined, 409);
+    // Moving to a new authenticator app: prove the current one, or be at home (the old phone may be gone).
+    if (await hub.admin.hasTotp(c.get("adminId"))) {
+      const f = z.object({ code: z.string().max(10).optional() }).safeParse(await c.req.json().catch(() => ({})));
+      const code = f.success ? f.data.code : undefined;
+      if (offNetwork(c) && !(code && (await hub.admin.checkTotp(c.get("adminId"), code)))) throw new Fail("code_needed", undefined, 403);
+    }
     const secret = await hub.admin.startTotp(c.get("adminId"));
     return c.json({ secret, uri: `otpauth://totp/memexhub:admin?secret=${secret}&issuer=memexhub` });
   });
   api.post("/totp/confirm", async (c) => {
     const f = await body(c, z.object({ code: z.string().max(10) }));
     if (!(await hub.admin.confirmTotp(c.get("adminId"), f.code))) throw new Fail("wrong_code");
+    return c.json({ ok: true });
+  });
+  // Turning two-factor off only from the home network, with the password: it is what guards the admin
+  // app from the internet, so it also closes the admin app to the internet again.
+  api.post("/totp/disable", async (c) => {
+    const f = await body(c, z.object({ password: z.string().max(200) }));
+    if (offNetwork(c)) throw new Fail("home_only", undefined, 403);
+    if (hub.env.ADMIN_PUBLIC || hub.platform.name === "workers") throw new Fail("forced_public", undefined, 409);
+    if (!(await hub.admin.checkPassword(c.get("adminId"), f.password))) throw new Fail("wrong_password", undefined, 403);
+    await hub.admin.disableTotp(c.get("adminId"));
+    const s = await hub.settings.get();
+    if (s.admin.allowPublic) await hub.settings.set("admin", { ...s.admin, allowPublic: false });
+    deleteCookie(c, TRUST_COOKIE, { path: "/" });
+    await audit(db, actor(c), "admin.public", undefined, { enable: false, reason: "two-factor off" });
     return c.json({ ok: true });
   });
   api.post("/admin-public", async (c) => {

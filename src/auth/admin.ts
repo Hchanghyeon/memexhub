@@ -176,6 +176,28 @@ export class AdminAuth {
     return !!row && !row.totp_secret_enc && Date.now() - Date.parse(row.created_at) < 24 * 3600_000;
   }
 
+  /** Whether [code] is the current code of this admin's authenticator app. */
+  async checkTotp(adminId: string, code: string): Promise<boolean> {
+    const row = await this.db.get<{ s: string | null }>(`SELECT totp_secret_enc s FROM admins WHERE id = ?`, [adminId]);
+    if (!row?.s || !code) return false;
+    return verifyTotp(await decrypt(this.secret, "totp", row.s, adminId), code.replace(/\s/g, ""), Date.now());
+  }
+
+  async checkPassword(adminId: string, password: string): Promise<boolean> {
+    const row = await this.db.get<{ password_hash: string }>(`SELECT password_hash FROM admins WHERE id = ?`, [adminId]);
+    return !!row && (await verifyPassword(password, row.password_hash));
+  }
+
+  /** Two-factor off: the key, a pending new key and every remembered browser are gone. */
+  async disableTotp(adminId: string) {
+    await this.db.batch([
+      { sql: `UPDATE admins SET totp_secret_enc = NULL WHERE id = ?`, params: [adminId] },
+      { sql: `DELETE FROM cursors WHERE key = ?`, params: [`admin.totp_pending:${adminId}`] },
+      { sql: `DELETE FROM admin_trusted WHERE admin_id = ?`, params: [adminId] },
+    ]);
+    await audit(this.db, `admin:${adminId}`, "admin.totp_disabled");
+  }
+
   async hasTotp(adminId: string) {
     return !!(await this.db.get<{ x: string }>(`SELECT totp_secret_enc x FROM admins WHERE id = ? AND totp_secret_enc IS NOT NULL`, [adminId]));
   }

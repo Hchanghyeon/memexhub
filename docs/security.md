@@ -33,7 +33,7 @@ Every control below is designed so that one broken layer is caught by the next. 
 | T7 | SSRF | providers only call admin-configured hosts · tools never take URLs · private IPs only per connection opt-in · no redirects followed | ✅ |
 | T8 | DB / backup leak | secrets encrypted with a key outside the DB · `DATA_DIR` 700, DB 600 · backups encrypted (AES-256-GCM, key from `MEMEXHUB_SECRET`), files 600 | ✅ |
 | T9 | PII in logs | logs carry ids and counts only · secrets never logged | ✅ |
-| T10 | Misconfiguration | placeholder secrets rejected · http `PUBLIC_URL` refused (except localhost) · admin sign-in from outside the private network requires TOTP · security card in the UI | ✅ |
+| T10 | Misconfiguration | placeholder secrets rejected · http `PUBLIC_URL` refused (except localhost) · admin sign-in from outside the private network requires TOTP · a new authenticator key needs the current code from outside · turning TOTP off only from the home network with the password, and it closes the admin app to the internet · security card in the UI | ✅ |
 | T11 | Fresh-instance takeover | setup needs a one-time code printed only to the server log · MCP and ingest refuse requests until an admin exists | ✅ |
 
 ## Prompt injection
