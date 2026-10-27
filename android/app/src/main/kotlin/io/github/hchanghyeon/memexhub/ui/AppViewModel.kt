@@ -3,9 +3,9 @@ package io.github.hchanghyeon.memexhub.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hchanghyeon.memexhub.data.IngestClient
-import io.github.hchanghyeon.memexhub.data.Server
-import io.github.hchanghyeon.memexhub.data.ServerConfig
+import io.github.hchanghyeon.memexhub.server.IngestClient
+import io.github.hchanghyeon.memexhub.server.Server
+import io.github.hchanghyeon.memexhub.server.ServerConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
