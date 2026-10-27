@@ -37,6 +37,8 @@ import io.github.hchanghyeon.memexhub.notes.NotesScreen
 import io.github.hchanghyeon.memexhub.notes.NotesViewModel
 import io.github.hchanghyeon.memexhub.today.TodayRoute
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Lock
+import io.github.hchanghyeon.memexhub.account.AccountRoute
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -85,6 +87,7 @@ enum class Feature(@StringRes val title: Int, @StringRes val body: Int, val icon
     Pay(R.string.feature_pay, R.string.feature_pay_body, Icons.Filled.Notifications, Record.Pay),
     Location(R.string.feature_location, R.string.feature_location_body, Icons.Filled.LocationOn, Record.Location),
     Health(R.string.feature_health, R.string.feature_health_body, Icons.Filled.Favorite),
+    Account(R.string.account_title, R.string.account_body, Icons.Filled.Lock),
 }
 
 /** From this width the screen shows the list and the selected record side by side (unfolded foldables, tablets). */
@@ -119,7 +122,7 @@ fun App(vm: AppViewModel = viewModel()) {
                     )
                 },
                 notes = { NotesScreen(c.server.url, notesVm) },
-                records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m) } },
+                records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m, onSignIn = { tab = 1 }) } },
             )
         }
     }
@@ -171,6 +174,9 @@ private fun MainTabs(tab: Int, onTab: (Int) -> Unit, today: @Composable () -> Un
     }
 }
 
+@Composable
+private fun serverUrlOf(vm: AppViewModel): String = (vm.connection.collectAsState().value as? Connection.Ready)?.server?.url.orEmpty()
+
 /** Notifications are how the app says a record stopped; ask once after connecting. */
 @Composable
 private fun AskForNotifications() {
@@ -186,7 +192,7 @@ private fun AskForNotifications() {
 }
 
 @Composable
-private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier) {
+private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier, onSignIn: () -> Unit = {}) {
     val on by vm.enabled.collectAsState()
     val last by vm.last.collectAsState()
     when (val r = feature.record) {
@@ -206,7 +212,7 @@ private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier
             onToggle = { vm.setEnabled(r, it) },
             modifier = modifier,
         ) { AlwaysLocation() }
-        null -> SoonDetail(feature, modifier)
+        null -> if (feature == Feature.Account) AccountRoute(serverUrlOf(vm), onSignIn = onSignIn, modifier = modifier) else SoonDetail(feature, modifier)
     }
 }
 
@@ -343,7 +349,7 @@ private fun FeatureList(
                 headlineContent = { Text(stringResource(f.title)) },
                 supportingContent = {
                     val state = when (f.record) {
-                        null -> R.string.feature_soon
+                        null -> if (f == Feature.Account) R.string.account_body else R.string.feature_soon
                         else -> if (on[f.record] == true) R.string.record_on else R.string.record_off
                     }
                     Text(stringResource(state))

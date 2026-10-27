@@ -73,6 +73,17 @@ class ScreenshotTest {
     @Test fun todayOpenDark() = shot("today-open-dark", OPEN_DARK) { TodayScreen(day) }
     @Test fun todaySignedOut() = shot("today-signed-out", COVER) { TodayScreen(TodayState(date = day.date, signedIn = false, records = day.records)) }
 
+    private val account = io.github.hchanghyeon.memexhub.notes.AdminClient.Account("owner", totp = true, home = false)
+    @Test fun accountCover() = shot("account-cover", COVER) {
+        io.github.hchanghyeon.memexhub.account.AccountScreen(io.github.hchanghyeon.memexhub.account.AccountState(account = account, signedIn = true))
+    }
+    @Test fun accountNewKey() = shot("account-new-key", COVER) {
+        io.github.hchanghyeon.memexhub.account.AccountScreen(io.github.hchanghyeon.memexhub.account.AccountState(account = account, signedIn = true, newKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", notice = "code_needed"))
+    }
+    @Test fun accountOpen() = shot("account-open", OPEN) {
+        io.github.hchanghyeon.memexhub.account.AccountScreen(io.github.hchanghyeon.memexhub.account.AccountState(account = account.copy(home = true), signedIn = true, notice = "ok:password"))
+    }
+
     @Test fun note() = shot("note-cover", COVER) {
         val page = WikiText.page(
             """

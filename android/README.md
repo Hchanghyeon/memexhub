@@ -45,6 +45,10 @@ The **Notes** tab reads the vault through the admin app's JSON API, signed in wi
 
 The first tab: today's to-dos (checkboxes under the "할 일" / "to-do" heading of the day's journal note, open ones first, with a progress bar), money spent today against yesterday and the month (`/admin/api/money`), places and distance (`/admin/api/location/day`), and whether this phone's records are flowing. Pull down to refresh. Without the admin sign-in it shows only this phone's records.
 
+### Account and security
+
+Records → Account and security, signed in as the admin: change the password; turn two-factor on, move it to a new authenticator app (the key opens straight in the authenticator app on the phone; outside the home network the current code is asked first; the old key works until the new one is confirmed), or turn it off (home network only, with the password; the admin app then opens on the home network only); forget remembered devices; sign out.
+
 ## Screens
 
 Built only from design tokens (`design/tokens.json`) and the parts in `ui/kit` (big number card, to-do row, list row, status dot, button with press feedback and haptics). Three tabs, Today, Notes and Records: a bottom bar under 600 dp, a side rail from 600 dp. Under 600 dp wide (phones, a foldable's cover screen) each tab is a list that opens one item; from 600 dp (an unfolded foldable, tablets) the list and the selected item sit side by side. The selection survives folding and unfolding. `ScreenshotTest` renders each screen on the JVM as the Galaxy Z Fold shows it (cover 411 dp, unfolded 840 dp, light and dark, Korean): `./gradlew recordRoborazziDebug`; CI uploads them as the `screenshots` artifact.

@@ -99,6 +99,59 @@ class AdminClient(context: Context, base: String) {
         }
     }
 
+    /** Who is signed in, whether two-factor is on, and whether the server sees this phone at home. */
+    data class Account(val username: String, val totp: Boolean, val home: Boolean)
+
+    suspend fun account(): Account {
+        val s = JSONObject(get("/session"))
+        if (!s.optBoolean("signedIn")) throw SignedOut()
+        return Account(s.optString("username"), s.optBoolean("totp"), s.optBoolean("home"))
+    }
+
+    /** POSTs a change with the session's CSRF token. Returns the server's error code, or null when it worked. */
+    suspend fun change(path: String, body: JSONObject = JSONObject()): String? {
+        val csrf = JSONObject(get("/session")).optString("csrf")
+        return withContext(Dispatchers.IO) {
+            val conn = open(path, "POST", cookies()).apply {
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("X-CSRF", csrf)
+                doOutput = true
+            }
+            try {
+                conn.outputStream.use { it.write(body.toString().toByteArray()) }
+                val status = conn.responseCode
+                keep(conn)
+                if (status == 401) throw SignedOut()
+                if (status in 200..299) return@withContext null
+                val text = conn.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                runCatching { JSONObject(text).optString("error") }.getOrNull()?.ifBlank { null } ?: "http_$status"
+            } finally {
+                conn.disconnect()
+            }
+        }
+    }
+
+    /** Starts (or moves) two-factor; returns the new key, or the error code. */
+    suspend fun startTotp(code: String?): Pair<String?, String?> {
+        val csrf = JSONObject(get("/session")).optString("csrf")
+        return withContext(Dispatchers.IO) {
+            val conn = open("/totp/start", "POST", cookies()).apply {
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("X-CSRF", csrf)
+                doOutput = true
+            }
+            try {
+                conn.outputStream.use { it.write((if (code.isNullOrBlank()) JSONObject() else JSONObject().put("code", code.trim())).toString().toByteArray()) }
+                val status = conn.responseCode
+                if (status == 401) throw SignedOut()
+                if (status in 200..299) JSONObject(conn.inputStream.bufferedReader().use { it.readText() }).optString("secret") to null
+                else null to runCatching { JSONObject(conn.errorStream.bufferedReader().use { it.readText() }).optString("error") }.getOrDefault("http_$status")
+            } finally {
+                conn.disconnect()
+            }
+        }
+    }
+
     /** The month's money report (`/money`): days with totals, the month total. */
     suspend fun money(month: String): JSONObject = JSONObject(get("/money?month=$month"))
 
@@ -137,7 +190,10 @@ class AdminClient(context: Context, base: String) {
             .mapNotNull { h -> h.substringBefore(';').split('=', limit = 2).takeIf { it.size == 2 } }
             .filter { it[0] == SESSION || it[0] == TRUST }
             .associate { it[0] to it[1] }
-        store.edit { it[cookieKey] = TokenCipher.encrypt((jar() + got).encode()) }
+        if (got.isEmpty()) return
+        // A cookie set to an empty value is the server deleting it.
+        val next = (jar() + got).filterValues { it.isNotEmpty() }
+        store.edit { it[cookieKey] = TokenCipher.encrypt(next.encode()) }
     }
 
     private companion object {

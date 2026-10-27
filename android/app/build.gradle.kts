@@ -15,8 +15,8 @@ android {
         // Android 9: Health Connect needs it, and it still covers almost every phone in use.
         minSdk = 28
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     buildTypes {
