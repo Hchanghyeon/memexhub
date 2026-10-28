@@ -55,7 +55,28 @@ export function stays(points: Point[], o: StayOptions = DEFAULT_STAY): Stay[] {
   return merged.filter((s) => s.end - s.start >= o.minMinutes * 60);
 }
 
-export const pathKm = (pts: Point[]) => pts.slice(1).reduce((sum, p, i) => sum + distanceM(pts[i]!.lat, pts[i]!.lon, p.lat, p.lon), 0) / 1000;
+/**
+ * Distance travelled, without GPS noise: a step shorter than the two fixes' accuracies added up (at least 15 m)
+ * is jitter while standing still, and a fix that would mean more than 250 km/h is a wild one. Both
+ * are skipped and the last counted point stays the anchor. Dense tracks (a phone app recording every
+ * few seconds while moving) would otherwise add kilometres of jitter.
+ */
+export function pathKm(pts: Point[]) {
+  let sum = 0;
+  let prev: Point | undefined;
+  for (const p of pts) {
+    if (!prev) {
+      prev = p;
+      continue;
+    }
+    const d = distanceM(prev.lat, prev.lon, p.lat, p.lon);
+    if (d / Math.max(p.t - prev.t, 1) > 70) continue;
+    if (d < Math.max((prev.acc ?? 0) + (p.acc ?? 0), 15)) continue;
+    sum += d;
+    prev = p;
+  }
+  return sum / 1000;
+}
 
 /** The named area a point is in (radius + 50 m tolerance), if any. */
 export const areaAt = (areas: Area[], lat: number, lon: number) => areas.find((a) => distanceM(a.lat, a.lon, lat, lon) <= a.radius + 50);

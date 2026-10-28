@@ -33,6 +33,18 @@ describe("stays", () => {
     expect(pathKm(pts)).toBeGreaterThan(5);
     expect(pathKm(pts)).toBeLessThan(10);
   });
+  it("leaves GPS jitter and wild fixes out of the distance", () => {
+    // Two hours at one place, a fix every 10 s wobbling ±20 m (acc 25 m): no distance at all.
+    const still: { t: number; lat: number; lon: number; acc: number }[] = [];
+    for (let i = 0; i < 720; i++) still.push({ t: 1_000 + i * 10, lat: A.lat + (i % 2 ? 0.00018 : -0.00018), lon: A.lon, acc: 25 });
+    expect(pathKm(still)).toBe(0);
+    // A real 1 km walk in 50 m steps, with one fix 30 km away in the middle: about 1 km.
+    const walk: { t: number; lat: number; lon: number; acc?: number }[] = [];
+    for (let i = 0; i <= 20; i++) walk.push({ t: 10_000 + i * 40, lat: A.lat + i * 0.00045, lon: A.lon, acc: 8 });
+    walk.splice(10, 0, { t: 10_000 + 9 * 40 + 20, lat: A.lat + 0.27, lon: A.lon, acc: 8 });
+    expect(pathKm(walk)).toBeGreaterThan(0.95);
+    expect(pathKm(walk)).toBeLessThan(1.05);
+  });
   it("names areas and strips lot numbers", () => {
     expect(areaAt([{ name: "Home", ...A, radius: 100 }], A.lat + 0.001, A.lon)?.name).toBe("Home");
     expect(areaAt([{ name: "Home", ...A, radius: 100 }], B.lat, B.lon)).toBeUndefined();
