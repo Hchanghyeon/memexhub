@@ -28,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import androidx.compose.ui.graphics.asImageBitmap
 import java.time.LocalDate
 import java.util.Locale
 
@@ -83,6 +84,30 @@ class ScreenshotTest {
     @Test fun accountOpen() = shot("account-open", OPEN) {
         io.github.hchanghyeon.memexhub.account.AccountScreen(io.github.hchanghyeon.memexhub.account.AccountState(account = account.copy(home = true), signedIn = true, notice = "ok:password"))
     }
+
+    // A fake day around Seoul City Hall, and grey grid tiles instead of the network.
+    private val mapDay = io.github.hchanghyeon.memexhub.map.MapDay(
+        LocalDate.of(2026, 10, 27), 12.4,
+        listOf(37.5651 to 126.9895, 37.5660 to 126.9850, 37.5665 to 126.9780, 37.5700 to 126.9770, 37.5720 to 126.9810, 37.5705 to 126.9860, 37.5665 to 126.9780),
+        listOf(
+            io.github.hchanghyeon.memexhub.map.Stay(1_793_052_000, 1_793_055_600, 60, 37.5651, 126.9895, "집"),
+            io.github.hchanghyeon.memexhub.map.Stay(1_793_057_400, 1_793_082_600, 420, 37.5665, 126.9780, "회사"),
+            io.github.hchanghyeon.memexhub.map.Stay(1_793_073_000, 1_793_076_600, 60, 37.5720, 126.9810, ""),
+        ),
+        "© OpenStreetMap",
+    )
+    private val gridTile: androidx.compose.ui.graphics.ImageBitmap by lazy {
+        val b = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(b)
+        c.drawColor(0xFFE9ECEF.toInt())
+        val p = android.graphics.Paint().apply { color = 0xFFFFFFFF.toInt(); strokeWidth = 6f }
+        for (i in 0..256 step 64) { c.drawLine(i.toFloat(), 0f, i.toFloat(), 256f, p); c.drawLine(0f, i.toFloat(), 256f, i.toFloat(), p) }
+        b.asImageBitmap()
+    }
+    private fun mapState(sel: Int? = null) = io.github.hchanghyeon.memexhub.map.MapState(date = mapDay.date, signedIn = true, day = mapDay, selected = sel)
+    @Test fun mapCover() = shot("map-cover", COVER) { io.github.hchanghyeon.memexhub.map.MapScreen(mapState(), tile = { _, _, _ -> gridTile }) }
+    @Test fun mapCoverDark() = shot("map-cover-dark", COVER_DARK) { io.github.hchanghyeon.memexhub.map.MapScreen(mapState(1), tile = { _, _, _ -> gridTile }) }
+    @Test fun mapOpen() = shot("map-open", OPEN) { io.github.hchanghyeon.memexhub.map.MapScreen(mapState(1), tile = { _, _, _ -> gridTile }) }
 
     @Test fun note() = shot("note-cover", COVER) {
         val page = WikiText.page(

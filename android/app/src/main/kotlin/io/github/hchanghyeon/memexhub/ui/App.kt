@@ -38,6 +38,8 @@ import io.github.hchanghyeon.memexhub.notes.NotesViewModel
 import io.github.hchanghyeon.memexhub.today.TodayRoute
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Place
+import io.github.hchanghyeon.memexhub.map.MapRoute
 import io.github.hchanghyeon.memexhub.account.AccountRoute
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
@@ -116,13 +118,14 @@ fun App(vm: AppViewModel = viewModel()) {
                 today = {
                     TodayRoute(
                         c.server.url,
-                        onSignIn = { tab = 1 },
+                        onSignIn = { tab = 2 },
                         onOpen = { path -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, (c.server.url + path).toUri())) } },
-                        onOpenNote = { path -> notesVm.bind(c.server.url); notesVm.open(path); tab = 1 },
+                        onOpenNote = { path -> notesVm.bind(c.server.url); notesVm.open(path); tab = 2 },
                     )
                 },
+                map = { MapRoute(c.server.url, onSignIn = { tab = 2 }) },
                 notes = { NotesScreen(c.server.url, notesVm) },
-                records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m, onSignIn = { tab = 1 }) } },
+                records = { HomeScreen(c.server.url, on, vm::disconnect) { f, m -> FeatureScreen(f, vm, m, onSignIn = { tab = 2 }) } },
             )
         }
     }
@@ -144,9 +147,10 @@ private val NotificationAccess = SpecialAccess(
 
 /** Notes and Records: a bottom bar on phones and cover screens, a side rail when unfolded or on tablets. */
 @Composable
-private fun MainTabs(tab: Int, onTab: (Int) -> Unit, today: @Composable () -> Unit, notes: @Composable () -> Unit, records: @Composable () -> Unit) {
+private fun MainTabs(tab: Int, onTab: (Int) -> Unit, today: @Composable () -> Unit, map: @Composable () -> Unit, notes: @Composable () -> Unit, records: @Composable () -> Unit) {
     val tabs = listOf(
         Triple(R.string.tab_today, Icons.Filled.DateRange, today),
+        Triple(R.string.tab_map, Icons.Filled.Place, map),
         Triple(R.string.tab_notes, Icons.AutoMirrored.Filled.List, notes),
         Triple(R.string.tab_records, Icons.AutoMirrored.Filled.Send, records),
     )

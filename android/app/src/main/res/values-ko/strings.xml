@@ -155,4 +155,18 @@
     <string name="account_err_home_only">2단계 인증 끄기는 집 네트워크에서만 돼요.</string>
     <string name="account_err_forced">이 서버는 관리 화면을 인터넷에 늘 열어 두는 설정이라 2단계 인증을 끌 수 없어요.</string>
     <string name="account_err_other">문제가 생겼어요. 연결을 확인하고 다시 해 보세요.</string>
+    <string name="tab_map">지도</string>
+    <string name="map_signin">관리 화면 계정으로 로그인하면 다녀온 곳이 지도에 보여요.</string>
+    <string name="map_fit">하루 전체</string>
+    <string name="map_previous">전날</string>
+    <string name="map_next">다음 날</string>
+    <plurals name="map_summary">
+        <item quantity="other">%1$skm · 머문 곳 %2$d곳</item>
+    </plurals>
+    <string name="map_stays">머문 곳</string>
+    <string name="map_none">이 날은 위치 기록이 없어요.</string>
+    <string name="map_loading">불러오는 중…</string>
+    <string name="map_not_connected">서버에 위치 연결이 없어요.</string>
+    <string name="map_hours">%1$d시간 %2$d분</string>
+    <string name="map_minutes">%d분</string>
 </resources>

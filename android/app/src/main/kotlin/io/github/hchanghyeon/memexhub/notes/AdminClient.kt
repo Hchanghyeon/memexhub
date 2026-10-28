@@ -155,6 +155,16 @@ class AdminClient(context: Context, base: String) {
     /** The month's money report (`/money`): days with totals, the month total. */
     suspend fun money(month: String): JSONObject = JSONObject(get("/money?month=$month"))
 
+    /** One map tile (PNG) through the server's cache, or null when there is none. */
+    suspend fun tile(z: Int, x: Int, y: Int): ByteArray? = withContext(Dispatchers.IO) {
+        val conn = open("/map/tile/$z/$x/$y", "GET", cookies())
+        try {
+            if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     /** One day of places (`/location/day`): distance and stays with names. */
     suspend fun locationDay(date: String): JSONObject = JSONObject(get("/location/day?date=$date"))
 
