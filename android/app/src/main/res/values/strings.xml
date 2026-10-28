@@ -24,7 +24,7 @@
     <string name="feature_pay">Payment notifications</string>
     <string name="feature_pay_body">Payments notified by Samsung Wallet.</string>
     <string name="feature_location">Location</string>
-    <string name="feature_location_body">Where you were, every few minutes while you move.</string>
+    <string name="feature_location_body">Where you go: along the roads while you move, now and then while you stay.</string>
     <string name="feature_health">Health</string>
     <string name="feature_health_body">Steps, sleep and heart rate from Health Connect, every morning.</string>
     <string name="feature_soon">Coming in a later version</string>
@@ -178,4 +178,18 @@
     <string name="map_not_connected">Location is not connected on the server.</string>
     <string name="map_hours">%1$d h %2$d min</string>
     <string name="map_minutes">%d min</string>
+    <string name="location_state_moving">Moving: a point every 20 m</string>
+    <string name="location_state_still">Staying: a point every 5 minutes</string>
+    <string name="location_state_saver">Saver: a point every 3 minutes</string>
+    <string name="location_mode">How finely</string>
+    <string name="location_mode_auto">Auto (recommended)</string>
+    <string name="location_mode_auto_body">GPS every 10 s while you move, so paths follow the roads; one point every 5 minutes while you stay.</string>
+    <string name="location_mode_detailed">Detailed</string>
+    <string name="location_mode_detailed_body">GPS every 10 s all the time. Uses the most battery.</string>
+    <string name="location_mode_saver">Saver</string>
+    <string name="location_mode_saver_body">One point every 3 minutes. Places are right, paths are rough.</string>
+    <string name="location_battery_title">Keep recording overnight</string>
+    <string name="location_battery_body">Battery optimization can stop location while the phone sleeps, leaving hours without points. Exempt memexhub from it.</string>
+    <string name="location_battery_button">Exempt from battery optimization</string>
+    <string name="location_battery_galaxy">On a Galaxy also: Settings → Battery → Background usage limits → Never sleeping apps → add memexhub.</string>
 </resources>

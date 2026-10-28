@@ -215,7 +215,12 @@ private fun FeatureScreen(feature: Feature, vm: AppViewModel, modifier: Modifier
             privacy = stringResource(R.string.location_privacy),
             onToggle = { vm.setEnabled(r, it) },
             modifier = modifier,
-        ) { AlwaysLocation() }
+        ) {
+            val mode by vm.locationMode.collectAsState()
+            LocationModePicker(mode, vm::setLocationMode)
+            AlwaysLocation()
+            KeepAwake()
+        }
         null -> if (feature == Feature.Account) AccountRoute(serverUrlOf(vm), onSignIn = onSignIn, modifier = modifier) else SoonDetail(feature, modifier)
     }
 }

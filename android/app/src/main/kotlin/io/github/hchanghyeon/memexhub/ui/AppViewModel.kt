@@ -7,6 +7,7 @@ import io.github.hchanghyeon.memexhub.location.LocationService
 import io.github.hchanghyeon.memexhub.notify.NoticeWorker
 import io.github.hchanghyeon.memexhub.server.Delivery
 import io.github.hchanghyeon.memexhub.server.IngestClient
+import io.github.hchanghyeon.memexhub.server.LocationMode
 import io.github.hchanghyeon.memexhub.server.Record
 import io.github.hchanghyeon.memexhub.server.Records
 import io.github.hchanghyeon.memexhub.server.Server
@@ -47,6 +48,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun ensureLocation() = LocationService.start(getApplication())
+
+    val locationMode: StateFlow<LocationMode> = records.locationMode().stateIn(viewModelScope, SharingStarted.Eagerly, LocationMode.Auto)
+
+    /** Saved, then a running service reads it again. */
+    fun setLocationMode(m: LocationMode) {
+        viewModelScope.launch {
+            records.setLocationMode(m)
+            if (enabled.value[Record.Location] == true) LocationService.start(getApplication())
+        }
+    }
 
     val connection: StateFlow<Connection> = config.server
         .map { if (it == null) Connection.None else Connection.Ready(it) }

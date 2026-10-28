@@ -109,6 +109,18 @@ class ScreenshotTest {
     @Test fun mapCoverDark() = shot("map-cover-dark", COVER_DARK) { io.github.hchanghyeon.memexhub.map.MapScreen(mapState(1), tile = { _, _, _ -> gridTile }) }
     @Test fun mapOpen() = shot("map-open", OPEN) { io.github.hchanghyeon.memexhub.map.MapScreen(mapState(1), tile = { _, _, _ -> gridTile }) }
 
+    @Test fun locationSettings() = shot("location-cover", COVER) {
+        Box(Modifier.fillMaxSize().background(Mx.colors.page)) {
+            io.github.hchanghyeon.memexhub.ui.RecordPanel(
+                io.github.hchanghyeon.memexhub.ui.Feature.Location, on = true, last = Delivery(now - 60_000, 200),
+                permissions = emptyList(), privacy = "켜 두면 위치를 보내요.", onToggle = {},
+            ) {
+                io.github.hchanghyeon.memexhub.ui.LocationModePicker(io.github.hchanghyeon.memexhub.server.LocationMode.Auto) {}
+                io.github.hchanghyeon.memexhub.ui.KeepAwake()
+            }
+        }
+    }
+
     @Test fun note() = shot("note-cover", COVER) {
         val page = WikiText.page(
             """

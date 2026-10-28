@@ -21,7 +21,7 @@
     <string name="feature_pay">결제 알림</string>
     <string name="feature_pay_body">삼성 월렛이 알려 주는 결제를 보내요.</string>
     <string name="feature_location">위치</string>
-    <string name="feature_location_body">움직이는 동안 몇 분마다 위치를 보냅니다.</string>
+    <string name="feature_location_body">움직일 때는 길을 따라, 머물 때는 가끔 위치를 보내요.</string>
     <string name="feature_health">건강</string>
     <string name="feature_health_body">매일 아침 Health Connect의 걸음 · 수면 · 심박을 보냅니다.</string>
     <string name="feature_soon">다음 버전에서 추가돼요</string>
@@ -169,4 +169,18 @@
     <string name="map_not_connected">서버에 위치 연결이 없어요.</string>
     <string name="map_hours">%1$d시간 %2$d분</string>
     <string name="map_minutes">%d분</string>
+    <string name="location_state_moving">이동 중: 20m마다 기록</string>
+    <string name="location_state_still">머무는 중: 5분마다 기록</string>
+    <string name="location_state_saver">절약: 3분마다 기록</string>
+    <string name="location_mode">기록 방식</string>
+    <string name="location_mode_auto">자동 (추천)</string>
+    <string name="location_mode_auto_body">움직일 때는 10초마다 GPS로 남겨 길을 따라 그려지고, 머물 때는 5분에 한 번만 남겨요.</string>
+    <string name="location_mode_detailed">자세히</string>
+    <string name="location_mode_detailed_body">늘 10초마다 GPS로 남겨요. 배터리를 가장 많이 써요.</string>
+    <string name="location_mode_saver">절약</string>
+    <string name="location_mode_saver_body">3분에 한 번만 남겨요. 머문 곳은 맞지만 길은 거칠어요.</string>
+    <string name="location_battery_title">밤에도 끊기지 않게</string>
+    <string name="location_battery_body">배터리 최적화가 폰이 쉬는 동안 위치 기록을 멈춰서 몇 시간씩 비는 일이 있어요. memexhub를 최적화에서 빼 주세요.</string>
+    <string name="location_battery_button">배터리 최적화에서 빼기</string>
+    <string name="location_battery_galaxy">갤럭시는 이것도 해 주세요: 설정 → 배터리 → 백그라운드 사용 제한 → 절전 예외 앱 → memexhub 추가.</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.map
 
 /** A kind of record the phone sends. The key names its switch and its last delivery. */
 enum class Record(val key: String) { Sms("sms"), Pay("pay"), Location("location") }
+
+/** How finely location is recorded. Auto follows the phone: fine while moving, sparse while still. */
+enum class LocationMode(val key: String) { Saver("saver"), Auto("auto"), Detailed("detailed") }
 
 /** How the last send went: when, and the HTTP status (2xx is ok). */
 data class Delivery(val at: Long, val code: Int) {
@@ -30,6 +34,14 @@ class Records(context: Context) {
 
     suspend fun setEnabled(r: Record, on: Boolean) {
         store.edit { it[booleanPreferencesKey("${r.key}_on")] = on }
+    }
+
+    fun locationMode(): Flow<LocationMode> = store.data.map { p ->
+        LocationMode.entries.firstOrNull { it.key == p[stringPreferencesKey("location_mode")] } ?: LocationMode.Auto
+    }
+
+    suspend fun setLocationMode(m: LocationMode) {
+        store.edit { it[stringPreferencesKey("location_mode")] = m.key }
     }
 
     fun last(r: Record): Flow<Delivery?> = store.data.map { p ->

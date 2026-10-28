@@ -24,7 +24,13 @@ Android 13+ treats notification access of apps installed outside a store as a *r
 
 ### Location
 
-Like OwnTracks in Move mode: a point every 3 minutes (fused provider, balanced power; GPS and network before Android 12), fixes worse than 500 m dropped, sent in the OwnTracks format so the server's location module reads it unchanged. A foreground service with a quiet notification keeps it running with the screen off. Allowing location *All the time* lets it start again after a reboot or an app update; without it, opening the app starts it.
+Sent to `/ingest/owntracks` in the OwnTracks format, so the server's location module reads it unchanged, in batches about once a minute. Three modes, picked on the Location screen:
+
+- **Auto** (default): while moving, a GPS fix every 10 s and a point every 20 m, so paths follow the roads; while staying, one balanced fix every 5 minutes. The significant-motion sensor (or a fix 100 m from the last point) switches to moving; 5 minutes within 50 m switches back
+- **Detailed**: always the moving settings
+- **Saver**: one balanced fix every 3 minutes
+
+Fixes worse than 100 m (moving) or 500 m (staying) are dropped. A foreground service with a quiet notification (it says whether it is in moving or staying mode) keeps it running with the screen off. Battery optimization stops it overnight on many phones, so the screen offers the exemption, plus One UI's "Never sleeping apps" on a Galaxy. Allowing location *All the time* lets it start again after a reboot or an app update.
 
 ### Notifications
 
